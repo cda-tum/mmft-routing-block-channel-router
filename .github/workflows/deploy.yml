@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  CDA_HOST_NAME: tueicda-cda.srv.mwn.de
+  CDA_USER_NAME: web-user
+  CDA_TARGET_DIR: /var/www/cda/app/board-router/
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: jetli/wasm-pack-action@v0.4.0
+    - uses: actions/setup-node@v4
+      with:
+        cache: 'npm'
+    - name: Build WASM
+      run: wasm-pack build
+    - name: Build Vite
+      working-directory: ./gui
+      run: npm ci && npm run build
+    - name: Setup SSH via the stored Action Secrets
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+        echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/my_rsync_key
+        echo "IdentityFile ~/.ssh/my_rsync_key" >> ~/.ssh/config
+        chmod -R 700 ~/.ssh
+    - name: Deploy webpage from ref ${{ github.ref }}
+      working-directory: ./gui
+      run: rsync --rsync-path="mkdir -p ${CDA_TARGET_DIR} && rsync" -rvz --update -e ssh dist/ ${CDA_USER_NAME}@${CDA_HOST_NAME}:${CDA_TARGET_DIR}
+    
