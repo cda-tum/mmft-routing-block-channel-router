@@ -12,6 +12,8 @@ import { LayoutChoice } from "./components/LayoutChoice"
 import { Port } from "./components/Port"
 import { downloadDXF, generateDXF, generateOutlines } from "./utils/dxf"
 import { nanoid } from "nanoid"
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
 
 export type InputState = {
     parameters: InputParameters
@@ -297,54 +299,81 @@ export function BoardUI() {
                 )
             }
 
-            {output.error !== undefined &&
-                <Typography
-                    variant="soft"
-                    color="danger"
-                    startDecorator={<InfoOutlined />}
+
+            <Box
+                sx={{
+                    backgroundColor: theme.vars.palette.background.surface,
+                    borderRadius: theme.radius.sm,
+                    border: '1px solid',
+                    borderColor: theme.vars.palette.background.level2,
+                    boxShadow: `0px 2px ${theme.vars.palette.background.level1}`,
+                    marginY: 2,
+                    padding: 1
+                }}
+            >
+                <Button
+                    disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
+                    onClick={_ => {
+                        resetBoardEdit()
+                        const r = route(input)
+                        const outlines = generateOutlines(input.parameters.channelWidth.value!, r.connections)
+                        const dxf = generateDXF({
+                            width: input.parameters.boardWidth.value!,
+                            height: input.parameters.boardHeight.value!,
+                            originX: 0,
+                            originY: 0,
+                        }, outlines)
+                        setDXFDownload(dxf)
+                        setOutput(r)
+                    }}
                     sx={{
-                        padding: '1em'
+                        margin: 1,
+                        marginX: 2
                     }}
                 >
-                    {output.error}
-                </Typography>
-            }
+                    <Typography sx={{ color: theme.vars.palette.common.white }}>
+                        <PlayCircleFilledWhiteIcon sx={{
+                            verticalAlign: 'bottom'
+                        }} /> Route</Typography>
+                </Button>
 
+                <Button
+                    disabled={dxfDownload === undefined}
+                    onClick={_ => {
+                        if (dxfDownload !== undefined) {
+                            downloadDXF(dxfDownload, nanoid())
+                        }
+                    }}
+                    sx={{
+                        margin: 1,
+                        marginX: 2
+                    }}
+                >
+                    <Typography sx={{ color: theme.vars.palette.common.white }}>
+                        <FileDownloadIcon sx={{
+                            verticalAlign: 'bottom'
+                        }} /> Download DXF</Typography>
+                </Button>
 
-            <Button
-                disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
-                onClick={_ => {
-                    resetBoardEdit()
-                    const r = route(input)
-                    const outlines = generateOutlines(input.parameters.channelWidth.value!, r.connections)
-                    const dxf = generateDXF({
-                        width: input.parameters.boardWidth.value!,
-                        height: input.parameters.boardHeight.value!,
-                        originX: 0,
-                        originY: 0,
-                    }, outlines)
-                    setDXFDownload(dxf)
-                    setOutput(r)
-                }}
-            >
-                <Typography sx={{ color: theme.vars.palette.common.white }}>Start Routing</Typography>
-            </Button>
-
-            <Button
-                disabled={dxfDownload === undefined}
-                onClick={_ => {
-                    if (dxfDownload !== undefined) {
-                        downloadDXF(dxfDownload, nanoid())
-                    }
-                }}
-            >
-                <Typography sx={{ color: theme.vars.palette.common.white }}>Download as DXF</Typography>
-            </Button>
-
+                {output.error !== undefined &&
+                    <Typography
+                        variant="soft"
+                        color="danger"
+                        startDecorator={<InfoOutlined />}
+                        sx={{
+                            padding: 1,
+                            margin: 1,
+                            marginX: 2,
+                            border: 1
+                        }}
+                    >
+                        {output.error}
+                    </Typography>
+                }
+            </Box>
             <Box>
                 <svg
-                    width="1000"
-                    height="600"
+                    width="100%"
                     style={{
                         backgroundColor: theme.vars.palette.background.surface,
                         borderRadius: theme.radius.sm,
