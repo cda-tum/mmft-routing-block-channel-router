@@ -4,12 +4,14 @@ import { Box, Button, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
 import { defaultInputParameters, InputParameters, validate } from "./utils/input-parameters"
 import { defaultInputPorts, generatePorts, InputPorts, PortKey } from "./utils/ports"
-import { ConnectionID, defaultInputConnections, defaultOutputConnections, InputConnections, OutputConnections } from "./utils/connections"
+import { ConnectionID, defaultInputConnections, defaultOutputConnections, InputConnections, OutputConnections, Point } from "./utils/connections"
 import { generateView } from "./utils/view"
 import { route } from "./utils/route"
 import { oklabrandom } from "./utils/color"
 import { LayoutChoice } from "./components/LayoutChoice"
 import { Port } from "./components/Port"
+import { downloadDXF, generateDXF, generateOutlines } from "./utils/dxf"
+import { nanoid } from "nanoid"
 
 export type InputState = {
     parameters: InputParameters
@@ -69,6 +71,7 @@ export function BoardUI() {
         return oklabrandom(0.55, 0.9, '  Fine-Sir-1584660650  ')
     }, [])
 
+    const [dxfDownload, setDXFDownload] = useState<(undefined | string)>(undefined)
     const [input, setInput] = useState<InputState>(defaultInputState)
     const [output, setOutput] = useState<OutputState>(defaultOutputState)
     const [portConnectionMap, setPortConnectionMap] = useState<Record<number, Record<number, ConnectionID>>>({})
@@ -153,11 +156,16 @@ export function BoardUI() {
 
         resetBoardEdit()
 
+        resetOutput()
+    }
+
+    const resetOutput = () => {
         setOutput({
             error: undefined,
             is_partial: false,
             connections: {}
         })
+        setDXFDownload(undefined)
     }
 
     const theme = useTheme()
@@ -268,7 +276,7 @@ export function BoardUI() {
             )
         }
 
-{output.error !== undefined &&
+        {output.error !== undefined &&
             <Typography
                 variant="soft"
                 color="danger"
@@ -287,10 +295,29 @@ export function BoardUI() {
             onClick={_ => {
                 resetBoardEdit()
                 const r = route(input)
+                const outlines = generateOutlines(input.parameters.channelWidth.value!, r.connections)
+                const dxf = generateDXF({
+                    width: input.parameters.boardWidth.value!,
+                    height: input.parameters.boardHeight.value!,
+                    originX: 0,
+                    originY: 0,
+                }, outlines)
+                setDXFDownload(dxf)
                 setOutput(r)
             }}
         >
             <Typography sx={{ color: theme.vars.palette.common.white }}>Start Routing</Typography>
+        </Button>
+
+        <Button
+            disabled={dxfDownload === undefined}
+            onClick={_ => {
+                if(dxfDownload !== undefined) {
+                    downloadDXF(dxfDownload, nanoid())
+                }
+            }}
+        >
+            <Typography sx={{ color: theme.vars.palette.common.white }}>Download as DXF</Typography>
         </Button>
 
         <Box>

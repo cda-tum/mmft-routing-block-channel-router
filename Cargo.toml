@@ -9,6 +9,7 @@ serde = "1.0.208"
 serde-wasm-bindgen = "0.6.5"
 wasm-bindgen = "0.2"
 web-sys = { version="0.3.70", features=["console"] }
+dxf = "0.5.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
