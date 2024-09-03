@@ -171,281 +171,316 @@ export function BoardUI() {
     const theme = useTheme()
 
     const view = generateView(input.parameters)
-    return <>
-        <MicrometerInput
-            label="Board Width"
-            value={input.parameters.boardWidth.value}
-            error={input.parameters.boardWidth.error ? input.parameters.boardWidth.error_message : undefined}
-            onChange={v => updateInputParameter('boardWidth', v)}
-            description="The absolute width of the routing board"
-        />
-        <MicrometerInput
-            label="Board Height"
-            value={input.parameters.boardHeight.value}
-            error={input.parameters.boardHeight.error ? input.parameters.boardHeight.error_message : undefined}
-            onChange={v => updateInputParameter('boardHeight', v)}
-            description="The absolute height of the routing board"
-        />
-        <MicrometerInput
-            label="Pitch"
-            value={input.parameters.pitch.value}
-            error={input.parameters.pitch.error ? input.parameters.pitch.error_message : undefined}
-            onChange={v => updateInputParameter('pitch', v)}
-            description="The pitch of the port grid"
-        />
-        <MicrometerInput
-            label="Pitch Offset X"
-            value={input.parameters.pitchOffsetX.value}
-            error={input.parameters.pitchOffsetX.error ? input.parameters.pitchOffsetX.error_message : undefined}
-            onChange={v => updateInputParameter('pitchOffsetX', v)}
-            description="The pitch offset of the port grid in x direction"
-        />
-        <MicrometerInput
-            label="Pitch Offset Y"
-            value={input.parameters.pitchOffsetY.value}
-            error={input.parameters.pitchOffsetY.error ? input.parameters.pitchOffsetY.error_message : undefined}
-            onChange={v => updateInputParameter('pitchOffsetY', v)}
-            description="The pitch offset of the port grid in y direction"
-        />
-        <MicrometerInput
-            label="Channel Width"
-            value={input.parameters.channelWidth.value}
-            error={input.parameters.channelWidth.error ? input.parameters.channelWidth.error_message : undefined}
-            onChange={v => updateInputParameter('channelWidth', v)}
-            description="The width of channels"
-        />
-        <MicrometerInput
-            label="Channel Spacing"
-            value={input.parameters.channelSpacing.value}
-            error={input.parameters.channelSpacing.error ? input.parameters.channelSpacing.error_message : undefined}
-            onChange={v => updateInputParameter('channelSpacing', v)}
-            description="The required spacing between channels"
-        />
-        <MicrometerInput
-            label="Port Diameter"
-            value={input.parameters.portDiameter.value}
-            error={input.parameters.portDiameter.error ? input.parameters.portDiameter.error_message : undefined}
-            onChange={v => updateInputParameter('portDiameter', v)}
-            description="The diameter of ports"
-        />
-        {input.parameter_errors !== undefined &&
-            input.parameter_errors.map(e => <Typography
-                variant="soft"
-                color="danger"
-                startDecorator={<InfoOutlined />}
-                sx={{
-                    padding: '1em'
-                }}
-            >
-                {e}
-            </Typography>
-            )
-        }
+    return <div
+        style={{
+            backgroundColor: theme.vars.palette.background.level1
+        }}
+    >
 
-
-        <LayoutChoice
-            layout={input.parameters.layout.value}
-            onChange={layout => updateInputParameter('layout', layout)}
-        />
-
-        {input.connection_errors !== undefined &&
-            input.connection_errors.map(e => <Typography
-                variant="soft"
-                color="danger"
-                startDecorator={<InfoOutlined />}
-                sx={{
-                    padding: '1em'
-                }}
-            >
-                {e}
-            </Typography>
-            )
-        }
-
-        {input.general_errors !== undefined &&
-            input.general_errors.map(e => <Typography
-                variant="soft"
-                color="danger"
-                startDecorator={<InfoOutlined />}
-                sx={{
-                    padding: '1em'
-                }}
-            >
-                {e}
-            </Typography>
-            )
-        }
-
-        {output.error !== undefined &&
-            <Typography
-                variant="soft"
-                color="danger"
-                startDecorator={<InfoOutlined />}
-                sx={{
-                    padding: '1em'
-                }}
-            >
-                {output.error}
-            </Typography>
-        }
-
-
-        <Button
-            disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
-            onClick={_ => {
-                resetBoardEdit()
-                const r = route(input)
-                const outlines = generateOutlines(input.parameters.channelWidth.value!, r.connections)
-                const dxf = generateDXF({
-                    width: input.parameters.boardWidth.value!,
-                    height: input.parameters.boardHeight.value!,
-                    originX: 0,
-                    originY: 0,
-                }, outlines)
-                setDXFDownload(dxf)
-                setOutput(r)
+        <header
+            style={{
+                backgroundColor: theme.vars.palette.primary[500],
             }}
         >
-            <Typography sx={{ color: theme.vars.palette.common.white }}>Start Routing</Typography>
-        </Button>
-
-        <Button
-            disabled={dxfDownload === undefined}
-            onClick={_ => {
-                if(dxfDownload !== undefined) {
-                    downloadDXF(dxfDownload, nanoid())
-                }
-            }}
-        >
-            <Typography sx={{ color: theme.vars.palette.common.white }}>Download as DXF</Typography>
-        </Button>
-
-        <Box>
-            <svg
-                width="1000"
-                height="600"
-                style={{
-                    backgroundColor: theme.vars.palette.background.surface,
-                    borderRadius: theme.radius.sm,
-                    border: '1px solid',
-                    borderColor: theme.vars.palette.background.level2,
-                    boxShadow: `0px 2px ${theme.vars.palette.background.level1}`
+            <a><Typography
+                level='h1'
+                sx={{
+                    color: theme.vars.palette.common.white,
+                    paddingY: 1,
                 }}
-                {...(view !== undefined ? { viewBox: view.viewBox } : {})}
             >
-                {input.ports !== undefined && view !== undefined && <>
-                    <rect
-                        x={0}
-                        y={0}
-                        width={input.parameters.boardWidth.value}
-                        height={input.parameters.boardHeight.value}
-                        fill="none"
-                        strokeWidth={view.strokeWidth}
-                        stroke={theme.vars.palette.text.primary}
-                        rx={view.strokeWidth / 2}
-                    >
+                MMFT Board Router
+            </Typography></a>
+        </header>
+        <main>
+            <MicrometerInput
+                label="Board Width"
+                value={input.parameters.boardWidth.value}
+                error={input.parameters.boardWidth.error ? input.parameters.boardWidth.error_message : undefined}
+                onChange={v => updateInputParameter('boardWidth', v)}
+                description="The absolute width of the routing board"
+            />
+            <MicrometerInput
+                label="Board Height"
+                value={input.parameters.boardHeight.value}
+                error={input.parameters.boardHeight.error ? input.parameters.boardHeight.error_message : undefined}
+                onChange={v => updateInputParameter('boardHeight', v)}
+                description="The absolute height of the routing board"
+            />
+            <MicrometerInput
+                label="Pitch"
+                value={input.parameters.pitch.value}
+                error={input.parameters.pitch.error ? input.parameters.pitch.error_message : undefined}
+                onChange={v => updateInputParameter('pitch', v)}
+                description="The pitch of the port grid"
+            />
+            <MicrometerInput
+                label="Pitch Offset X"
+                value={input.parameters.pitchOffsetX.value}
+                error={input.parameters.pitchOffsetX.error ? input.parameters.pitchOffsetX.error_message : undefined}
+                onChange={v => updateInputParameter('pitchOffsetX', v)}
+                description="The pitch offset of the port grid in x direction"
+            />
+            <MicrometerInput
+                label="Pitch Offset Y"
+                value={input.parameters.pitchOffsetY.value}
+                error={input.parameters.pitchOffsetY.error ? input.parameters.pitchOffsetY.error_message : undefined}
+                onChange={v => updateInputParameter('pitchOffsetY', v)}
+                description="The pitch offset of the port grid in y direction"
+            />
+            <MicrometerInput
+                label="Channel Width"
+                value={input.parameters.channelWidth.value}
+                error={input.parameters.channelWidth.error ? input.parameters.channelWidth.error_message : undefined}
+                onChange={v => updateInputParameter('channelWidth', v)}
+                description="The width of channels"
+            />
+            <MicrometerInput
+                label="Channel Spacing"
+                value={input.parameters.channelSpacing.value}
+                error={input.parameters.channelSpacing.error ? input.parameters.channelSpacing.error_message : undefined}
+                onChange={v => updateInputParameter('channelSpacing', v)}
+                description="The required spacing between channels"
+            />
+            <MicrometerInput
+                label="Port Diameter"
+                value={input.parameters.portDiameter.value}
+                error={input.parameters.portDiameter.error ? input.parameters.portDiameter.error_message : undefined}
+                onChange={v => updateInputParameter('portDiameter', v)}
+                description="The diameter of ports"
+            />
+            {input.parameter_errors !== undefined &&
+                input.parameter_errors.map(e => <Typography
+                    variant="soft"
+                    color="danger"
+                    startDecorator={<InfoOutlined />}
+                    sx={{
+                        padding: '1em'
+                    }}
+                >
+                    {e}
+                </Typography>
+                )
+            }
 
-                    </rect>
 
-                    {Object.entries(output.connections).map(([connectionId, points]) => {
+            <LayoutChoice
+                layout={input.parameters.layout.value}
+                onChange={layout => updateInputParameter('layout', layout)}
+            />
 
-                        const connection = input.connections[parseInt(connectionId)]
+            {input.connection_errors !== undefined &&
+                input.connection_errors.map(e => <Typography
+                    variant="soft"
+                    color="danger"
+                    startDecorator={<InfoOutlined />}
+                    sx={{
+                        padding: '1em'
+                    }}
+                >
+                    {e}
+                </Typography>
+                )
+            }
 
-                        if (connection === undefined) {
-                            console.error('Connection not found in input')
-                            return <></>
-                        }
+            {input.general_errors !== undefined &&
+                input.general_errors.map(e => <Typography
+                    variant="soft"
+                    color="danger"
+                    startDecorator={<InfoOutlined />}
+                    sx={{
+                        padding: '1em'
+                    }}
+                >
+                    {e}
+                </Typography>
+                )
+            }
 
-                        return <path
-                            d={`M ${points.map(p => `${p[0]},${p[1]}`).join('L')}`}
-                            stroke={connection.color}
-                            strokeWidth={input.parameters.channelWidth.value}
-                            fill="none"
-                        ></path>
-                    })}
+            {output.error !== undefined &&
+                <Typography
+                    variant="soft"
+                    color="danger"
+                    startDecorator={<InfoOutlined />}
+                    sx={{
+                        padding: '1em'
+                    }}
+                >
+                    {output.error}
+                </Typography>
+            }
 
-                    {
-                        input.ports!.map(px => px.map(port => {
 
-                            const hasConnection = portConnectionMap[port.index[0]]?.[port.index[1]] !== undefined
-                            const connection = hasConnection ? input.connections[portConnectionMap[port.index[0]]?.[port.index[1]]] : undefined
+            <Button
+                disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
+                onClick={_ => {
+                    resetBoardEdit()
+                    const r = route(input)
+                    const outlines = generateOutlines(input.parameters.channelWidth.value!, r.connections)
+                    const dxf = generateDXF({
+                        width: input.parameters.boardWidth.value!,
+                        height: input.parameters.boardHeight.value!,
+                        originX: 0,
+                        originY: 0,
+                    }, outlines)
+                    setDXFDownload(dxf)
+                    setOutput(r)
+                }}
+            >
+                <Typography sx={{ color: theme.vars.palette.common.white }}>Start Routing</Typography>
+            </Button>
 
-                            const selectSecondPortStyle = boardEdit.state === BoardEditState.FirstPortSet && hasConnection ? {
-                                opacity: 0.3,
-                                cursor: 'not-allowed'
-                            } : undefined
-
-                            return <Port
-                                position={port.position}
-                                diameter={input.parameters.portDiameter.value!}
-                                style={{
-                                    cursor: 'pointer',
-                                    strokeDasharray: input.parameters.portDiameter.value! / 6,
-                                    strokeLinecap: 'round',
-                                    fill: hasConnection ? connection?.color : 'transparent',
-                                    ...selectSecondPortStyle
-                                }}
-                                hoverStyle={hasConnection ? {} : {
-                                    fill: boardEdit.nextConnectionColor,
-                                    strokeDasharray: undefined
-                                }}
-                                highlightStyle={{ fill: boardEdit.nextConnectionColor, strokeDasharray: undefined }}
-                                highlighted={boardEdit.state === BoardEditState.FirstPortSet && boardEdit.port[0] == port.index[0] && boardEdit.port[1] === port.index[1]}
-                                onClick={() => {
-                                    const portKey = [port.index[0], port.index[1]] as [number, number]
-                                    if (!portConnectionMap[port.index[0]]?.[port.index[1]]) {
-                                        if (boardEdit.state === BoardEditState.Default) {
-                                            setBoardEdit(e => ({
-                                                state: BoardEditState.FirstPortSet,
-                                                nextConnection: e.nextConnection,
-                                                nextConnectionColor: e.nextConnectionColor,
-                                                port: portKey
-                                            }))
-                                        } else if (boardEdit.state === BoardEditState.FirstPortSet) {
-                                            if (!hasConnection && (boardEdit.port[0] !== port.index[0] || boardEdit.port[1] !== port.index[1])) {
-                                                const { index, color } = createConnection()
-                                                setPortConnectionMap(m => ({
-                                                    ...m,
-                                                    [boardEdit.port[0]]: {
-                                                        ...m[boardEdit.port[0]],
-                                                        [boardEdit.port[1]]: boardEdit.nextConnection
-                                                    }
-                                                }))
-                                                setPortConnectionMap(m => ({
-                                                    ...m,
-                                                    [port.index[0]]: {
-                                                        ...m[port.index[0]],
-                                                        [port.index[1]]: boardEdit.nextConnection
-                                                    }
-                                                }))
-                                                setInput(i => ({
-                                                    ...i,
-                                                    connections: {
-                                                        ...i.connections,
-                                                        [boardEdit.nextConnection]: {
-                                                            ...i.connections[boardEdit.nextConnection],
-                                                            ports: [boardEdit.port, port.index]
-                                                        }
-                                                    }
-                                                }))
-                                                setBoardEdit(_ => ({
-                                                    state: BoardEditState.Default,
-                                                    nextConnection: index,
-                                                    nextConnectionColor: color
-                                                }))
-                                            }
-                                        }
-                                    } else {
-
-                                    }
-                                }}
-                            />
-                        }
-                        ))
+            <Button
+                disabled={dxfDownload === undefined}
+                onClick={_ => {
+                    if (dxfDownload !== undefined) {
+                        downloadDXF(dxfDownload, nanoid())
                     }
-                </>
-                }
-            </svg>
-        </Box>
-    </>
+                }}
+            >
+                <Typography sx={{ color: theme.vars.palette.common.white }}>Download as DXF</Typography>
+            </Button>
+
+            <Box>
+                <svg
+                    width="1000"
+                    height="600"
+                    style={{
+                        backgroundColor: theme.vars.palette.background.surface,
+                        borderRadius: theme.radius.sm,
+                        border: '1px solid',
+                        borderColor: theme.vars.palette.background.level2,
+                        boxShadow: `0px 2px ${theme.vars.palette.background.level1}`
+                    }}
+                    {...(view !== undefined ? { viewBox: view.viewBox } : {})}
+                >
+                    {input.ports !== undefined && view !== undefined && <>
+                        <rect
+                            x={0}
+                            y={0}
+                            width={input.parameters.boardWidth.value}
+                            height={input.parameters.boardHeight.value}
+                            fill="none"
+                            strokeWidth={view.strokeWidth}
+                            stroke={theme.vars.palette.text.primary}
+                            rx={view.strokeWidth / 2}
+                        >
+
+                        </rect>
+
+                        {Object.entries(output.connections).map(([connectionId, points]) => {
+
+                            const connection = input.connections[parseInt(connectionId)]
+
+                            if (connection === undefined) {
+                                console.error('Connection not found in input')
+                                return <></>
+                            }
+
+                            return <path
+                                d={`M ${points.map(p => `${p[0]},${p[1]}`).join('L')}`}
+                                stroke={connection.color}
+                                strokeWidth={input.parameters.channelWidth.value}
+                                fill="none"
+                            ></path>
+                        })}
+
+                        {
+                            input.ports!.map(px => px.map(port => {
+
+                                const hasConnection = portConnectionMap[port.index[0]]?.[port.index[1]] !== undefined
+                                const connection = hasConnection ? input.connections[portConnectionMap[port.index[0]]?.[port.index[1]]] : undefined
+
+                                const selectSecondPortStyle = boardEdit.state === BoardEditState.FirstPortSet && hasConnection ? {
+                                    opacity: 0.3,
+                                    cursor: 'not-allowed'
+                                } : undefined
+
+                                return <Port
+                                    position={port.position}
+                                    diameter={input.parameters.portDiameter.value!}
+                                    style={{
+                                        cursor: 'pointer',
+                                        strokeDasharray: input.parameters.portDiameter.value! / 6,
+                                        strokeLinecap: 'round',
+                                        fill: hasConnection ? connection?.color : 'transparent',
+                                        ...selectSecondPortStyle
+                                    }}
+                                    hoverStyle={hasConnection ? {} : {
+                                        fill: boardEdit.nextConnectionColor,
+                                        strokeDasharray: undefined
+                                    }}
+                                    highlightStyle={{ fill: boardEdit.nextConnectionColor, strokeDasharray: undefined }}
+                                    highlighted={boardEdit.state === BoardEditState.FirstPortSet && boardEdit.port[0] == port.index[0] && boardEdit.port[1] === port.index[1]}
+                                    onClick={() => {
+                                        const portKey = [port.index[0], port.index[1]] as [number, number]
+                                        if (!portConnectionMap[port.index[0]]?.[port.index[1]]) {
+                                            if (boardEdit.state === BoardEditState.Default) {
+                                                setBoardEdit(e => ({
+                                                    state: BoardEditState.FirstPortSet,
+                                                    nextConnection: e.nextConnection,
+                                                    nextConnectionColor: e.nextConnectionColor,
+                                                    port: portKey
+                                                }))
+                                            } else if (boardEdit.state === BoardEditState.FirstPortSet) {
+                                                if (!hasConnection && (boardEdit.port[0] !== port.index[0] || boardEdit.port[1] !== port.index[1])) {
+                                                    const { index, color } = createConnection()
+                                                    setPortConnectionMap(m => ({
+                                                        ...m,
+                                                        [boardEdit.port[0]]: {
+                                                            ...m[boardEdit.port[0]],
+                                                            [boardEdit.port[1]]: boardEdit.nextConnection
+                                                        }
+                                                    }))
+                                                    setPortConnectionMap(m => ({
+                                                        ...m,
+                                                        [port.index[0]]: {
+                                                            ...m[port.index[0]],
+                                                            [port.index[1]]: boardEdit.nextConnection
+                                                        }
+                                                    }))
+                                                    setInput(i => ({
+                                                        ...i,
+                                                        connections: {
+                                                            ...i.connections,
+                                                            [boardEdit.nextConnection]: {
+                                                                ...i.connections[boardEdit.nextConnection],
+                                                                ports: [boardEdit.port, port.index]
+                                                            }
+                                                        }
+                                                    }))
+                                                    setBoardEdit(_ => ({
+                                                        state: BoardEditState.Default,
+                                                        nextConnection: index,
+                                                        nextConnectionColor: color
+                                                    }))
+                                                }
+                                            }
+                                        } else {
+
+                                        }
+                                    }}
+                                />
+                            }
+                            ))
+                        }
+                    </>
+                    }
+                </svg>
+            </Box>
+        </main>
+        <footer
+            style={{
+                backgroundColor: theme.vars.palette.primary[500],
+            }}
+        >
+            <a href="https://www.cda.cit.tum.de/research/microfluidics/" style={{ textDecoration: 'none' }}><Typography
+                level='h4'
+                sx={{
+                    color: theme.vars.palette.common.white,
+                    paddingY: 1
+                }}
+            >Chair for Design Automation<br />Technical University of Munich</Typography></a>
+        </footer>
+    </div>
 }
