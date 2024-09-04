@@ -104,7 +104,7 @@ pub fn a_star<N: Eq + Copy + Debug>(
                 cost: Cost {
                     estimate: h,
                     cost: nc,
-                    total: nc + h * bias
+                    total: nc + h
                 },
                 previous: Some(candidate.node),
                 prev_id: Some(i),
