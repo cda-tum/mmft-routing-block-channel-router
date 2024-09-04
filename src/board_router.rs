@@ -560,8 +560,8 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     }
 
     fn cmp_connections(
-        (_, a): &(RouteInputConnection),
-        (_, b): &(RouteInputConnection),
+        (_, a): &RouteInputConnection,
+        (_, b): &RouteInputConnection,
     ) -> Ordering {
         let adx = usize::abs_diff(a.0 .0, a.1 .0);
         let ady = usize::abs_diff(a.0 .1, a.1 .1);
@@ -927,6 +927,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             &heuristic,
             &successors,
             &is_target,
+            None
         );
 
         match result {
@@ -957,3 +958,37 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         Err(BoardRouterOutputError::PartialResult(output))
     }
 }
+
+/* Dependency does not compile to Webassembly
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GenerateDXFInput {
+    pub channel_width: Length,
+    pub connections: Vec<BoardRouterOutputConnection>
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GenerateDXFOutput(String);
+
+pub fn generate_dxf(input: GenerateDXFInput) -> GenerateDXFOutput {
+    let drawing = &mut Drawing::new();
+    
+    for (_, points) in input.connections {
+        let mut polyline = Polyline::default();
+        for point in points {
+            polyline.add_vertex(drawing, Vertex::new(dxf::Point {
+                x: point[0] as f64,
+                y: point[1] as f64,
+                z: 0.
+            }));
+        }
+
+        drawing.add_entity(Entity::new(EntityType::Polyline(polyline)));
+    }
+
+    let mut writer = BufWriter::new(Vec::new());
+    drawing.save(&mut writer);
+    let bytes = writer.into_inner().unwrap();
+    let result = String::from_utf8(bytes).unwrap();
+
+    GenerateDXFOutput(result)
+} */

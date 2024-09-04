@@ -3,6 +3,7 @@ use std::collections::{BinaryHeap, VecDeque};
 use core::fmt::Debug;
 
 const INITIAL_PATH_CAPACITY: usize = 8;
+const DEFAULT_HEURISTIC_BIAS: f64 = 1.0;
 
 #[derive(PartialEq, Debug)]
 pub struct Cost {
@@ -62,8 +63,10 @@ pub fn a_star<N: Eq + Copy + Debug>(
     heuristic: &dyn Fn(&N) -> f64,
     successors: &dyn Fn(&AStarNode<N>) -> Vec<(N, f64)>,
     is_target: &dyn Fn(&N) -> bool,
+    heuristic_bias: Option<f64>
 ) -> Option<VecDeque<N>> {
     let mut open = BinaryHeap::<AStarNode<N>>::new();
+    let bias = heuristic_bias.unwrap_or(DEFAULT_HEURISTIC_BIAS);
     let mut closed = Vec::new(); // todo: replace with hashset if large enough
     start.into_iter().for_each(|n| {
         let h = heuristic(&n);
@@ -161,7 +164,7 @@ mod tests {
                 fn is_target(n: &N) -> bool {
                     *n == 'D'
                 }
-                let result = a_star(start, &heuristic, &successors, &is_target);
+                let result = a_star(start, &heuristic, &successors, &is_target, None);
                 assert_eq!(result, Some(VecDeque::from(['A', 'C', 'D'])))
             }
 
@@ -171,7 +174,7 @@ mod tests {
                 fn is_target(n: &N) -> bool {
                     *n == 'D'
                 }
-                let result = a_star(start, &heuristic, &successors, &is_target);
+                let result = a_star(start, &heuristic, &successors, &is_target, None);
                 assert_eq!(result, None)
             }
 
@@ -181,7 +184,7 @@ mod tests {
                 fn is_target(n: &N) -> bool {
                     *n == 'B'
                 }
-                let result = a_star(start, &heuristic, &successors, &is_target);
+                let result = a_star(start, &heuristic, &successors, &is_target, None);
                 assert_eq!(result, None)
             }
 
@@ -191,7 +194,7 @@ mod tests {
                 fn is_target(n: &N) -> bool {
                     *n == 'A'
                 }
-                let result = a_star(start, &heuristic, &successors, &is_target);
+                let result = a_star(start, &heuristic, &successors, &is_target, None);
                 assert_eq!(result, None)
             }
         }
@@ -223,7 +226,7 @@ mod tests {
                 fn is_target(n: &N) -> bool {
                     *n == 'D'
                 }
-                let result = a_star(start, &heuristic, &successors, &is_target);
+                let result = a_star(start, &heuristic, &successors, &is_target, None);
                 assert_eq!(result, Some(VecDeque::from(['A', 'B', 'D'])))
             }
 
@@ -233,7 +236,7 @@ mod tests {
                 fn is_target(n: &N) -> bool {
                     *n == 'A'
                 }
-                let result = a_star(start, &heuristic, &successors, &is_target);
+                let result = a_star(start, &heuristic, &successors, &is_target, None);
                 assert_eq!(result, None)
             }
         }
@@ -269,7 +272,7 @@ mod tests {
                         _ => panic!(),
                     }
                 }
-                let result = a_star(start, &heuristic, &successors, &is_target);
+                let result = a_star(start, &heuristic, &successors, &is_target, None);
                 assert_eq!(result, Some(VecDeque::from(['A', 'B', 'D'])))
             }
 
@@ -297,7 +300,7 @@ mod tests {
                         _ => panic!(),
                     }
                 }
-                let result = a_star(start, &heuristic, &successors, &is_target);
+                let result = a_star(start, &heuristic, &successors, &is_target, None);
                 assert_eq!(result, Some(VecDeque::from(['A', 'B', 'D'])))
             }
 
@@ -325,7 +328,7 @@ mod tests {
                         _ => panic!(),
                     }
                 }
-                let result = a_star(start, &heuristic, &successors, &is_target);
+                let result = a_star(start, &heuristic, &successors, &is_target, None);
                 assert_eq!(result, Some(VecDeque::from(['A', 'C', 'D'])))
             }
 
@@ -353,7 +356,7 @@ mod tests {
                         _ => panic!(),
                     }
                 }
-                let result = a_star(start, &heuristic, &successors, &is_target);
+                let result = a_star(start, &heuristic, &successors, &is_target, None);
                 assert_eq!(result, Some(VecDeque::from(['A', 'C', 'D'])))
             }
         }
@@ -409,7 +412,7 @@ mod tests {
                         _ => panic!(),
                     }
                 }
-                let result = a_star(start, &heuristic, &successors, &is_target);
+                let result = a_star(start, &heuristic, &successors, &is_target, None);
                 assert_eq!(result, Some(VecDeque::from([3, 8, 13, 18, 22])))
             }
 
@@ -456,7 +459,7 @@ mod tests {
                         _ => panic!(),
                     }
                 }
-                let result = a_star(start, &heuristic, &successors, &is_target);
+                let result = a_star(start, &heuristic, &successors, &is_target, None);
                 assert_eq!(result, Some(VecDeque::from([3, 8, 12, 17, 22])))
             }
 
@@ -503,7 +506,7 @@ mod tests {
                         _ => panic!(),
                     }
                 }
-                let result = a_star(start, &heuristic, &successors, &is_target);
+                let result = a_star(start, &heuristic, &successors, &is_target, None);
                 assert_eq!(result, Some(VecDeque::from([3, 7, 12, 17, 22])))
             }
         }

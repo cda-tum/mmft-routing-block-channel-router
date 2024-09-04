@@ -27,7 +27,7 @@ export const defaultInputParameterValues: InputParameterValues = {
     portDiameter: 200,
     channelWidth: 100,
     channelSpacing: 100,
-    layout: 'Mixed',
+    layout: 'Octilinear',
     maxPorts: 20000
 }
 

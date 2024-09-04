@@ -9,7 +9,10 @@ pub fn add(left: u64, right: u64) -> u64 {
 #[cfg(test)]
 mod tests {
 
-    use board_router::{route, validate, Layout, RouteInput, ValidateInputRaw};
+
+    use board_router::{
+        route, validate, Layout, RouteInput, ValidateInputRaw
+    };
 
     use super::*;
 
@@ -26,7 +29,7 @@ mod tests {
             min_grid_size: None,
             max_ports: Some(20000.0),
             layout: Some(Layout::Rectilinear),
-            connections: Some(Vec::new()) 
+            connections: Some(Vec::new()),
         });
 
         println!("{:?}", result)
@@ -34,8 +37,9 @@ mod tests {
 
     #[test]
     fn it_routes() {
+        let channel_width = 100;
         let result = route(RouteInput {
-            channel_width: 100,
+            channel_width: channel_width,
             channel_spacing: 100,
             board_width: 10000,
             board_height: 5000,
@@ -45,9 +49,18 @@ mod tests {
             min_grid_size: 0,
             max_ports: 20000,
             layout: Layout::Octilinear,
-            connections: Vec::from([(0, ((5, 5), (9, 6))), (1, ((7, 6), (8, 6)))])
+            connections: Vec::from([(0, ((5, 5), (9, 6))), (1, ((7, 6), (8, 6)))]),
         });
 
-        println!("{:?}", result)
+        println!("{:?}", result);
+
+        /* Dependency does not compile to Webassembly
+        if let Ok(BoardRouterOutputBoard { connections }) = result {
+            let dxf = generate_dxf(GenerateDXFInput {
+                channel_width,
+                connections
+            });
+            println!("{:?}", dxf);
+        }*/
     }
 }

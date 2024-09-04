@@ -17,7 +17,7 @@ export function generateView(parameters: InputParameters): View {
 export function computeViewParameters(boardWidth: number, boardHeight: number, portDiameter: number) {
 
     const strokeWidth = portDiameter / 10
-    const margin = strokeWidth / 2 + boardWidth / 20
+    const margin = strokeWidth / 2// + boardWidth / 40
     const viewBox = `${-margin} ${-margin} ${boardWidth + 2 * margin} ${boardHeight + 2 * margin}`
 
     return { strokeWidth, viewBox }
