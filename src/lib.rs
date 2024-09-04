@@ -9,10 +9,9 @@ pub fn add(left: u64, right: u64) -> u64 {
 #[cfg(test)]
 mod tests {
 
-    use std::sync::mpsc::channel;
 
     use board_router::{
-        route, validate, BoardRouterOutputBoard, Layout, RouteInput, ValidateInputRaw
+        route, validate, Layout, RouteInput, ValidateInputRaw
     };
 
     use super::*;

@@ -6,8 +6,6 @@ export function Port(props: {
     diameter: number
     style?: React.CSSProperties
     hoverStyle?: React.CSSProperties
-    highlightStyle?: React.CSSProperties
-    highlighted?: boolean
     onClick?: () => void
 }) {
     const [hover, setHover] = useState<boolean>(false)
@@ -21,7 +19,6 @@ export function Port(props: {
         stroke={theme.vars.palette.text.primary}
         style={{
             ...(props.style ?? {}),
-            ...(props.highlighted ? props.highlightStyle : {}),
             ...(hover ? props.hoverStyle : {})
         }}
         onClick={_ => {

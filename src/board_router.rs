@@ -1,12 +1,8 @@
 use core::f64;
-use std::io::BufWriter;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
 use crate::graph_search::{a_star, AStarNode};
-
-use dxf::Drawing;
-use dxf::entities::*;
 
 type Coordinate = i64;
 type Length = u64;
@@ -564,8 +560,8 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     }
 
     fn cmp_connections(
-        (_, a): &(RouteInputConnection),
-        (_, b): &(RouteInputConnection),
+        (_, a): &RouteInputConnection,
+        (_, b): &RouteInputConnection,
     ) -> Ordering {
         let adx = usize::abs_diff(a.0 .0, a.1 .0);
         let ady = usize::abs_diff(a.0 .1, a.1 .1);
@@ -931,6 +927,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             &heuristic,
             &successors,
             &is_target,
+            None
         );
 
         match result {

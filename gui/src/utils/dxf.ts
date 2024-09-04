@@ -46,7 +46,7 @@ export function generateOutlines(channelWidth: number, connections: OutputConnec
         rightSide.push([pa[0] - d[0] * ch + n[0] * ch, pa[1] - d[1] * ch + n[1] * ch])
 
         for (const point of points.slice(2)) {
-            let { d: pd, n: pn } = seg(pa, pb)
+            let { d: pd } = seg(pa, pb)
             let { d, n } = seg(pb, point)
             if (pd[0] > 0 && pd[1] > 0) {
                 let lsign, rsign

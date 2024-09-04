@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
-import { Box, Button, Typography, useTheme } from "@mui/joy"
+import { Box, Button, ButtonGroup, IconButton, Menu, MenuItem, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
 import { defaultInputParameters, InputParameters, validate } from "./utils/input-parameters"
 import { defaultInputPorts, generatePorts, InputPorts, PortKey } from "./utils/ports"
-import { ConnectionID, defaultInputConnections, defaultOutputConnections, InputConnections, OutputConnections, Point } from "./utils/connections"
+import { ConnectionID, defaultInputConnections, defaultOutputConnections, InputConnections, OutputConnections } from "./utils/connections"
 import { generateView } from "./utils/view"
 import { route } from "./utils/route"
 import { oklabrandom } from "./utils/color"
@@ -14,6 +14,10 @@ import { downloadDXF, generateDXF, generateOutlines } from "./utils/dxf"
 import { nanoid } from "nanoid"
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import TouchAppIcon from '@mui/icons-material/TouchApp';
+import CheckIcon from '@mui/icons-material/Check';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 
 export type InputState = {
     parameters: InputParameters
@@ -73,13 +77,16 @@ export function BoardUI() {
         return oklabrandom(0.55, 0.9, '  Fine-Sir-1584660650  ')
     }, [])
 
+    const [openConnectionDropdown, setOpenConnectionDropdown] = useState<boolean>(false)
+    const connectionDropdownRef = useRef<HTMLDivElement>(null);
+
     const [dxfDownload, setDXFDownload] = useState<(undefined | string)>(undefined)
     const [input, setInput] = useState<InputState>(defaultInputState)
     const [output, setOutput] = useState<OutputState>(defaultOutputState)
-    const [portConnectionMap, setPortConnectionMap] = useState<Record<number, Record<number, ConnectionID>>>({})
+    const [portConnectionMap, setPortConnectionMap] = useState<Record<number, Record<number, ConnectionID | undefined>>>({})
     const [boardEdit, setBoardEdit] = useState<BoardEdit>({
         state: BoardEditState.Default,
-        nextConnection: 0,
+        nextConnection: -1,
         nextConnectionColor: '#fff'
     })
 
@@ -106,6 +113,39 @@ export function BoardUI() {
         return { index: i, color }
     }, [input.connections])
 
+    const deleteConnection = useCallback((connectionId: number) => {
+        const { [connectionId]: removed, ...connections } = input.connections
+        setInput(i => ({
+            ...i,
+            connections
+        }))
+        setPortConnectionMap(m => ({
+            ...m,
+            [removed.ports[0][0]]: {
+                ...m[removed.ports[0][0]],
+                [removed.ports[0][1]]: undefined
+            }
+        }))
+        setPortConnectionMap(m => ({
+            ...m,
+            [removed.ports[1][0]]: {
+                ...m[removed.ports[1][0]],
+                [removed.ports[1][1]]: undefined
+            }
+        }))
+        resetBoardEdit()
+        resetOutput()
+    }, [output, input, portConnectionMap])
+
+    const selectConnection = useCallback((connectionId: number) => {
+        setBoardEdit(s => ({
+            state: BoardEditState.Selected,
+            nextConnection: s.nextConnection,
+            nextConnectionColor: s.nextConnectionColor,
+            selected: connectionId
+        }))
+    }, [])
+
     const resetBoardEdit = useCallback(() => {
         setBoardEdit(s => ({
             state: BoardEditState.Default,
@@ -115,10 +155,16 @@ export function BoardUI() {
     }, [input.connections])
 
     useEffect(() => {
-        createConnection()
-        resetBoardEdit()
-        updateInputParameters(defaultInputParameters)
-    }, [])
+        if (boardEdit.nextConnection === -1) {
+            createConnection()
+            resetBoardEdit()
+            setBoardEdit(e => ({
+                ...e,
+                nextConnection: 0
+            }))
+            updateInputParameters(defaultInputParameters)
+        }
+    }, [boardEdit.nextConnection])
 
     useEffect(() => {
         resetBoardEdit()
@@ -177,6 +223,7 @@ export function BoardUI() {
         style={{
             backgroundColor: theme.vars.palette.background.level1
         }}
+        onClick={_ => setOpenConnectionDropdown(false)}
     >
 
         <header
@@ -307,10 +354,97 @@ export function BoardUI() {
                     border: '1px solid',
                     borderColor: theme.vars.palette.background.level2,
                     boxShadow: `0px 2px ${theme.vars.palette.background.level1}`,
-                    marginY: 2,
-                    padding: 1
-                }}
-            >
+                    marginY: 2
+                }}>
+                <ButtonGroup
+                    ref={connectionDropdownRef}
+                    aria-label="split button"
+                    sx={{
+                        margin: 2,
+                        display: 'inline-flex'
+                    }}
+                >
+                    <Box
+                        sx={{
+                            backgroundColor: boardEdit.state === BoardEditState.Selected ? input.connections[boardEdit.selected]?.color : input.connections[boardEdit.nextConnection]?.color
+                        }}
+                        onClick={() => {
+
+                        }}><Typography sx={{
+                            backgroundColor: '#0008',
+                            padding: 1,
+                            margin: 1,
+                            cursor: 'default',
+                            color: theme.vars.palette.common.white
+                        }}>Connection {
+                                boardEdit.state === BoardEditState.Selected ? boardEdit.selected : boardEdit.nextConnection
+                            } {
+                                boardEdit.state === BoardEditState.Selected ? <CheckIcon sx={{
+                                    verticalAlign: 'bottom'
+                                }}></CheckIcon> : <TouchAppIcon sx={{
+                                    verticalAlign: 'bottom'
+                                }}></TouchAppIcon>
+                            }</Typography></Box>
+                    {boardEdit.state === BoardEditState.Selected &&
+                        <IconButton
+                            variant="solid"
+                            color="danger"
+                            aria-label="delete connection"
+                            onClick={() => {
+                                deleteConnection(boardEdit.selected)
+                            }}
+                        >
+                            <DeleteForeverIcon />
+                        </IconButton>
+                    }
+                    <IconButton
+                        variant="solid"
+                        color="primary"
+                        aria-controls={openConnectionDropdown ? 'split-button-menu' : undefined}
+                        aria-expanded={openConnectionDropdown ? 'true' : undefined}
+                        aria-label="select connection"
+                        aria-haspopup="menu"
+                        onClick={e => {
+                            setOpenConnectionDropdown(!openConnectionDropdown)
+                            e.stopPropagation()
+                        }}
+                    >
+                        <ArrowDropDownIcon />
+                    </IconButton>
+                </ButtonGroup>
+                <Menu
+                    open={openConnectionDropdown}
+                    onClose={() => setOpenConnectionDropdown(false)}
+                    anchorEl={connectionDropdownRef.current}
+                    sx={{
+                        maxHeight: 300
+                    }}
+                >
+                    {Object.entries(input.connections).map(([connectionId, connection]) => {
+                        const color = connection.color
+                        return <MenuItem
+                            key={connectionId}
+                            sx={{
+                                backgroundColor: color
+                            }}
+                            onClick={_ => {
+                                const cid = parseInt(connectionId)
+                                if (cid !== boardEdit.nextConnection) {
+                                    selectConnection(parseInt(connectionId))
+                                } else {
+                                    resetBoardEdit()
+                                }
+                            }}
+                        >
+                            <Typography sx={{
+                                backgroundColor: '#0008',
+                                padding: 1,
+                                color: theme.vars.palette.common.white
+                            }}>Connection {connectionId}</Typography>
+                        </MenuItem>
+                    })}
+                </Menu>
+
                 <Button
                     disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
                     onClick={_ => {
@@ -328,7 +462,7 @@ export function BoardUI() {
                     }}
                     sx={{
                         margin: 1,
-                        marginX: 2
+                        marginX: 2,
                     }}
                 >
                     <Typography sx={{ color: theme.vars.palette.common.white }}>
@@ -346,7 +480,7 @@ export function BoardUI() {
                     }}
                     sx={{
                         margin: 1,
-                        marginX: 2
+                        marginX: 2,
                     }}
                 >
                     <Typography sx={{ color: theme.vars.palette.common.white }}>
@@ -370,32 +504,125 @@ export function BoardUI() {
                         {output.error}
                     </Typography>
                 }
-            </Box>
-            <Box>
-                <svg
-                    width="100%"
-                    style={{
-                        backgroundColor: theme.vars.palette.background.surface,
-                        borderRadius: theme.radius.sm,
-                        border: '1px solid',
-                        borderColor: theme.vars.palette.background.level2,
-                        boxShadow: `0px 2px ${theme.vars.palette.background.level1}`
-                    }}
-                    {...(view !== undefined ? { viewBox: view.viewBox } : {})}
-                >
-                    {input.ports !== undefined && view !== undefined && <>
-                        <rect
-                            x={0}
-                            y={0}
-                            width={input.parameters.boardWidth.value}
-                            height={input.parameters.boardHeight.value}
-                            fill="none"
-                            strokeWidth={view.strokeWidth}
-                            stroke={theme.vars.palette.text.primary}
-                            rx={view.strokeWidth / 2}
-                        >
 
-                        </rect>
+                <Box
+                    sx={{
+                        marginX: 2,
+                        marginY: 1
+                    }}
+                >
+                    <svg
+                        width="100%"
+                        {...(view !== undefined ? { viewBox: view.viewBox } : {})}
+                    >
+                        {input.ports !== undefined && view !== undefined && <>
+                            <rect
+                                x={0}
+                                y={0}
+                                width={input.parameters.boardWidth.value}
+                                height={input.parameters.boardHeight.value}
+                                fill="none"
+                                strokeWidth={view.strokeWidth}
+                                stroke={theme.vars.palette.text.primary}
+                                rx={view.strokeWidth / 2}
+                            >
+
+                            </rect>
+
+                            {
+                                input.ports!.map(px => px.map(port => {
+
+                                    const hasConnection = portConnectionMap[port.index[0]]?.[port.index[1]] !== undefined
+                                    const connectionId = portConnectionMap[port.index[0]]?.[port.index[1]]!
+                                    const connection = hasConnection ? input.connections[connectionId] : undefined
+
+                                    const selectSecondPortStyle = boardEdit.state === BoardEditState.FirstPortSet && hasConnection ? {
+                                        opacity: 0.3,
+                                        cursor: 'not-allowed'
+                                    } : undefined
+
+                                    const isSelected = boardEdit.state === BoardEditState.Selected && boardEdit.selected === connectionId
+                                    const highlightedStyle = (boardEdit.state === BoardEditState.FirstPortSet && boardEdit.port[0] == port.index[0] && boardEdit.port[1] === port.index[1]) ? { fill: boardEdit.nextConnectionColor, strokeDasharray: undefined } : {}
+
+                                    const selectedStyle = isSelected ? { strokeDasharray: undefined } : {}
+
+
+                                    return <Port
+                                        position={port.position}
+                                        diameter={isSelected ? 1.3 * input.parameters.portDiameter.value! : input.parameters.portDiameter.value!}
+                                        style={{
+                                            cursor: 'pointer',
+                                            strokeDasharray: input.parameters.portDiameter.value! / 6,
+                                            strokeLinecap: 'round',
+                                            fill: hasConnection ? connection?.color : 'transparent',
+                                            ...selectSecondPortStyle,
+                                            ...selectedStyle,
+                                            ...highlightedStyle
+                                        }}
+                                        hoverStyle={hasConnection ? {} : {
+                                            fill: boardEdit.nextConnectionColor,
+                                            strokeDasharray: undefined
+                                        }}
+                                        onClick={() => {
+                                            const portKey = [port.index[0], port.index[1]] as [number, number]
+                                            if (portConnectionMap[port.index[0]]?.[port.index[1]] === undefined) {
+                                                if (boardEdit.state === BoardEditState.Default || boardEdit.state === BoardEditState.Selected) {
+                                                    setBoardEdit(e => ({
+                                                        state: BoardEditState.FirstPortSet,
+                                                        nextConnection: e.nextConnection,
+                                                        nextConnectionColor: e.nextConnectionColor,
+                                                        port: portKey
+                                                    }))
+                                                } else if (boardEdit.state === BoardEditState.FirstPortSet) {
+                                                    if (!hasConnection && (boardEdit.port[0] !== port.index[0] || boardEdit.port[1] !== port.index[1])) {
+                                                        const { index, color } = createConnection()
+                                                        setPortConnectionMap(m => ({
+                                                            ...m,
+                                                            [boardEdit.port[0]]: {
+                                                                ...m[boardEdit.port[0]],
+                                                                [boardEdit.port[1]]: boardEdit.nextConnection
+                                                            }
+                                                        }))
+                                                        setPortConnectionMap(m => ({
+                                                            ...m,
+                                                            [port.index[0]]: {
+                                                                ...m[port.index[0]],
+                                                                [port.index[1]]: boardEdit.nextConnection
+                                                            }
+                                                        }))
+                                                        setInput(i => ({
+                                                            ...i,
+                                                            connections: {
+                                                                ...i.connections,
+                                                                [boardEdit.nextConnection]: {
+                                                                    ...i.connections[boardEdit.nextConnection],
+                                                                    ports: [boardEdit.port, port.index]
+                                                                }
+                                                            }
+                                                        }))
+                                                        setBoardEdit(_ => ({
+                                                            state: BoardEditState.Default,
+                                                            nextConnection: index,
+                                                            nextConnectionColor: color
+                                                        }))
+                                                    } else if (!hasConnection && boardEdit.port[0] === port.index[0] && boardEdit.port[1] === port.index[1]) {
+                                                        setBoardEdit(e => ({
+                                                            state: BoardEditState.Default,
+                                                            nextConnection: e.nextConnection,
+                                                            nextConnectionColor: e.nextConnectionColor
+                                                        }))
+                                                    }
+                                                }
+                                            } else {
+                                                selectConnection(connectionId)
+                                            }
+                                        }}
+                                    />
+                                }
+                                ))
+                            }
+                        </>
+                        }
 
                         {Object.entries(output.connections).map(([connectionId, points]) => {
 
@@ -413,89 +640,8 @@ export function BoardUI() {
                                 fill="none"
                             ></path>
                         })}
-
-                        {
-                            input.ports!.map(px => px.map(port => {
-
-                                const hasConnection = portConnectionMap[port.index[0]]?.[port.index[1]] !== undefined
-                                const connection = hasConnection ? input.connections[portConnectionMap[port.index[0]]?.[port.index[1]]] : undefined
-
-                                const selectSecondPortStyle = boardEdit.state === BoardEditState.FirstPortSet && hasConnection ? {
-                                    opacity: 0.3,
-                                    cursor: 'not-allowed'
-                                } : undefined
-
-                                return <Port
-                                    position={port.position}
-                                    diameter={input.parameters.portDiameter.value!}
-                                    style={{
-                                        cursor: 'pointer',
-                                        strokeDasharray: input.parameters.portDiameter.value! / 6,
-                                        strokeLinecap: 'round',
-                                        fill: hasConnection ? connection?.color : 'transparent',
-                                        ...selectSecondPortStyle
-                                    }}
-                                    hoverStyle={hasConnection ? {} : {
-                                        fill: boardEdit.nextConnectionColor,
-                                        strokeDasharray: undefined
-                                    }}
-                                    highlightStyle={{ fill: boardEdit.nextConnectionColor, strokeDasharray: undefined }}
-                                    highlighted={boardEdit.state === BoardEditState.FirstPortSet && boardEdit.port[0] == port.index[0] && boardEdit.port[1] === port.index[1]}
-                                    onClick={() => {
-                                        const portKey = [port.index[0], port.index[1]] as [number, number]
-                                        if (!portConnectionMap[port.index[0]]?.[port.index[1]]) {
-                                            if (boardEdit.state === BoardEditState.Default) {
-                                                setBoardEdit(e => ({
-                                                    state: BoardEditState.FirstPortSet,
-                                                    nextConnection: e.nextConnection,
-                                                    nextConnectionColor: e.nextConnectionColor,
-                                                    port: portKey
-                                                }))
-                                            } else if (boardEdit.state === BoardEditState.FirstPortSet) {
-                                                if (!hasConnection && (boardEdit.port[0] !== port.index[0] || boardEdit.port[1] !== port.index[1])) {
-                                                    const { index, color } = createConnection()
-                                                    setPortConnectionMap(m => ({
-                                                        ...m,
-                                                        [boardEdit.port[0]]: {
-                                                            ...m[boardEdit.port[0]],
-                                                            [boardEdit.port[1]]: boardEdit.nextConnection
-                                                        }
-                                                    }))
-                                                    setPortConnectionMap(m => ({
-                                                        ...m,
-                                                        [port.index[0]]: {
-                                                            ...m[port.index[0]],
-                                                            [port.index[1]]: boardEdit.nextConnection
-                                                        }
-                                                    }))
-                                                    setInput(i => ({
-                                                        ...i,
-                                                        connections: {
-                                                            ...i.connections,
-                                                            [boardEdit.nextConnection]: {
-                                                                ...i.connections[boardEdit.nextConnection],
-                                                                ports: [boardEdit.port, port.index]
-                                                            }
-                                                        }
-                                                    }))
-                                                    setBoardEdit(_ => ({
-                                                        state: BoardEditState.Default,
-                                                        nextConnection: index,
-                                                        nextConnectionColor: color
-                                                    }))
-                                                }
-                                            }
-                                        } else {
-
-                                        }
-                                    }}
-                                />
-                            }
-                            ))
-                        }
-                    </>
-                    }
-                </svg>
+                    </svg>
+                </Box>
             </Box>
         </main>
         <footer
