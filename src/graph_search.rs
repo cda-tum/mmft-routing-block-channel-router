@@ -36,7 +36,7 @@ pub struct AStarNode<N: Eq + Copy + Debug> {
 
 impl<'a, N: Eq + Copy + Debug> PartialEq for AStarNode<N> {
     fn eq(&self, other: &Self) -> bool {
-        self.node == other.node && self.cost == other.cost
+        self.node == other.node && self.previous == other.previous
     }
 }
 
