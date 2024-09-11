@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
 import { Box, Button, ButtonGroup, IconButton, Menu, MenuItem, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
-import { defaultInputParameters, InputParameters, validate } from "./utils/input-parameters"
+import { defaultInputParameters, InputParameters, validate, validateAble } from "./utils/input-parameters"
 import { defaultInputPorts, generatePorts, InputPorts, PortKey } from "./utils/ports"
 import { ConnectionID, defaultInputConnections, defaultOutputConnections, InputConnections, OutputConnections } from "./utils/connections"
 import { generateView } from "./utils/view"
@@ -170,7 +170,7 @@ export function BoardUI() {
         resetBoardEdit()
     }, [input.ports])
 
-    const updateInputParameter = (parameter: string, value: string | number | undefined) => {
+    const updateInputParameter = (parameter: string, fieldValue: string, parsedValue: string | number | undefined) => {
         if (!(parameter in input.parameters)) {
             throw 'InvalidParameter'
         }
@@ -178,29 +178,44 @@ export function BoardUI() {
         const parameters = {
             ...input.parameters,
             [parameter]: {
-                error: false,
-                value: value
+                error: parsedValue === undefined,
+                value: parsedValue,
+                fieldValue: fieldValue,
+                ...(parsedValue === undefined ? { errorMessage: 'Please enter a valid number!' } : {})
             }
         }
         updateInputParameters(parameters)
     }
 
     const updateInputParameters = (parameters: InputParameters) => {
-        const { parameters: validated_parameters, parameter_errors, general_errors, connection_errors } = validate(parameters)
+        if (validateAble(parameters)) {
+            const { parameters: validated_parameters, parameter_errors, general_errors, connection_errors } = validate(parameters)
 
-        let ports: InputPorts = undefined
-        if (Object.values(validated_parameters).every(p => !p.error) && (parameter_errors === undefined || parameter_errors.length === 0) && (general_errors === undefined || general_errors.length === 0)) {
-            ports = generatePorts(validated_parameters)
+            let ports: InputPorts = undefined
+            if (Object.values(validated_parameters).every(p => !p.error) && (parameter_errors === undefined || parameter_errors.length === 0) && (general_errors === undefined || general_errors.length === 0)) {
+                ports = generatePorts(validated_parameters)
+            }
+
+            setInput(s => ({
+                ...s,
+                ports,
+                parameter_errors: parameter_errors,
+                general_errors: general_errors,
+                connection_errors: connection_errors,
+                parameters: validated_parameters
+            }))
+        } else {
+            const ports: InputPorts = undefined
+
+            setInput(s => ({
+                ...s,
+                ports,
+                parameter_errors: undefined,
+                general_errors: ["Some fields have invalid input!"],
+                connection_errors: undefined,
+                parameters: parameters
+            }))
         }
-
-        setInput(s => ({
-            ...s,
-            ports,
-            parameter_errors: parameter_errors,
-            general_errors: general_errors,
-            connection_errors: connection_errors,
-            parameters: validated_parameters
-        }))
 
         resetBoardEdit()
 
@@ -244,58 +259,58 @@ export function BoardUI() {
         <main>
             <MicrometerInput
                 label="Board Width"
-                value={input.parameters.boardWidth.value}
-                error={input.parameters.boardWidth.error ? input.parameters.boardWidth.error_message : undefined}
-                onChange={v => updateInputParameter('boardWidth', v)}
+                value={input.parameters.boardWidth.fieldValue}
+                error={input.parameters.boardWidth.error ? input.parameters.boardWidth.errorMessage : undefined}
+                onChange={(fv, pv) => updateInputParameter('boardWidth', fv, pv)}
                 description="The absolute width of the routing board"
             />
             <MicrometerInput
                 label="Board Height"
-                value={input.parameters.boardHeight.value}
-                error={input.parameters.boardHeight.error ? input.parameters.boardHeight.error_message : undefined}
-                onChange={v => updateInputParameter('boardHeight', v)}
+                value={input.parameters.boardHeight.fieldValue}
+                error={input.parameters.boardHeight.error ? input.parameters.boardHeight.errorMessage : undefined}
+                onChange={(fv, pv) => updateInputParameter('boardHeight', fv, pv)}
                 description="The absolute height of the routing board"
             />
             <MicrometerInput
                 label="Pitch"
-                value={input.parameters.pitch.value}
-                error={input.parameters.pitch.error ? input.parameters.pitch.error_message : undefined}
-                onChange={v => updateInputParameter('pitch', v)}
+                value={input.parameters.pitch.fieldValue}
+                error={input.parameters.pitch.error ? input.parameters.pitch.errorMessage : undefined}
+                onChange={(fv, pv) => updateInputParameter('pitch', fv, pv)}
                 description="The pitch of the port grid"
             />
             <MicrometerInput
                 label="Pitch Offset X"
-                value={input.parameters.pitchOffsetX.value}
-                error={input.parameters.pitchOffsetX.error ? input.parameters.pitchOffsetX.error_message : undefined}
-                onChange={v => updateInputParameter('pitchOffsetX', v)}
+                value={input.parameters.pitchOffsetX.fieldValue}
+                error={input.parameters.pitchOffsetX.error ? input.parameters.pitchOffsetX.errorMessage : undefined}
+                onChange={(fv, pv) => updateInputParameter('pitchOffsetX', fv, pv)}
                 description="The pitch offset of the port grid in x direction"
             />
             <MicrometerInput
                 label="Pitch Offset Y"
-                value={input.parameters.pitchOffsetY.value}
-                error={input.parameters.pitchOffsetY.error ? input.parameters.pitchOffsetY.error_message : undefined}
-                onChange={v => updateInputParameter('pitchOffsetY', v)}
+                value={input.parameters.pitchOffsetY.fieldValue}
+                error={input.parameters.pitchOffsetY.error ? input.parameters.pitchOffsetY.errorMessage : undefined}
+                onChange={(fv, pv) => updateInputParameter('pitchOffsetY', fv, pv)}
                 description="The pitch offset of the port grid in y direction"
             />
             <MicrometerInput
                 label="Channel Width"
-                value={input.parameters.channelWidth.value}
-                error={input.parameters.channelWidth.error ? input.parameters.channelWidth.error_message : undefined}
-                onChange={v => updateInputParameter('channelWidth', v)}
+                value={input.parameters.channelWidth.fieldValue}
+                error={input.parameters.channelWidth.error ? input.parameters.channelWidth.errorMessage : undefined}
+                onChange={(fv, pv) => updateInputParameter('channelWidth', fv, pv)}
                 description="The width of channels"
             />
             <MicrometerInput
                 label="Channel Spacing"
-                value={input.parameters.channelSpacing.value}
-                error={input.parameters.channelSpacing.error ? input.parameters.channelSpacing.error_message : undefined}
-                onChange={v => updateInputParameter('channelSpacing', v)}
+                value={input.parameters.channelSpacing.fieldValue}
+                error={input.parameters.channelSpacing.error ? input.parameters.channelSpacing.errorMessage : undefined}
+                onChange={(fv, pv) => updateInputParameter('channelSpacing', fv, pv)}
                 description="The required spacing between channels"
             />
             <MicrometerInput
                 label="Port Diameter"
-                value={input.parameters.portDiameter.value}
-                error={input.parameters.portDiameter.error ? input.parameters.portDiameter.error_message : undefined}
-                onChange={v => updateInputParameter('portDiameter', v)}
+                value={input.parameters.portDiameter.fieldValue}
+                error={input.parameters.portDiameter.error ? input.parameters.portDiameter.errorMessage : undefined}
+                onChange={(fv, pv) => updateInputParameter('portDiameter', fv, pv)}
                 description="The diameter of ports"
             />
             {input.parameter_errors !== undefined &&
@@ -315,7 +330,7 @@ export function BoardUI() {
 
             <LayoutChoice
                 layout={input.parameters.layout.value}
-                onChange={layout => updateInputParameter('layout', layout)}
+                onChange={layout => updateInputParameter('layout', layout, layout)}
             />
 
             {input.connection_errors !== undefined &&

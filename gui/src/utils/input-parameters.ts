@@ -5,17 +5,14 @@ export type Value<VALIDTYPE> = ValidValue<VALIDTYPE> | InvalidValue<VALIDTYPE>
 export type ValidValue<VALIDTYPE> = {
     error: false
     value: VALIDTYPE
+    fieldValue: string
 }
 
 export type InvalidValue<VALIDTYPE> = {
     error: true
-    error_message: string
+    errorMessage: string
     value: VALIDTYPE | undefined
-}
-
-export type MaybeValidValue<VALIDTYPE> = {
-    error: boolean
-    value: VALIDTYPE | undefined
+    fieldValue: string
 }
 
 export const defaultInputParameterValues: InputParameterValues = {
@@ -32,7 +29,7 @@ export const defaultInputParameterValues: InputParameterValues = {
 }
 
 export function generateInputParametersFromConfig(v: InputParameterValues): InputParameters {
-    return Object.fromEntries(Object.entries(v).map(([k, v]) => ([k, { error: false, value: v }]))) as InputParameters
+    return Object.fromEntries(Object.entries(v).map(([k, v]) => ([k, { error: false, value: v, fieldValue: v.toString() }]))) as InputParameters
 }
 
 export const defaultInputParameters = generateInputParametersFromConfig(defaultInputParameterValues)
@@ -52,9 +49,11 @@ export type InputParameterValues = {
 
 export type InputParameters = { [K in keyof InputParameterValues]: Value<InputParameterValues[K]> }
 
-export type MaybeValidInputParameters = { [K in keyof InputParameterValues]: Value<InputParameterValues[K]> | MaybeValidValue<InputParameterValues[K]> }
+export function validateAble(parameters: InputParameters) {
+    return Object.values(parameters).every(p => p.value !== undefined)
+}
 
-export function validate(parameters: MaybeValidInputParameters) {
+export function validate(parameters: InputParameters) {
 
     const rawParams = {
         channel_width: parameters.channelWidth.value,
@@ -85,43 +84,43 @@ export function validate(parameters: MaybeValidInputParameters) {
                         vp.channelWidth = {
                             ...vp.channelWidth,
                             error: true,
-                            error_message: 'Must be a positive integer!'
+                            errorMessage: 'Must be a positive integer!'
                         }
                     } else if (error === 'MissingChannelSpacing' || error === 'InvalidChannelSpacing' || error === 'ChannelHeightNotPositive') {
                         vp.channelSpacing = {
                             ...vp.channelSpacing,
                             error: true,
-                            error_message: 'Must be a positive integer!'
+                            errorMessage: 'Must be a positive integer!'
                         }
                     } else if (error === 'MissingBoardWidth' || error === 'InvalidBoardWidth' || error === 'BoardWidthNotPositive') {
                         vp.boardWidth = {
                             ...vp.boardWidth,
                             error: true,
-                            error_message: 'Must be a positive integer!'
+                            errorMessage: 'Must be a positive integer!'
                         }
                     } else if (error === 'MissingBoardHeight' || error === 'InvalidBoardHeight' || error === 'BoardHeightNotPositive') {
                         vp.boardHeight = {
                             ...vp.boardHeight,
                             error: true,
-                            error_message: 'Must be a positive integer!'
+                            errorMessage: 'Must be a positive integer!'
                         }
                     } else if (error === 'MissingPitch' || error === 'InvalidPitch' || error === 'PitchNotPositive') {
                         vp.pitch = {
                             ...vp.pitch,
                             error: true,
-                            error_message: 'Must be a positive integer!'
+                            errorMessage: 'Must be a positive integer!'
                         }
                     } else if (error === 'MissingPitchOffsetX' || error === 'InvalidPitchOffsetX' || error === 'PitchOffsetXNotPositive') {
                         vp.pitchOffsetX = {
                             ...vp.pitchOffsetX,
                             error: true,
-                            error_message: 'Must be a positive integer!'
+                            errorMessage: 'Must be a positive integer!'
                         }
                     } else if (error === 'MissingPitchOffsetY' || error === 'InvalidPitchOffsetY' || error === 'PitchOffsetYNotPositive') {
                         vp.pitchOffsetY = {
                             ...vp.pitchOffsetY,
                             error: true,
-                            error_message: 'Must be a positive integer!'
+                            errorMessage: 'Must be a positive integer!'
                         }
                     } else if (error === 'InvalidMaxPorts') {
                         pe.push('Invalid maximal ports configuration!')
