@@ -25,7 +25,7 @@ export const defaultInputParameterValues: InputParameterValues = {
     channelWidth: 100,
     channelSpacing: 100,
     layout: 'Octilinear',
-    maxPorts: 20000
+    maxPorts: 5000
 }
 
 export function generateInputParametersFromConfig(v: InputParameterValues): InputParameters {
