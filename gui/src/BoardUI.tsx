@@ -18,6 +18,7 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
 import CheckIcon from '@mui/icons-material/Check';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import { AddConnection } from "./components/AddConnection"
 
 export type InputState = {
     parameters: InputParameters
@@ -25,6 +26,8 @@ export type InputState = {
     connection_errors: string[] | undefined
     general_errors: string[] | undefined
     ports: InputPorts
+    portsX: number | undefined
+    portsY: number | undefined
     connections: InputConnections
 }
 
@@ -34,7 +37,9 @@ const defaultInputState: InputState = {
     connection_errors: undefined,
     general_errors: undefined,
     ports: defaultInputPorts,
-    connections: defaultInputConnections
+    connections: defaultInputConnections,
+    portsX: undefined,
+    portsY: undefined
 }
 
 export type OutputState = {
@@ -191,14 +196,26 @@ export function BoardUI() {
         if (validateAble(parameters)) {
             const { parameters: validated_parameters, parameter_errors, general_errors, connection_errors } = validate(parameters)
 
-            let ports: InputPorts = undefined
+            let gPorts
             if (Object.values(validated_parameters).every(p => !p.error) && (parameter_errors === undefined || parameter_errors.length === 0) && (general_errors === undefined || general_errors.length === 0)) {
-                ports = generatePorts(validated_parameters)
+                gPorts = generatePorts(validated_parameters)
+            }
+
+            let ports: InputPorts = undefined
+            let portsX = undefined
+            let portsY = undefined
+
+            if(gPorts !== undefined) {
+                ports = gPorts.ports
+                portsX = gPorts.portsX
+                portsY = gPorts.portsY
             }
 
             setInput(s => ({
                 ...s,
                 ports,
+                portsX,
+                portsY,
                 parameter_errors: parameter_errors,
                 general_errors: general_errors,
                 connection_errors: connection_errors,
@@ -230,6 +247,9 @@ export function BoardUI() {
         })
         setDXFDownload(undefined)
     }
+
+    const portIsInRange = (portKey: PortKey) => input.portsX !== undefined && input.portsY !== undefined && portKey[0] < input.portsX && portKey[1] < input.portsY
+    const portIsFree = (portKey: PortKey) => input.portsX !== undefined && input.portsY !== undefined && portConnectionMap[portKey[0]]?.[portKey[1]] === undefined
 
     const theme = useTheme()
 
@@ -520,6 +540,15 @@ export function BoardUI() {
                     </Typography>
                 }
 
+                <AddConnection
+                    boardEdit={boardEdit}
+                    portIsFree={portIsFree}
+                    portIsInRange={portIsInRange}
+                    onAdd={() => { }}
+                >
+
+                </AddConnection>
+
                 <Box
                     sx={{
                         marginX: 2,
@@ -563,6 +592,7 @@ export function BoardUI() {
 
 
                                     return <Port
+                                        index={port.index}
                                         position={port.position}
                                         diameter={isSelected ? 1.3 * input.parameters.portDiameter.value! : input.parameters.portDiameter.value!}
                                         style={{
