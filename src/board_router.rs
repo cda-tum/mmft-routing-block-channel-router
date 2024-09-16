@@ -18,6 +18,7 @@ pub struct RouteInput {
     pub pitch_offset_x: Length,
     pub pitch_offset_y: Length,
     pub min_grid_size: Length,
+    pub port_diameter: Length,
     pub max_ports: usize,
     pub connections: RouteInputConnections,
 }
@@ -25,12 +26,6 @@ pub struct RouteInput {
 type RouteInputConnections = Vec<RouteInputConnection>;
 type RouteInputConnection = (ConnectionID, (Port, Port));
 type Port = (usize, usize);
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BoardRouterInputChannel {
-    pub width: Length,
-    pub spacing: Length,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Layout {
@@ -518,6 +513,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         input.pitch_offset_x - ((cells_per_pitch - 1) / 2) * cell_size - half_cell_size;
     let cell_offset_y =
         input.pitch_offset_y - ((cells_per_pitch - 1) / 2) * cell_size - half_cell_size;
+    let port_radius = input.port_diameter / 2;
 
     let mut nodes = Vec::<GridNode>::new();
 
@@ -555,6 +551,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         let a_cell_y = ((cpp - 1) / 2) + cpp * ay;
         let b_cell_x = ((cpp - 1) / 2) + cpp * bx;
         let b_cell_y = ((cpp - 1) / 2) + cpp * by;
+        let box_size = (port_radius) / cell_size;
         nodes[a_cell_x * cells_y + a_cell_y].connection = Some(*c_id);
         nodes[b_cell_x * cells_y + b_cell_y].connection = Some(*c_id);
     }
