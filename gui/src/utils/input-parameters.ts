@@ -64,7 +64,7 @@ export function validate(parameters: MaybeValidInputParameters) {
         pitch: parameters.pitch.value,
         pitch_offset_x: parameters.pitchOffsetX.value,
         pitch_offset_y: parameters.pitchOffsetY.value,
-        port_diameter: parameters.pitchOffsetY.value,
+        port_diameter: parameters.portDiameter.value,
         max_ports: parameters.maxPorts.value,
         layout: parameters.layout.value,
         connections: [], // TODO
