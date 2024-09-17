@@ -521,6 +521,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
 
     let mut nodes = Vec::<GridNode>::new();
 
+    // Generate routing nodes/cells
     for x in 0..cells_x {
         for y in 0..cells_y {
             nodes.push(GridNode {
@@ -549,13 +550,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
 
     let n_input_connections = input_connections.len();
 
-    println!(
-        "{:?}",
-        (cells_x, cells_y, box_size, cell_size, port_radius, port_influence_radius)
-    );
-
-    println!("{:#?}", &nodes);
-
+    // Reserve cells at and around used ports for the corresponding connection only (prevent other connections from crossing foreign ports)
     for (c_id, ((ax, ay), (bx, by))) in input_connections.iter() {
         let cpp = usize::try_from(cells_per_pitch).unwrap();
         let a_cell_x = ((cpp - 1) / 2) + cpp * ax;
@@ -570,8 +565,6 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             nodes[b_cell_x * cells_y + b_cell_y].x,
             nodes[b_cell_x * cells_y + b_cell_y].y,
         );
-
-        println!("{:?}", c_id);
 
         for box_x in usize::saturating_sub(a_cell_x, box_size as usize)
             ..(a_cell_x + 1 + box_size as usize).clamp(0, cells_x)
@@ -588,8 +581,12 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                     node_position.1 as f64 - a_node_position.1 as f64,
                 );
                 if distance < port_influence_radius as f64 {
-                    println!("{:?}", (box_x, box_y, a_cell_x, a_cell_y));
-                    nodes[box_x * cells_y + box_y].connection = Some(*c_id);
+                    // If the cell is already reserved for another connection (e.g., ports close to each other), no connection can be routed through this cell
+                    if nodes[box_x * cells_y + box_y].connection.is_none() {
+                        nodes[box_x * cells_y + box_y].connection = Some(*c_id);
+                    } else {
+                        nodes[box_x * cells_y + box_y].blocked = true;
+                    }
                 }
             }
         }
@@ -609,16 +606,18 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                     node_position.1 as f64 - b_node_position.1 as f64,
                 );
                 if distance < port_influence_radius as f64 {
-                    println!("{:?}", (box_x, box_y, b_cell_x, b_cell_y));
-                    nodes[box_x * cells_y + box_y].connection = Some(*c_id);
+                    // If the cell is already reserved for another connection (e.g., ports close to each other), no connection can be routed through this cell
+                    if nodes[box_x * cells_y + box_y].connection.is_none() {
+                        nodes[box_x * cells_y + box_y].connection = Some(*c_id);
+                    } else {
+                        nodes[box_x * cells_y + box_y].blocked = true;
+                    }
                 }
             }
         }
-
-        //nodes[a_cell_x * cells_y + a_cell_y].connection = Some(*c_id);
-        //nodes[b_cell_x * cells_y + b_cell_y].connection = Some(*c_id);
     }
 
+    // Sort connections by direct distance, ascending
     fn cmp_connections((_, a): &RouteInputConnection, (_, b): &RouteInputConnection) -> Ordering {
         let adx = usize::abs_diff(a.0 .0, a.1 .0);
         let ady = usize::abs_diff(a.0 .1, a.1 .1);
@@ -636,6 +635,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         return Err(BoardRouterOutputError::NoInputConnections);
     }
 
+    // Route connections sequentially
     for (c_id, ((ax, ay), (bx, by))) in input_connections {
         let cpp = usize::try_from(cells_per_pitch).unwrap();
         let a_cell_x = ((cpp - 1) / 2) + cpp * ax;
@@ -646,6 +646,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         let target_node_id = b_cell_x * cells_y + b_cell_y;
         let target_node = &nodes[target_node_id];
 
+        // Setup successor cell functions for rectilinear, octilinear, etc; Since they capture some variables (e.g., cells_x/y), they need to be defined here.
         let rectilinear = |a: &AStarNode<usize>| -> Vec<(usize, f64)> {
             let n = &nodes[a.node];
             let options = match a.previous {
@@ -687,6 +688,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                 ]),
             };
 
+            // Check whether the cell can be reached (is unblocked)
             options
                 .into_iter()
                 .filter_map(|o| -> Option<(usize, f64)> {
@@ -783,6 +785,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                 ]),
             };
 
+            // Check whether the cell can be reached (is unblocked, and for diagonal connections, diagonal neighbors are unblocked)
             options
                 .into_iter()
                 .filter_map(|o| -> Option<(usize, f64)> {
@@ -918,6 +921,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                 ]),
             };
 
+            // Check whether the cell can be reached (is unblocked, and for diagonal connections, diagonal neighbors are unblocked)
             options
                 .into_iter()
                 .filter_map(|o| -> Option<(usize, f64)> {
@@ -964,6 +968,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                 .collect()
         };
 
+        // Set successor function depending on input layout
         let successors: &dyn Fn(&AStarNode<usize>) -> Vec<(usize, f64)> = match input.layout {
             Layout::Rectilinear => &rectilinear,
             Layout::Octilinear => &octilinear,
@@ -972,6 +977,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
 
         let is_target = |n: &usize| -> bool { *n == target_node_id };
 
+        // Set euclidean distance as heuristic
         let heuristic = |i: &usize| -> f64 {
             let n = &nodes[*i];
             let dx = n.ix as isize - target_node.ix as isize;
@@ -987,6 +993,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             None,
         );
 
+        // Block the cells of the resulting path so that no subsequent routings can interfere with it.
         match result {
             Some(path) => output_connections.push((
                 c_id,
