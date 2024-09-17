@@ -21,12 +21,13 @@ export function route(input: InputState) {
             pitch: input.parameters.pitch.value,
             pitch_offset_x: input.parameters.pitchOffsetX.value,
             pitch_offset_y: input.parameters.pitchOffsetY.value,
-            port_diameter: input.parameters.pitchOffsetY.value,
+            port_diameter: input.parameters.portDiameter.value,
             max_ports: input.parameters.maxPorts.value,
             connections: Object.entries(input.connections).filter(([_, connection]) => connection.ports.length == 2).map(([c_id, connection]) => [parseInt(c_id), connection.ports]),
             min_grid_size: 0,
             layout: input.parameters.layout.value,
         }
+        console.log(args)
         const result = wasm_route(args)
 
         if ('Ok' in result) {

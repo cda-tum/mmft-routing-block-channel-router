@@ -5,11 +5,11 @@ import InfoOutlined from '@mui/icons-material/InfoOutlined';
 export type MicrometerProps = {
     label?: string
     description?: string
-    defaultValue?: string | undefined
-    value?: string | undefined
+    defaultValue?: number | undefined
+    value?: number | undefined
     error?: string | undefined
     placeholder?: string | undefined
-    onChange?: (fieldValue: string, parsedValue: number | undefined) => void
+    onChange?: (v: number | undefined) => void
 }
 
 export function MicrometerInput(props: MicrometerProps) {
@@ -25,16 +25,15 @@ export function MicrometerInput(props: MicrometerProps) {
                 <FormLabel htmlFor={id}>{props.label}</FormLabel>
             }
             <Input
+                type="number"
                 defaultValue={props.defaultValue}
-                value={props.value}
+                value={(props.value === 0 ? '0' : props.value) ?? ''}
                 placeholder={props.placeholder ?? props.label}
                 endDecorator="μm"
                 id={id}
                 onChange={e => {
-                    const value = e.target.value
-                    const isNumber = parseFloat(value).toString() === value && Number.isSafeInteger(parseFloat(value))
-                    const i = parseFloat(value)
-                    props.onChange?.(value, isNumber ? i: undefined)
+                    const v = parseInt(e.target.value)
+                    props.onChange?.(!Number.isSafeInteger(v) ? undefined : v)
                 }}
                 sx={{
                     '& input':
