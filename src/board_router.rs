@@ -24,7 +24,7 @@ pub struct RouteInput {
 }
 
 type RouteInputConnections = Vec<RouteInputConnection>;
-type RouteInputConnection = (ConnectionID, (Port, Port));
+type RouteInputConnection = (ConnectionID, Vec<Port>); // Handle multiple ports for one connection
 type Port = (usize, usize);
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -45,14 +45,14 @@ pub enum BoardRouterOutputError {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BoardRouterOutputBoard {
-    pub connections: Vec<BoardRouterOutputConnection>,
+    pub connections: Vec<BoardRouterOutputConnection>, // this is the output -- a vector of the channel connections on the routing board
 }
 
-pub type BoardRouterOutputConnection = (usize, Channel);
+pub type BoardRouterOutputConnection = (usize, Channel);  // tuple of connection ID (unsigned integer) and channel, the channel consists of a vector of points
 
 pub type Channel = Vec<Point>;
 
-pub type Point = [Coordinate; 2];
+pub type Point = [Coordinate; 2]; // a point in 2D (x, y)
 
 #[derive(Eq, Debug)]
 struct GridNode {
@@ -62,8 +62,10 @@ struct GridNode {
     x: Coordinate,
     y: Coordinate,
     connection: Option<usize>,
-    blocked: bool,
+    blocked: bool, // can have only one connection
+    multiConnection: bool, // can have multiple connections
 }
+
 
 impl PartialEq for GridNode {
     fn eq(&self, other: &Self) -> bool {
@@ -144,6 +146,31 @@ fn right_down_if_exists(
         Some(((v.0 + 1, v.1 + 1), f64::consts::SQRT_2))
     } else {
         None
+    }
+}
+
+#[inline]
+fn compute_extra_node(nodes: &[GridNode], ports: &[Port], cells_x: usize, cells_y: usize) -> GridNode { // TODO find a node on the grid that would be in the center of up to 4 input nodes (or more?)
+    let sum_x: i64 = ports.iter().map(|p| nodes[p.0 * cells_y + p.1].x).sum();
+    let sum_y: i64 = ports.iter().map(|p| nodes[p.0 * cells_y + p.1].y).sum();
+    
+    let avg_x = sum_x / ports.len() as i64;
+    let avg_y = sum_y / ports.len() as i64;
+
+    // Snap to nearest grid point
+    let nearest_x = nodes.iter().min_by_key(|node| (node.x - avg_x).abs()).unwrap().x;
+    let nearest_y = nodes.iter().min_by_key(|node| (node.y - avg_y).abs()).unwrap().y;
+
+    // Create the new centroid node
+    GridNode {
+        id: usize::MAX, // Temporary ID, can be updated later
+        ix: usize::MAX, // Can be set based on grid indices
+        iy: usize::MAX, // Can be set based on grid indices
+        x: nearest_x,
+        y: nearest_y,
+        connection: None,
+        blocked: false,
+        multiConnection: true, // TODO: all other nodes should have no multi connection
     }
 }
 
@@ -430,19 +457,14 @@ pub fn validate(validate_input: ValidateInputRaw) -> Result<(), Vec<ValidationEr
                     pitch_offset_y,
                 });
 
-                for (c_id, ((ax, ay), (bx, by))) in connections.iter() {
-                    if *ax >= ports_x {
-                        errors.push(ValidationError::InvalidConnectionPortX(*c_id, (*ax, *ay)));
-                    }
-                    if *ay >= ports_y {
-                        errors.push(ValidationError::InvalidConnectionPortY(*c_id, (*ax, *ay)));
-                    }
-
-                    if *bx >= ports_x {
-                        errors.push(ValidationError::InvalidConnectionPortX(*c_id, (*bx, *by)));
-                    }
-                    if *by >= ports_y {
-                        errors.push(ValidationError::InvalidConnectionPortY(*c_id, (*bx, *by)));
+                for (c_id, ports) in connections.iter() {
+                    for (x, y) in ports.iter() {
+                        if *x >= ports_x {
+                            errors.push(ValidationError::InvalidConnectionPortX(*c_id, (*x, *y)));
+                        }
+                        if *y >= ports_y {
+                            errors.push(ValidationError::InvalidConnectionPortY(*c_id, (*x, *y)));
+                        }
                     }
                 }
             }
@@ -493,7 +515,7 @@ pub fn validate(validate_input: ValidateInputRaw) -> Result<(), Vec<ValidationEr
     }
 }
 
-pub fn route(input: RouteInput) -> BoardRouterOutput {
+pub fn route(input: RouteInput) -> BoardRouterOutput { // this is the main function I want to adapt
     let channel_distance = input.channel_width + input.channel_spacing;
     let cells_per_pitch = input.pitch / channel_distance;
     let cell_size = input.pitch / cells_per_pitch;
@@ -538,6 +560,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                 .unwrap(),
                 connection: None,
                 blocked: false,
+                multiConnection: false,
             });
         }
     }
@@ -550,8 +573,35 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
 
     let n_input_connections = input_connections.len();
 
+    // here are the extra connections to the center node for start like connections are stored
+    let mut extra_connections = Vec::new(); 
+    let mut next_connection_id = n_input_connections; 
+
     // Reserve cells at and around used ports for the corresponding connection only (prevent other connections from crossing foreign ports)
-    for (c_id, ((ax, ay), (bx, by))) in input_connections.iter() {
+    for (c_id, ports) in input_connections.iter() {
+        if ports.len() > 2 { // there are more than 2 nodes connected, so we connect them in a star like structure
+            // define the center node
+            let center_node = compute_extra_node(&nodes, &ports, cells_x, cells_y);
+            // create a connection from each port to the center node
+            for port in ports.iter() {
+                let new_connection = (
+                    next_connection_id,
+                    vec![*port, (center_node.ix, center_node.iy)]
+                );
+
+                extra_connections.push(new_connection);
+
+                next_connection_id += 1;
+            } 
+        }
+    }
+    input_connections.extend(extra_connections);
+
+    for (c_id, ports) in input_connections.iter() {
+        // Extract the two ports to connect
+        let (ax, ay) = ports[0];
+        let (bx, by) = ports[1];
+
         let cpp = usize::try_from(cells_per_pitch).unwrap();
         let a_cell_x = ((cpp - 1) / 2) + cpp * ax;
         let a_cell_y = ((cpp - 1) / 2) + cpp * ay;
@@ -616,13 +666,15 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             }
         }
     }
+    
 
     // Sort connections by direct distance, ascending
     fn cmp_connections((_, a): &RouteInputConnection, (_, b): &RouteInputConnection) -> Ordering {
-        let adx = usize::abs_diff(a.0 .0, a.1 .0);
-        let ady = usize::abs_diff(a.0 .1, a.1 .1);
-        let bdx = usize::abs_diff(b.0 .0, b.1 .0);
-        let bdy = usize::abs_diff(b.0 .1, b.1 .1);
+        let adx = usize::abs_diff(a[0].0, a[1].0);
+        let ady = usize::abs_diff(a[0].1, a[1].1);
+        let bdx = usize::abs_diff(b[0].0, b[1].0);
+        let bdy = usize::abs_diff(b[0].1, b[1].1);
+        
         let al = adx + ady;
         let bl = bdx + bdy;
         usize::cmp(&al, &bl)
@@ -636,7 +688,10 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     }
 
     // Route connections sequentially
-    for (c_id, ((ax, ay), (bx, by))) in input_connections {
+    for (c_id, ports) in input_connections {
+        let (ax, ay) = ports[0];
+        let (bx, by) = ports[1];
+
         let cpp = usize::try_from(cells_per_pitch).unwrap();
         let a_cell_x = ((cpp - 1) / 2) + cpp * ax;
         let a_cell_y = ((cpp - 1) / 2) + cpp * ay;
