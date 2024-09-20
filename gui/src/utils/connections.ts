@@ -16,3 +16,16 @@ export type Point = [number, number]
 export type OutputConnections = Record<ConnectionID, Point[]>
 
 export const defaultOutputConnections: OutputConnections = {}
+
+export function computePathLength(points: Point[]) {
+    let previous = undefined
+    let length = 0
+    for(let point of points) {
+        if(previous !== undefined) {
+            const [dx, dy] = [point[0] - previous[0], point[1] - previous[1]]
+            length += Math.hypot(dx, dy)
+        }
+        previous = point
+    }
+    return length
+}

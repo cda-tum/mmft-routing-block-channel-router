@@ -21,16 +21,20 @@ export function AddConnection(props: {
     const [endPortError, setEndPortError] = useState<string | undefined>()
 
     useEffect(() => {
-
+        if(startPort !== undefined && endPort !== undefined && startPort[0] === endPort[0] && startPort[1] === endPort[1]) {
+            setStartPortError('Start and end port identical')
+            setEndPortError('Start and end port identical')
+        }
     }, [startPort, endPort])
 
-    const canAdd = startPort === undefined || endPort === undefined
+    const canAdd = startPort !== undefined && endPort !== undefined
 
     return <Box>
         <PortInput
             label={"Start"}
             onChange={(portKey) => {
                 setStartPort(undefined)
+                setStartPortError(undefined)
                 if (portKey !== undefined) {
                     if (!props.portIsInRange(portKey)) {
                         setStartPortError('Port is out of bounds.')
@@ -50,6 +54,7 @@ export function AddConnection(props: {
             label={"End"}
             onChange={(portKey) => {
                 setEndPort(undefined)
+                setEndPortError(undefined)
                 if (portKey !== undefined) {
                     if (!props.portIsInRange(portKey)) {
                         setEndPortError('Port is out of bounds.')
@@ -66,9 +71,9 @@ export function AddConnection(props: {
         ></PortInput>
 
         <Button
-            disabled={canAdd}
+            disabled={!canAdd}
             onClick={_ => {
-                if (startPort !== undefined && endPort !== undefined) {
+                if (canAdd) {
                     props.onAdd(startPort, endPort)
                 }
             }}

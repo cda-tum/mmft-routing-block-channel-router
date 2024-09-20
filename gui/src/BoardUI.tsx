@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
-import { Box, Button, ButtonGroup, IconButton, Menu, MenuItem, Typography, useTheme } from "@mui/joy"
+import { Box, Button, ButtonGroup, IconButton, Menu, MenuItem, Tooltip, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
 import { defaultInputParameters, InputParameters, validate, validateAble } from "./utils/input-parameters"
 import { defaultInputPorts, generatePorts, InputPorts, PortKey } from "./utils/ports"
-import { ConnectionID, defaultInputConnections, defaultOutputConnections, InputConnections, OutputConnections } from "./utils/connections"
+import { computePathLength, ConnectionID, defaultInputConnections, defaultOutputConnections, InputConnections, OutputConnections } from "./utils/connections"
 import { generateView } from "./utils/view"
 import { route } from "./utils/route"
 import { oklabrandom } from "./utils/color"
@@ -207,7 +207,7 @@ export function BoardUI() {
             let portsX = undefined
             let portsY = undefined
 
-            if(gPorts !== undefined) {
+            if (gPorts !== undefined) {
                 ports = gPorts.ports
                 portsX = gPorts.portsX
                 portsY = gPorts.portsY
@@ -681,12 +681,16 @@ export function BoardUI() {
                                 return <></>
                             }
 
-                            return <path
+                            return <Tooltip
+                                title={`Length: ${computePathLength(points)} μm`}
+                                open={true}
+                            ><path
                                 d={`M ${points.map(p => `${p[0]},${p[1]}`).join('L')}`}
                                 stroke={randomColors ? connection.color : theme.vars.palette.primary[500]}
                                 strokeWidth={input.parameters.channelWidth.value}
                                 fill="none"
                             ></path>
+                            </Tooltip>
                         })}
                     </svg>
                 </Box>
