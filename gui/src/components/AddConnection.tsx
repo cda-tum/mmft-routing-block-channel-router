@@ -1,14 +1,18 @@
-import { Box, FormControl, FormHelperText, FormLabel, Input } from "@mui/joy";
+import { Box, Button, FormControl, FormHelperText, FormLabel, Input, Typography, useTheme } from "@mui/joy";
 import { Port, portIndexToString, PortKey, portStringToIndex } from "../utils/ports";
 import { useEffect, useId, useState } from "react";
 import { BoardEdit } from "../BoardUI";
+import AddIcon from '@mui/icons-material/Add';
 
 export function AddConnection(props: {
     boardEdit: BoardEdit
+    setBoardEdit: (f: ((e: BoardEdit) => BoardEdit) | BoardEdit) => void
     portIsInRange: (port: PortKey) => boolean
     portIsFree: (port: PortKey) => boolean
-    onAdd: (from: Port, to: Port) => void
+    onAdd: (from: PortKey, to: PortKey) => void
 }) {
+
+    const theme = useTheme()
 
     const [startPort, setStartPort] = useState<PortKey | undefined>()
     const [startPortError, setStartPortError] = useState<string | undefined>()
@@ -16,20 +20,26 @@ export function AddConnection(props: {
     const [endPort, setEndPort] = useState<PortKey | undefined>()
     const [endPortError, setEndPortError] = useState<string | undefined>()
 
-    const [startIsFirst, setStartIsFirst] = useState<boolean>(true)
+    useEffect(() => {
+
+    }, [startPort, endPort])
+
+    const canAdd = startPort === undefined || endPort === undefined
 
     return <Box>
         <PortInput
             label={"Start"}
             onChange={(portKey) => {
                 setStartPort(undefined)
-                if (!props.portIsInRange(portKey)) {
-                    setStartPortError('Port is out of bounds.')
-                } else if (!props.portIsFree(portKey)) {
-                    setStartPortError('Port is already taken.')
-                } else {
-                    setStartPortError(undefined)
-                    setStartPort(portKey)
+                if (portKey !== undefined) {
+                    if (!props.portIsInRange(portKey)) {
+                        setStartPortError('Port is out of bounds.')
+                    } else if (!props.portIsFree(portKey)) {
+                        setStartPortError('Port is already taken.')
+                    } else {
+                        setStartPortError(undefined)
+                        setStartPort(portKey)
+                    }
                 }
             }}
             error={startPortError}
@@ -40,18 +50,38 @@ export function AddConnection(props: {
             label={"End"}
             onChange={(portKey) => {
                 setEndPort(undefined)
-                if (!props.portIsInRange(portKey)) {
-                    setEndPortError('Port is out of bounds.')
-                } else if (!props.portIsFree(portKey)) {
-                    setEndPortError('Port is already taken.')
-                } else {
-                    setEndPortError(undefined)
-                    setEndPort(portKey)
+                if (portKey !== undefined) {
+                    if (!props.portIsInRange(portKey)) {
+                        setEndPortError('Port is out of bounds.')
+                    } else if (!props.portIsFree(portKey)) {
+                        setEndPortError('Port is already taken.')
+                    } else {
+                        setEndPortError(undefined)
+                        setEndPort(portKey)
+                    }
                 }
             }}
             error={endPortError}
             value={endPort}
         ></PortInput>
+
+        <Button
+            disabled={canAdd}
+            onClick={_ => {
+                if (startPort !== undefined && endPort !== undefined) {
+                    props.onAdd(startPort, endPort)
+                }
+            }}
+            sx={{
+                margin: 1,
+                marginX: 2,
+            }}
+        >
+            <Typography sx={{ color: theme.vars.palette.common.white }}>
+                <AddIcon sx={{
+                    verticalAlign: 'bottom'
+                }} /> Add</Typography>
+        </Button>
     </Box>
 }
 
@@ -59,14 +89,14 @@ export function PortInput(props: {
     label?: string
     value?: PortKey
     error?: string
-    onChange?: (port: PortKey) => void
+    onChange?: (port: PortKey | undefined) => void
 }) {
     const [value, setValue] = useState<string | undefined>()
 
     useEffect(() => {
-        if(props.value !== undefined) {
+        if (props.value !== undefined) {
             const str = portIndexToString(props.value)
-            if(str !== undefined) {
+            if (str !== undefined) {
                 setValue(str)
             }
             setValue(undefined)
@@ -99,12 +129,13 @@ export function PortInput(props: {
                     setError('Invalid port name.')
                 } else {
                     setError(undefined)
-                    props.onChange?.(index as PortKey)
                 }
+                props.onChange?.(index as PortKey | undefined)
             }}
             sx={{
                 '& input':
-                    { textAlign: 'center' }
+                    { textAlign: 'center' },
+                width: 150
             }}
         />
         {error &&

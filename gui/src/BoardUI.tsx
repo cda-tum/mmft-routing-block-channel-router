@@ -20,6 +20,8 @@ import CheckIcon from '@mui/icons-material/Check';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import { AddConnection } from "./components/AddConnection"
 
+const randomColors = false
+
 export type InputState = {
     parameters: InputParameters
     parameter_errors: string[] | undefined
@@ -542,6 +544,7 @@ export function BoardUI() {
 
                 <AddConnection
                     boardEdit={boardEdit}
+                    setBoardEdit={setBoardEdit}
                     portIsFree={portIsFree}
                     portIsInRange={portIsInRange}
                     onAdd={() => { }}
@@ -586,7 +589,7 @@ export function BoardUI() {
                                     } : undefined
 
                                     const isSelected = boardEdit.state === BoardEditState.Selected && boardEdit.selected === connectionId
-                                    const highlightedStyle = (boardEdit.state === BoardEditState.FirstPortSet && boardEdit.port[0] == port.index[0] && boardEdit.port[1] === port.index[1]) ? { fill: boardEdit.nextConnectionColor, strokeDasharray: undefined } : {}
+                                    const highlightedStyle = (boardEdit.state === BoardEditState.FirstPortSet && boardEdit.port[0] == port.index[0] && boardEdit.port[1] === port.index[1]) ? { fill: randomColors ? boardEdit.nextConnectionColor : theme.vars.palette.primary[500], strokeDasharray: undefined } : {}
 
                                     const selectedStyle = isSelected ? { strokeDasharray: undefined } : {}
 
@@ -599,13 +602,13 @@ export function BoardUI() {
                                             cursor: 'pointer',
                                             strokeDasharray: input.parameters.portDiameter.value! / 6,
                                             strokeLinecap: 'round',
-                                            fill: hasConnection ? connection?.color : 'transparent',
+                                            fill: hasConnection ? (randomColors ? connection?.color : theme.vars.palette.primary[500]) : 'transparent',
                                             ...selectSecondPortStyle,
                                             ...selectedStyle,
                                             ...highlightedStyle
                                         }}
                                         hoverStyle={hasConnection ? {} : {
-                                            fill: boardEdit.nextConnectionColor,
+                                            fill: randomColors ? boardEdit.nextConnectionColor : theme.vars.palette.primary[500],
                                             strokeDasharray: undefined
                                         }}
                                         onClick={() => {
@@ -680,7 +683,7 @@ export function BoardUI() {
 
                             return <path
                                 d={`M ${points.map(p => `${p[0]},${p[1]}`).join('L')}`}
-                                stroke={connection.color}
+                                stroke={randomColors ? connection.color : theme.vars.palette.primary[500]}
                                 strokeWidth={input.parameters.channelWidth.value}
                                 fill="none"
                             ></path>
