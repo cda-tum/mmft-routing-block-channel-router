@@ -63,9 +63,10 @@ export function validate(parameters: InputParameters) {
         pitch: parameters.pitch.value,
         pitch_offset_x: parameters.pitchOffsetX.value,
         pitch_offset_y: parameters.pitchOffsetY.value,
+        port_diameter: parameters.portDiameter.value,
         max_ports: parameters.maxPorts.value,
         layout: parameters.layout.value,
-        connections: [[0, [[0, 0], [5, 5]]]],
+        connections: [], // TODO
     }
 
     try {
