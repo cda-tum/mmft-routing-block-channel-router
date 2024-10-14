@@ -6,7 +6,7 @@ export function Port(props: {
     index: [number, number]
     position: [number, number]
     diameter: number
-    selectable: boolean
+    clickable: boolean
     style?: React.CSSProperties
     onClick?: () => void
 }) {
@@ -15,7 +15,6 @@ export function Port(props: {
 
     // Style when port can be clicked
     const baseStyle: React.CSSProperties = {
-        strokeDasharray: props.diameter / 5,
         strokeLinejoin: 'round',
         strokeLinecap: 'round'
     }
@@ -27,7 +26,8 @@ export function Port(props: {
 
     // Style when port cannot be clicked
     const notSelectableStyle: React.CSSProperties = {
-        cursor: 'not-allowed'
+        cursor: 'not-allowed',
+        opacity: 0.5
     }
 
     // Style when port is hovered
@@ -49,11 +49,11 @@ export function Port(props: {
             strokeWidth: props.diameter / 10,
             ...baseStyle,
             ...(props.style ?? {}),
-            ...(props.selectable ? selectableStyle : notSelectableStyle),
-            ...(hover ? hoveredStyle : {})
+            ...(hover ? hoveredStyle : {}),
+            ...(props.clickable ? selectableStyle : notSelectableStyle),
         }}
         onClick={_ => {
-            if(props.selectable) {
+            if(props.clickable) {
                 props.onClick?.()
             }
         }}

@@ -38,7 +38,7 @@ export function generatePorts(parameters: InputParameters): { ports: InputPorts,
     }
 }
 
-export function portStringToIndex(port: string) {
+export function portStringToIndex(port: string): [number, number] | undefined {
     const r = port.match(PORT_PATTERN)
     if (r === undefined || r === null) {
         return undefined

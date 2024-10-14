@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
-import { Box, Button, ButtonGroup, IconButton, Menu, MenuItem, Tooltip, Typography, useTheme } from "@mui/joy"
+import { Box, Button, ButtonGroup, Card, CardContent, IconButton, Menu, MenuItem, Stack, Tooltip, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
 import { defaultInputParameters, InputParameters, validate, validateAble } from "./utils/input-parameters"
 import { defaultInputPorts, generatePorts, InputPorts, PortKey } from "./utils/ports"
 import { computePathLength, ConnectionID, defaultInputConnections, defaultOutputConnections, InputConnections, OutputConnections } from "./utils/connections"
-import { generateView } from "./utils/view"
 import { route } from "./utils/route"
 import { oklabrandom } from "./utils/color"
 import { LayoutChoice } from "./components/LayoutChoice"
@@ -19,6 +18,15 @@ import TouchAppIcon from '@mui/icons-material/TouchApp';
 import CheckIcon from '@mui/icons-material/Check';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import { BoardDisplay } from "./components/BoardDisplay"
+import { OctilinearIcon } from "./icons/OctilinearIcon"
+import { BoardWidthIcon } from "./icons/BoardWidthIcon"
+import { BoardHeightIcon } from "./icons/BoardHeightIcon"
+import { PitchIcon } from "./icons/PitchIcon"
+import { PortDiameterIcon } from "./icons/PortDiameterIcon"
+import { PitchOffsetXIcon } from "./icons/PitchOffsetXIcon"
+import { PitchOffsetYIcon } from "./icons/PitchOffsetYIcon"
+import { ChannelWidthIcon } from "./icons/ChannelWidthIcon"
+import { ChannelSpacingIcon } from "./icons/ChannelSpacingIcon"
 
 const randomColors = false
 
@@ -249,15 +257,16 @@ export function BoardUI() {
         setDXFDownload(undefined)
     }
 
-    const portIsInRange = (portKey: PortKey) => input.portsX !== undefined && input.portsY !== undefined && portKey[0] < input.portsX && portKey[1] < input.portsY
-    const portIsFree = (portKey: PortKey) => input.portsX !== undefined && input.portsY !== undefined && portConnectionMap[portKey[0]]?.[portKey[1]] === undefined
-
     const theme = useTheme()
 
-    const view = generateView(input.parameters)
+    const layoutChoiceId = useId()
+
     return <div
         style={{
-            backgroundColor: theme.vars.palette.background.level1
+            backgroundColor: theme.vars.palette.background.level1,
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column'
         }}
         onClick={_ => setOpenConnectionDropdown(false)}
     >
@@ -278,62 +287,106 @@ export function BoardUI() {
             </Typography></a>
         </header>
         <main>
-            <MicrometerInput
-                label="Board Width"
-                value={input.parameters.boardWidth.fieldValue}
-                error={input.parameters.boardWidth.error ? input.parameters.boardWidth.errorMessage : undefined}
-                onChange={(fv, pv) => updateInputParameter('boardWidth', fv, pv)}
-                description="The absolute width of the routing board"
-            />
-            <MicrometerInput
-                label="Board Height"
-                value={input.parameters.boardHeight.fieldValue}
-                error={input.parameters.boardHeight.error ? input.parameters.boardHeight.errorMessage : undefined}
-                onChange={(fv, pv) => updateInputParameter('boardHeight', fv, pv)}
-                description="The absolute height of the routing board"
-            />
-            <MicrometerInput
-                label="Pitch"
-                value={input.parameters.pitch.fieldValue}
-                error={input.parameters.pitch.error ? input.parameters.pitch.errorMessage : undefined}
-                onChange={(fv, pv) => updateInputParameter('pitch', fv, pv)}
-                description="The pitch of the port grid"
-            />
-            <MicrometerInput
-                label="Pitch Offset X"
-                value={input.parameters.pitchOffsetX.fieldValue}
-                error={input.parameters.pitchOffsetX.error ? input.parameters.pitchOffsetX.errorMessage : undefined}
-                onChange={(fv, pv) => updateInputParameter('pitchOffsetX', fv, pv)}
-                description="The pitch offset of the port grid in x direction"
-            />
-            <MicrometerInput
-                label="Pitch Offset Y"
-                value={input.parameters.pitchOffsetY.fieldValue}
-                error={input.parameters.pitchOffsetY.error ? input.parameters.pitchOffsetY.errorMessage : undefined}
-                onChange={(fv, pv) => updateInputParameter('pitchOffsetY', fv, pv)}
-                description="The pitch offset of the port grid in y direction"
-            />
-            <MicrometerInput
-                label="Channel Width"
-                value={input.parameters.channelWidth.fieldValue}
-                error={input.parameters.channelWidth.error ? input.parameters.channelWidth.errorMessage : undefined}
-                onChange={(fv, pv) => updateInputParameter('channelWidth', fv, pv)}
-                description="The width of channels"
-            />
-            <MicrometerInput
-                label="Channel Spacing"
-                value={input.parameters.channelSpacing.fieldValue}
-                error={input.parameters.channelSpacing.error ? input.parameters.channelSpacing.errorMessage : undefined}
-                onChange={(fv, pv) => updateInputParameter('channelSpacing', fv, pv)}
-                description="The required spacing between channels"
-            />
-            <MicrometerInput
-                label="Port Diameter"
-                value={input.parameters.portDiameter.fieldValue}
-                error={input.parameters.portDiameter.error ? input.parameters.portDiameter.errorMessage : undefined}
-                onChange={(fv, pv) => updateInputParameter('portDiameter', fv, pv)}
-                description="The diameter of ports"
-            />
+            <Box sx={{
+                marginBottom: 4
+            }}>
+                <Typography level="h4">Board Settings</Typography>
+                <Stack direction="row" spacing={4} flexWrap='wrap' useFlexGap>
+                    <MicrometerInput
+                        label="Board Width"
+                        explainIcon={<BoardWidthIcon width={50} height={50} />}
+                        value={input.parameters.boardWidth.fieldValue}
+                        error={input.parameters.boardWidth.error ? input.parameters.boardWidth.errorMessage : undefined}
+                        onChange={(fv, pv) => updateInputParameter('boardWidth', fv, pv)}
+                        description="Absolute width of the routing board."
+                    />
+                    <MicrometerInput
+                        label="Board Height"
+                        explainIcon={<BoardHeightIcon width={50} height={50} />}
+                        value={input.parameters.boardHeight.fieldValue}
+                        error={input.parameters.boardHeight.error ? input.parameters.boardHeight.errorMessage : undefined}
+                        onChange={(fv, pv) => updateInputParameter('boardHeight', fv, pv)}
+                        description="Absolute height of the routing board."
+                    />
+
+                </Stack>
+            </Box>
+            <Box sx={{
+                marginY: 4
+            }}>
+                <Typography level="h4">Port Settings</Typography>
+                <Stack direction="row" flexWrap='wrap' useFlexGap>
+                    <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
+                        <MicrometerInput
+                            label="Port Diameter"
+                            explainIcon={<PortDiameterIcon width={50} height={50} />}
+                            value={input.parameters.portDiameter.fieldValue}
+                            error={input.parameters.portDiameter.error ? input.parameters.portDiameter.errorMessage : undefined}
+                            onChange={(fv, pv) => updateInputParameter('portDiameter', fv, pv)}
+                            description="Diameter of ports."
+                        />
+                        <MicrometerInput
+                            label="Pitch"
+                            explainIcon={<PitchIcon width={50} height={50} />}
+                            value={input.parameters.pitch.fieldValue}
+                            error={input.parameters.pitch.error ? input.parameters.pitch.errorMessage : undefined}
+                            onChange={(fv, pv) => updateInputParameter('pitch', fv, pv)}
+                            description="Distance between ports on the port grid."
+                            autocompleteValues={[1500, 3000, 4500, 6000, 7500, 9000, 10500, 12000, 13500, 15000]}
+                        />
+                    </Stack>
+                    <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
+                        <MicrometerInput
+                            label="Pitch Offset X"
+                            explainIcon={<PitchOffsetXIcon width={50} height={50} />}
+                            value={input.parameters.pitchOffsetX.fieldValue}
+                            error={input.parameters.pitchOffsetX.error ? input.parameters.pitchOffsetX.errorMessage : undefined}
+                            onChange={(fv, pv) => updateInputParameter('pitchOffsetX', fv, pv)}
+                            description="Offset of the top left port in X direction."
+                        />
+                        <MicrometerInput
+                            label="Pitch Offset Y"
+                            explainIcon={<PitchOffsetYIcon width={50} height={50} />}
+                            value={input.parameters.pitchOffsetY.fieldValue}
+                            error={input.parameters.pitchOffsetY.error ? input.parameters.pitchOffsetY.errorMessage : undefined}
+                            onChange={(fv, pv) => updateInputParameter('pitchOffsetY', fv, pv)}
+                            description="Offset of the top left port in Y direction."
+                        />
+                    </Stack>
+                </Stack>
+            </Box>
+            <Box
+                sx={{
+                    marginY: 4,
+                }}
+            >
+                <Typography level="h4">Channel Settings</Typography>
+                <Stack direction="row" spacing={4} flexWrap='wrap' useFlexGap>
+                    <MicrometerInput
+                        label="Channel Width"
+                        explainIcon={<ChannelWidthIcon width={50} height={50} />}
+                        value={input.parameters.channelWidth.fieldValue}
+                        error={input.parameters.channelWidth.error ? input.parameters.channelWidth.errorMessage : undefined}
+                        onChange={(fv, pv) => updateInputParameter('channelWidth', fv, pv)}
+                        description="Width of channels' cross section."
+                    />
+                    <MicrometerInput
+                        label="Channel Spacing"
+                        explainIcon={<ChannelSpacingIcon width={50} height={50} />}
+                        value={input.parameters.channelSpacing.fieldValue}
+                        error={input.parameters.channelSpacing.error ? input.parameters.channelSpacing.errorMessage : undefined}
+                        onChange={(fv, pv) => updateInputParameter('channelSpacing', fv, pv)}
+                        description="Minimal required spacing between channels."
+                    />
+                </Stack>
+
+                <LayoutChoice
+                    layout={input.parameters.layout.value}
+                    onChange={layout => updateInputParameter('layout', layout, layout)}
+                />
+
+            </Box>
+
             {input.parameter_errors !== undefined &&
                 input.parameter_errors.map(e => <Typography
                     variant="soft"
@@ -347,13 +400,6 @@ export function BoardUI() {
                 </Typography>
                 )
             }
-
-
-            <LayoutChoice
-                layout={input.parameters.layout.value}
-                onChange={layout => updateInputParameter('layout', layout, layout)}
-            />
-
             {input.connection_errors !== undefined &&
                 input.connection_errors.map(e => <Typography
                     variant="soft"
@@ -385,199 +431,195 @@ export function BoardUI() {
 
             <Box
                 sx={{
-                    backgroundColor: theme.vars.palette.background.surface,
-                    borderRadius: theme.radius.sm,
-                    border: '1px solid',
-                    borderColor: theme.vars.palette.background.level2,
-                    boxShadow: `0px 2px ${theme.vars.palette.background.level1}`,
-                    marginY: 2
-                }}>
-                <ButtonGroup
-                    ref={connectionDropdownRef}
-                    aria-label="split button"
-                    sx={{
-                        margin: 2,
-                        display: 'inline-flex'
-                    }}
-                >
-                    <Box
-                        sx={{
-                            backgroundColor: boardEdit.state === BoardEditState.Selected ? input.connections[boardEdit.selected]?.color : input.connections[boardEdit.nextConnection]?.color
-                        }}
-                        onClick={() => {
-
-                        }}><Typography sx={{
-                            backgroundColor: '#0008',
-                            padding: 1,
-                            margin: 1,
-                            cursor: 'default',
-                            color: theme.vars.palette.common.white
-                        }}>Connection {
-                                boardEdit.state === BoardEditState.Selected ? boardEdit.selected : boardEdit.nextConnection
-                            } {
-                                boardEdit.state === BoardEditState.Selected ? <CheckIcon sx={{
-                                    verticalAlign: 'bottom'
-                                }}></CheckIcon> : <TouchAppIcon sx={{
-                                    verticalAlign: 'bottom'
-                                }}></TouchAppIcon>
-                            }</Typography></Box>
-                    {boardEdit.state === BoardEditState.Selected &&
-                        <IconButton
-                            variant="solid"
-                            color="danger"
-                            aria-label="delete connection"
-                            onClick={() => {
-                                deleteConnection(boardEdit.selected)
-                            }}
-                        >
-                            <DeleteForeverIcon />
-                        </IconButton>
-                    }
-                    <IconButton
-                        variant="solid"
-                        color="primary"
-                        aria-controls={openConnectionDropdown ? 'split-button-menu' : undefined}
-                        aria-expanded={openConnectionDropdown ? 'true' : undefined}
-                        aria-label="select connection"
-                        aria-haspopup="menu"
-                        onClick={e => {
-                            setOpenConnectionDropdown(!openConnectionDropdown)
-                            e.stopPropagation()
-                        }}
-                    >
-                        <ArrowDropDownIcon />
-                    </IconButton>
-                </ButtonGroup>
-                <Menu
-                    open={openConnectionDropdown}
-                    onClose={() => setOpenConnectionDropdown(false)}
-                    anchorEl={connectionDropdownRef.current}
-                    sx={{
-                        maxHeight: 300
-                    }}
-                >
-                    {Object.entries(input.connections).map(([connectionId, connection]) => {
-                        const color = connection.color
-                        return <MenuItem
-                            key={connectionId}
-                            sx={{
-                                backgroundColor: color
-                            }}
-                            onClick={_ => {
-                                const cid = parseInt(connectionId)
-                                if (cid !== boardEdit.nextConnection) {
-                                    selectConnection(parseInt(connectionId))
-                                } else {
-                                    resetBoardEdit()
-                                }
-                            }}
-                        >
-                            <Typography sx={{
-                                backgroundColor: '#0008',
-                                padding: 1,
-                                color: theme.vars.palette.common.white
-                            }}>Connection {connectionId}</Typography>
-                        </MenuItem>
-                    })}
-                </Menu>
-
-                <Button
-                    disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
-                    onClick={_ => {
-                        resetBoardEdit()
-                        const r = route(input)
-                        const outlines = generateOutlines(input.parameters.channelWidth.value!, r.connections)
-                        const dxf = generateDXF({
-                            width: input.parameters.boardWidth.value!,
-                            height: input.parameters.boardHeight.value!,
-                            originX: 0,
-                            originY: 0,
-                        }, outlines)
-                        setDXFDownload(dxf)
-                        setOutput(r)
-                    }}
-                    sx={{
-                        margin: 1,
-                        marginX: 2,
-                    }}
-                >
-                    <Typography sx={{ color: theme.vars.palette.common.white }}>
-                        <PlayCircleFilledWhiteIcon sx={{
-                            verticalAlign: 'bottom'
-                        }} /> Route</Typography>
-                </Button>
-
-                <Button
-                    disabled={dxfDownload === undefined}
-                    onClick={_ => {
-                        if (dxfDownload !== undefined) {
-                            downloadDXF(dxfDownload, nanoid())
-                        }
-                    }}
-                    sx={{
-                        margin: 1,
-                        marginX: 2,
-                    }}
-                >
-                    <Typography sx={{ color: theme.vars.palette.common.white }}>
-                        <FileDownloadIcon sx={{
-                            verticalAlign: 'bottom'
-                        }} /> Download DXF</Typography>
-                </Button>
-
-                {output.error !== undefined &&
-                    <Typography
-                        variant="soft"
-                        color="danger"
-                        startDecorator={<InfoOutlined />}
-                        sx={{
-                            padding: 1,
-                            margin: 1,
-                            marginX: 2,
-                            border: 1
-                        }}
-                    >
-                        {output.error}
-                    </Typography>
-                }
-
-                <AddConnection
-                    boardEdit={boardEdit}
-                    setBoardEdit={setBoardEdit}
-                    portIsFree={portIsFree}
-                    portIsInRange={portIsInRange}
-                    onAdd={() => { }}
-                >
-
-                </AddConnection>
-
+                    marginY: 4,
+                }}
+            >
+                <Typography level="h4">Connections</Typography>
                 <Box
                     sx={{
-                        marginX: 2,
-                        marginY: 1
-                    }}
-                >
-                    {input.ports !== undefined &&
-                        <BoardDisplay
-                            boardWidth={input.parameters.boardWidth.value!}
-                            boardHeight={input.parameters.boardHeight.value!}
-                            pitch={input.parameters.pitch.value!}
-                            pitchOffsetX={input.parameters.pitchOffsetX.value!}
-                            pitchOffsetY={input.parameters.pitchOffsetY.value!}
-                            portDiameter={input.parameters.portDiameter.value!}
-                            channelWidth={input.parameters.channelWidth.value!}
-                            columns={input.portsX!}
-                            rows={input.portsY!}
-                            portConnectionMap={portConnectionMap}
-                            onClickPort={(port) => {console.log(port)}}
-                        ></BoardDisplay>
+                        backgroundColor: theme.vars.palette.background.surface,
+                        borderRadius: theme.radius.sm,
+                        border: '1px solid',
+                        borderColor: theme.vars.palette.background.level2,
+                        boxShadow: `0px 2px ${theme.vars.palette.background.level1}`,
+                        marginY: 2
+                    }}>
+                    <ButtonGroup
+                        ref={connectionDropdownRef}
+                        aria-label="split button"
+                        sx={{
+                            margin: 2,
+                            display: 'inline-flex'
+                        }}
+                    >
+                        <Box
+                            sx={{
+                                backgroundColor: boardEdit.state === BoardEditState.Selected ? input.connections[boardEdit.selected]?.color : input.connections[boardEdit.nextConnection]?.color
+                            }}
+                            onClick={() => {
+
+                            }}><Typography sx={{
+                                backgroundColor: '#0008',
+                                padding: 1,
+                                margin: 1,
+                                cursor: 'default',
+                                color: theme.vars.palette.common.white
+                            }}>Connection {
+                                    boardEdit.state === BoardEditState.Selected ? boardEdit.selected : boardEdit.nextConnection
+                                } {
+                                    boardEdit.state === BoardEditState.Selected ? <CheckIcon sx={{
+                                        verticalAlign: 'bottom'
+                                    }}></CheckIcon> : <TouchAppIcon sx={{
+                                        verticalAlign: 'bottom'
+                                    }}></TouchAppIcon>
+                                }</Typography></Box>
+                        {boardEdit.state === BoardEditState.Selected &&
+                            <IconButton
+                                variant="solid"
+                                color="danger"
+                                aria-label="delete connection"
+                                onClick={() => {
+                                    deleteConnection(boardEdit.selected)
+                                }}
+                            >
+                                <DeleteForeverIcon />
+                            </IconButton>
+                        }
+                        <IconButton
+                            variant="solid"
+                            color="primary"
+                            aria-controls={openConnectionDropdown ? 'split-button-menu' : undefined}
+                            aria-expanded={openConnectionDropdown ? 'true' : undefined}
+                            aria-label="select connection"
+                            aria-haspopup="menu"
+                            onClick={e => {
+                                setOpenConnectionDropdown(!openConnectionDropdown)
+                                e.stopPropagation()
+                            }}
+                        >
+                            <ArrowDropDownIcon />
+                        </IconButton>
+                    </ButtonGroup>
+                    <Menu
+                        open={openConnectionDropdown}
+                        onClose={() => setOpenConnectionDropdown(false)}
+                        anchorEl={connectionDropdownRef.current}
+                        sx={{
+                            maxHeight: 300
+                        }}
+                    >
+                        {Object.entries(input.connections).map(([connectionId, connection]) => {
+                            const color = connection.color
+                            return <MenuItem
+                                key={connectionId}
+                                sx={{
+                                    backgroundColor: color
+                                }}
+                                onClick={_ => {
+                                    const cid = parseInt(connectionId)
+                                    if (cid !== boardEdit.nextConnection) {
+                                        selectConnection(parseInt(connectionId))
+                                    } else {
+                                        resetBoardEdit()
+                                    }
+                                }}
+                            >
+                                <Typography sx={{
+                                    backgroundColor: '#0008',
+                                    padding: 1,
+                                    color: theme.vars.palette.common.white
+                                }}>Connection {connectionId}</Typography>
+                            </MenuItem>
+                        })}
+                    </Menu>
+
+                    <Button
+                        disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
+                        onClick={_ => {
+                            resetBoardEdit()
+                            const r = route(input)
+                            const outlines = generateOutlines(input.parameters.channelWidth.value!, r.connections)
+                            const dxf = generateDXF({
+                                width: input.parameters.boardWidth.value!,
+                                height: input.parameters.boardHeight.value!,
+                                originX: 0,
+                                originY: 0,
+                            }, outlines)
+                            setDXFDownload(dxf)
+                            setOutput(r)
+                        }}
+                        sx={{
+                            margin: 1,
+                            marginX: 2,
+                        }}
+                    >
+                        <Typography sx={{ color: theme.vars.palette.common.white }}>
+                            <PlayCircleFilledWhiteIcon sx={{
+                                verticalAlign: 'bottom'
+                            }} /> Route</Typography>
+                    </Button>
+
+                    <Button
+                        disabled={dxfDownload === undefined}
+                        onClick={_ => {
+                            if (dxfDownload !== undefined) {
+                                downloadDXF(dxfDownload, nanoid())
+                            }
+                        }}
+                        sx={{
+                            margin: 1,
+                            marginX: 2,
+                        }}
+                    >
+                        <Typography sx={{ color: theme.vars.palette.common.white }}>
+                            <FileDownloadIcon sx={{
+                                verticalAlign: 'bottom'
+                            }} /> Download DXF</Typography>
+                    </Button>
+
+                    {output.error !== undefined &&
+                        <Typography
+                            variant="soft"
+                            color="danger"
+                            startDecorator={<InfoOutlined />}
+                            sx={{
+                                padding: 1,
+                                margin: 1,
+                                marginX: 2,
+                                border: 1
+                            }}
+                        >
+                            {output.error}
+                        </Typography>
                     }
+
+                    <Box
+                        sx={{
+                            marginX: 2,
+                            marginY: 1
+                        }}
+                    >
+                        {input.ports !== undefined &&
+                            <BoardDisplay
+                                boardWidth={input.parameters.boardWidth.value!}
+                                boardHeight={input.parameters.boardHeight.value!}
+                                pitch={input.parameters.pitch.value!}
+                                pitchOffsetX={input.parameters.pitchOffsetX.value!}
+                                pitchOffsetY={input.parameters.pitchOffsetY.value!}
+                                portDiameter={input.parameters.portDiameter.value!}
+                                channelWidth={input.parameters.channelWidth.value!}
+                                columns={input.portsX!}
+                                rows={input.portsY!}
+                            ></BoardDisplay>
+                        }
+                    </Box>
                 </Box>
             </Box>
         </main>
         <footer
             style={{
                 backgroundColor: theme.vars.palette.primary[500],
+                marginTop: 'auto'
             }}
         >
             <a href="https://www.cda.cit.tum.de/research/microfluidics/" style={{ textDecoration: 'none' }}><Typography
@@ -588,5 +630,5 @@ export function BoardUI() {
                 }}
             >Chair for Design Automation<br />Technical University of Munich</Typography></a>
         </footer>
-    </div>
+    </div >
 }

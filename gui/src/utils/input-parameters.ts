@@ -129,19 +129,16 @@ export function validate(parameters: InputParameters) {
                         ce.push('No connections supplied!')
                     } else {
                         ge.push(`Unexpected Error: ${error}`)
-                        console.error(`Unexpected Error Category: ${error}`)
                     }
                 } else if (typeof error === 'object') {
                     if ('MaxPortsExceeded' in error) {
                         const [ports, maxPorts] = error['MaxPortsExceeded']
                         pe.push(`The given configuration produces ${ports} possible port locations. For performance reasons, there is an upper limit of ${maxPorts} ports. Try increasing pitch, pitch offsets, or decreasing board size.`)
                     } else {
-                        ge.push(`Unexpected Error.`)
-                        console.error(`Unexpected Error Category`, error)
+                        ge.push(`Unexpected Error: ${error}`)
                     }
                 } else {
-                    ge.push(`Unexpected Error.`)
-                    console.error(`Unexpected Error Category: ${error}`)
+                    ge.push(`Unexpected Error: ${error}`)
                 }
             }
 
