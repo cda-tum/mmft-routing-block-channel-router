@@ -9,7 +9,7 @@ import { generateView } from "./utils/view"
 import { route } from "./utils/route"
 import { oklabrandom } from "./utils/color"
 import { LayoutChoice } from "./components/LayoutChoice"
-import { Port } from "./components/Port"
+import { Port } from "./components/PortDisplay"
 import { downloadDXF, generateDXF, generateOutlines } from "./utils/dxf"
 import { nanoid } from "nanoid"
 import FileDownloadIcon from '@mui/icons-material/FileDownload';

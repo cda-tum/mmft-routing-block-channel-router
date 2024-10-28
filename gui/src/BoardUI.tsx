@@ -8,7 +8,6 @@ import { computePathLength, ConnectionID, defaultInputConnections, defaultOutput
 import { route } from "./utils/route"
 import { oklabrandom } from "./utils/color"
 import { LayoutChoice } from "./components/LayoutChoice"
-import { Port } from "./components/Port"
 import { downloadDXF, generateDXF, generateOutlines } from "./utils/dxf"
 import { nanoid } from "nanoid"
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
@@ -27,8 +26,7 @@ import { PitchOffsetXIcon } from "./icons/PitchOffsetXIcon"
 import { PitchOffsetYIcon } from "./icons/PitchOffsetYIcon"
 import { ChannelWidthIcon } from "./icons/ChannelWidthIcon"
 import { ChannelSpacingIcon } from "./icons/ChannelSpacingIcon"
-
-const randomColors = false
+import { ConnectionsState } from "./hooks/useConnectionState"
 
 export type InputState = {
     parameters: InputParameters
@@ -38,7 +36,7 @@ export type InputState = {
     ports: InputPorts
     portsX: number | undefined
     portsY: number | undefined
-    connections: InputConnections
+    connections: ConnectionsState
 }
 
 const defaultInputState: InputState = {
@@ -92,9 +90,6 @@ export function BoardUI() {
         return oklabrandom(0.55, 0.9, '  Fine-Sir-1584660650  ')
     }, [])
 
-    const [openConnectionDropdown, setOpenConnectionDropdown] = useState<boolean>(false)
-    const connectionDropdownRef = useRef<HTMLDivElement>(null);
-
     const [dxfDownload, setDXFDownload] = useState<(undefined | string)>(undefined)
     const [input, setInput] = useState<InputState>(defaultInputState)
     const [output, setOutput] = useState<OutputState>(defaultOutputState)
@@ -103,6 +98,7 @@ export function BoardUI() {
         nextConnection: -1,
         nextConnectionColor: '#fff'
     })
+
 
     const createConnection = useCallback(() => {
         let i = 0
@@ -147,31 +143,24 @@ export function BoardUI() {
                 [removed.ports[1][1]]: undefined
             }
         }))*/
-        resetBoardEdit()
+        //resetBoardEdit()
         resetOutput()
     }, [output, input, /*portConnectionMap*/])
 
-    const selectConnection = useCallback((connectionId: number) => {
-        setBoardEdit(s => ({
-            state: BoardEditState.Selected,
-            nextConnection: s.nextConnection,
-            nextConnectionColor: s.nextConnectionColor,
-            selected: connectionId
-        }))
-    }, [])
+    
 
-    const resetBoardEdit = useCallback(() => {
+    /*const resetBoardEdit = useCallback(() => {
         setBoardEdit(s => ({
             state: BoardEditState.Default,
             nextConnection: s.nextConnection,
             nextConnectionColor: input.connections[s.nextConnection]?.color ?? s.nextConnectionColor//input.connections[s.nextConnection].color
         }))
-    }, [input.connections])
+    }, [input.connections])*/
 
     useEffect(() => {
         if (boardEdit.nextConnection === -1) {
             createConnection()
-            resetBoardEdit()
+            //resetBoardEdit()
             setBoardEdit(e => ({
                 ...e,
                 nextConnection: 0
@@ -181,7 +170,7 @@ export function BoardUI() {
     }, [boardEdit.nextConnection])
 
     useEffect(() => {
-        resetBoardEdit()
+        //resetBoardEdit()
     }, [input.ports])
 
     const updateInputParameter = (parameter: string, fieldValue: string, parsedValue: string | number | undefined) => {
@@ -243,7 +232,7 @@ export function BoardUI() {
             }))
         }
 
-        resetBoardEdit()
+        //resetBoardEdit()
 
         resetOutput()
     }
@@ -258,8 +247,7 @@ export function BoardUI() {
     }
 
     const theme = useTheme()
-
-    const layoutChoiceId = useId()
+    const [closeDropdown, setCloseDropdown] = useState(false)
 
     return <div
         style={{
@@ -268,7 +256,7 @@ export function BoardUI() {
             display: 'flex',
             flexDirection: 'column'
         }}
-        onClick={_ => setOpenConnectionDropdown(false)}
+        onClick={_ => setCloseDropdown(d => !d)}
     >
 
         <header
@@ -444,99 +432,11 @@ export function BoardUI() {
                         boxShadow: `0px 2px ${theme.vars.palette.background.level1}`,
                         marginY: 2
                     }}>
-                    <ButtonGroup
-                        ref={connectionDropdownRef}
-                        aria-label="split button"
-                        sx={{
-                            margin: 2,
-                            display: 'inline-flex'
-                        }}
-                    >
-                        <Box
-                            sx={{
-                                backgroundColor: boardEdit.state === BoardEditState.Selected ? input.connections[boardEdit.selected]?.color : input.connections[boardEdit.nextConnection]?.color
-                            }}
-                            onClick={() => {
-
-                            }}><Typography sx={{
-                                backgroundColor: '#0008',
-                                padding: 1,
-                                margin: 1,
-                                cursor: 'default',
-                                color: theme.vars.palette.common.white
-                            }}>Connection {
-                                    boardEdit.state === BoardEditState.Selected ? boardEdit.selected : boardEdit.nextConnection
-                                } {
-                                    boardEdit.state === BoardEditState.Selected ? <CheckIcon sx={{
-                                        verticalAlign: 'bottom'
-                                    }}></CheckIcon> : <TouchAppIcon sx={{
-                                        verticalAlign: 'bottom'
-                                    }}></TouchAppIcon>
-                                }</Typography></Box>
-                        {boardEdit.state === BoardEditState.Selected &&
-                            <IconButton
-                                variant="solid"
-                                color="danger"
-                                aria-label="delete connection"
-                                onClick={() => {
-                                    deleteConnection(boardEdit.selected)
-                                }}
-                            >
-                                <DeleteForeverIcon />
-                            </IconButton>
-                        }
-                        <IconButton
-                            variant="solid"
-                            color="primary"
-                            aria-controls={openConnectionDropdown ? 'split-button-menu' : undefined}
-                            aria-expanded={openConnectionDropdown ? 'true' : undefined}
-                            aria-label="select connection"
-                            aria-haspopup="menu"
-                            onClick={e => {
-                                setOpenConnectionDropdown(!openConnectionDropdown)
-                                e.stopPropagation()
-                            }}
-                        >
-                            <ArrowDropDownIcon />
-                        </IconButton>
-                    </ButtonGroup>
-                    <Menu
-                        open={openConnectionDropdown}
-                        onClose={() => setOpenConnectionDropdown(false)}
-                        anchorEl={connectionDropdownRef.current}
-                        sx={{
-                            maxHeight: 300
-                        }}
-                    >
-                        {Object.entries(input.connections).map(([connectionId, connection]) => {
-                            const color = connection.color
-                            return <MenuItem
-                                key={connectionId}
-                                sx={{
-                                    backgroundColor: color
-                                }}
-                                onClick={_ => {
-                                    const cid = parseInt(connectionId)
-                                    if (cid !== boardEdit.nextConnection) {
-                                        selectConnection(parseInt(connectionId))
-                                    } else {
-                                        resetBoardEdit()
-                                    }
-                                }}
-                            >
-                                <Typography sx={{
-                                    backgroundColor: '#0008',
-                                    padding: 1,
-                                    color: theme.vars.palette.common.white
-                                }}>Connection {connectionId}</Typography>
-                            </MenuItem>
-                        })}
-                    </Menu>
 
                     <Button
                         disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
                         onClick={_ => {
-                            resetBoardEdit()
+                            //resetBoardEdit()
                             const r = route(input)
                             const outlines = generateOutlines(input.parameters.channelWidth.value!, r.connections)
                             const dxf = generateDXF({
@@ -610,6 +510,12 @@ export function BoardUI() {
                                 channelWidth={input.parameters.channelWidth.value!}
                                 columns={input.portsX!}
                                 rows={input.portsY!}
+                                onChange={c => setInput(s => ({
+                                    ...s,
+                                    connections: c
+                                }))}
+                                outputConnections={output}
+                                closeDropdown={closeDropdown}
                             ></BoardDisplay>
                         }
                     </Box>

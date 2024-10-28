@@ -63,7 +63,7 @@ struct GridNode {
     y: Coordinate,
     connection: Option<usize>,
     blocked: bool, // can have only one connection
-    multiConnection: bool, // can have multiple connections
+    multi_connection: bool, // can have multiple connections
 }
 
 
@@ -205,7 +205,7 @@ fn compute_extra_node(nodes: &[GridNode], ports: &[Port], cells_x: usize, cells_
         y: center_y,
         connection: None,
         blocked: false,
-        multiConnection: true, // Allows multiple connections for this center node
+        multi_connection: true, // Allows multiple connections for this center node
     }
 }
 
@@ -595,7 +595,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput { // this is the main funct
                 .unwrap(),
                 connection: None,
                 blocked: false,
-                multiConnection: false,
+                multi_connection: false,
             });
         }
     }
@@ -648,7 +648,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput { // this is the main funct
 
         let (a_cell_x, a_cell_y, b_cell_x, b_cell_y);
 
-        if !nodes[ax * cells_y + ay].multiConnection {
+        if !nodes[ax * cells_y + ay].multi_connection {
             // If the node does not support multiple connections, use the recalculated positions
             a_cell_x = ((cpp - 1) / 2) + cpp * ax;
             a_cell_y = ((cpp - 1) / 2) + cpp * ay;
@@ -686,7 +686,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput { // this is the main funct
                     node_position.0 as f64 - a_node_position.0 as f64,
                     node_position.1 as f64 - a_node_position.1 as f64,
                 );
-                if distance < port_influence_radius as f64 && nodes[box_x * cells_y + box_y].multiConnection == false {
+                if distance < port_influence_radius as f64 && nodes[box_x * cells_y + box_y].multi_connection == false {
                     // If the cell is already reserved for another connection (e.g., ports close to each other), no connection can be routed through this cell
                     if nodes[box_x * cells_y + box_y].connection.is_none() {
                         nodes[box_x * cells_y + box_y].connection = Some(*c_id);
@@ -711,7 +711,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput { // this is the main funct
                     node_position.0 as f64 - b_node_position.0 as f64,
                     node_position.1 as f64 - b_node_position.1 as f64,
                 );
-                if distance < port_influence_radius as f64 && nodes[box_x * cells_y + box_y].multiConnection == false {
+                if distance < port_influence_radius as f64 && nodes[box_x * cells_y + box_y].multi_connection == false {
                     // If the cell is already reserved for another connection (e.g., ports close to each other), no connection can be routed through this cell
                     if nodes[box_x * cells_y + box_y].connection.is_none() {
                         nodes[box_x * cells_y + box_y].connection = Some(*c_id);
@@ -752,7 +752,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput { // this is the main funct
 
         let (a_cell_x, a_cell_y, b_cell_x, b_cell_y);
 
-        if !nodes[ax * cells_y + ay].multiConnection {
+        if !nodes[ax * cells_y + ay].multi_connection {
             // If the node does not support multiple connections, use the recalculated positions
             a_cell_x = ((cpp - 1) / 2) + cpp * ax;
             a_cell_y = ((cpp - 1) / 2) + cpp * ay;

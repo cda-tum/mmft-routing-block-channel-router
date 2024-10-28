@@ -3,9 +3,10 @@ import { ConnectionID } from "../utils/connections"
 import { portIndexToString, PortKey, portStringToIndex } from "../utils/ports"
 
 export type PortConnectionMap = Record<number, undefined | Record<number, ConnectionID | undefined>>
-export type ConnectionsState = Record<ConnectionID, {
+export type ConnectionStateConnection = {
     ports: PortKey[]
-}>
+}
+export type ConnectionsState = Record<ConnectionID, ConnectionStateConnection>
 
 export const ERROR_MESSAGES = {
     MISSING: 'Missing port identifier',
@@ -141,6 +142,7 @@ export function useConnectionState(props: {
         isUsedByOtherThan,
         connectionOf: (port: PortKey) => portConnectionMap[port[0]]?.[port[1]],
         portsOf,
+        hasConnection,
         addConnectionPort: (port: PortKey, connection: ConnectionID) => {
             setPortConnectionMap(m => ({
                 ...m,

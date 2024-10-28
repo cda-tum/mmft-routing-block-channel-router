@@ -1,18 +1,29 @@
-import { Button, FormControl, FormHelperText, FormLabel, Input, Typography, useTheme } from "@mui/joy";
+import { Box, Button, FormControl, FormHelperText, FormLabel, Input, Stack, Typography, useTheme } from "@mui/joy";
 import { useId } from "react";
 import AddIcon from '@mui/icons-material/Add';
-import ClearIcon from '@mui/icons-material/Clear';
 import { PortField, useConnectionState } from "../hooks/useConnectionState";
+import CheckIcon from '@mui/icons-material/Check';
+import ClearIcon from '@mui/icons-material/Clear';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
-const minPorts = 2;
-const maxPorts = 2;
+const minPorts: number = 2;
+const maxPorts: number = 2;
 
 export function ConnectionEditor(props: {
     connectionState: ReturnType<typeof useConnectionState>
 }) {
     const theme = useTheme()
 
-    return <>
+    const isExistingConnection = props.connectionState.hasConnection(props.connectionState.preview.connection) !== undefined
+
+    return <Stack
+        direction="row"
+        spacing={4}
+        flexWrap='wrap'
+        useFlexGap
+        marginY={4}
+        alignItems='center'
+    >
         {
             props.connectionState.preview.ports.map((port, i) => <PortInput
                 connectionState={props.connectionState}
@@ -21,19 +32,31 @@ export function ConnectionEditor(props: {
             />)
         }
 
+        {
+            minPorts !== maxPorts &&
+            <Button
+                disabled={maxPorts !== undefined && props.connectionState.preview.ports.length >= maxPorts}
+                onClick={_ => {
+                    props.connectionState.preview.addPort()
+                }}
+            >
+                <Typography sx={{ color: theme.vars.palette.common.white }}>
+                    <AddIcon sx={{
+                        verticalAlign: 'bottom'
+                    }} /> Add Port</Typography>
+            </Button>
+        }
+
         <Button
-            disabled={maxPorts !== undefined && props.connectionState.preview.ports.length >= maxPorts}
+            variant="outlined"
             onClick={_ => {
-                props.connectionState.preview.addPort()
-            }}
-            sx={{
-                margin: 1,
+                props.connectionState.preview.setActive(false)
             }}
         >
             <Typography sx={{ color: theme.vars.palette.common.white }}>
-                <AddIcon sx={{
+                <ClearIcon sx={{
                     verticalAlign: 'bottom'
-                }} /> Add Port</Typography>
+                }} /> Discard {isExistingConnection ? 'Changes' : ''}</Typography>
         </Button>
 
         <Button
@@ -41,16 +64,29 @@ export function ConnectionEditor(props: {
             onClick={_ => {
                 props.connectionState.preview.acceptPreview()
             }}
-            sx={{
-                margin: 1,
-            }}
         >
             <Typography sx={{ color: theme.vars.palette.common.white }}>
-                <AddIcon sx={{
+                <CheckIcon sx={{
                     verticalAlign: 'bottom'
-                }} /> Save Connection</Typography>
+                }} /> Save {isExistingConnection ? 'Changes' : ''}</Typography>
         </Button>
-    </>
+
+        {isExistingConnection &&
+            <Button
+                variant='outlined'
+                color="danger"
+                onClick={_ => {
+                    props.connectionState.removeConnection(props.connectionState.preview.connection)
+                    props.connectionState.preview.setActive(false)
+                }}
+            >
+                <Typography sx={{ color: theme.vars.palette.common.white }}>
+                    <DeleteOutlineIcon sx={{
+                        verticalAlign: 'bottom'
+                    }} /> Remove </Typography>
+            </Button>
+        }
+    </Stack>
 }
 
 export function PortInput(props: {
@@ -62,8 +98,7 @@ export function PortInput(props: {
 
     return <FormControl {...(props.port.error !== undefined ? { error: true } : {})}
         sx={{
-            marginTop: '1em',
-            marginBottom: '1em'
+
         }}
     >
         <FormLabel htmlFor={id}>Port</FormLabel>
@@ -81,10 +116,12 @@ export function PortInput(props: {
             }}
             {...(props.connectionState.preview.ports.length > minPorts ? {
                 endDecorator: <Button
+                    variant='outlined'
+                    color="danger"
                     onClick={_ => {
                         props.connectionState.preview.removePort(props.index)
                     }}
-                ><ClearIcon /></Button>
+                ><DeleteOutlineIcon /></Button>
             } : {})}
         />
         {props.port.error !== undefined &&

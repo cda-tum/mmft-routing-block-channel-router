@@ -1,9 +1,12 @@
-import { Button, useTheme } from "@mui/joy"
-import { Port } from "./Port"
-import { useCallback, useMemo, useState } from "react"
+import { Box, Button, ButtonGroup, IconButton, Menu, MenuItem, Typography, useTheme } from "@mui/joy"
+import { PortDisplay } from "./PortDisplay"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { portIndexToString, PortKey } from "../utils/ports"
-import { useConnectionState } from "../hooks/useConnectionState"
+import { ConnectionsState, ConnectionStateConnection, useConnectionState } from "../hooks/useConnectionState"
 import { ConnectionEditor } from "./ConnectionEditor"
+import { ConnectionID, OutputConnections } from "../utils/connections"
+import { ConnectionDisplay } from "./ConnectionDisplay"
+import { ArrowDropDown, ArrowDropDownCircleOutlined } from "@mui/icons-material"
 
 export function BoardDisplay(props: {
     boardWidth: number
@@ -15,6 +18,9 @@ export function BoardDisplay(props: {
     portDiameter: number
     columns: number
     rows: number
+    onChange?: (connections: ConnectionsState) => void
+    outputConnections?: OutputConnections
+    closeDropdown: boolean
 }) {
     const theme = useTheme()
 
@@ -24,6 +30,15 @@ export function BoardDisplay(props: {
             rows: props.rows
         }
     })
+
+    useEffect(() => {
+        setSelectConnectionDropdownOpen(false)
+    }, [props.closeDropdown])
+
+    useEffect(() => {
+        props.onChange?.(connectionState.connections)
+    }, [connectionState.connections])
+
 
     const strokeWidth = useMemo(() => props.portDiameter / 10, [props.portDiameter])
     const margin = useMemo(() => strokeWidth / 2, [strokeWidth])
@@ -140,10 +155,30 @@ export function BoardDisplay(props: {
 
     </rect>
 
+        {props.outputConnections !== undefined && Object.entries(connectionState.connections).map(([id, connection]) => {
+            const connectionId = parseFloat(id)
+            if (props.outputConnections === undefined) {
+                return undefined
+            }
+            const outputConnection = props.outputConnections.connections[connectionId]
+            console.log(props.outputConnections)
+            if (outputConnection === undefined) {
+                return undefined
+            }
+            return <ConnectionDisplay
+                channelWidth={props.channelWidth}
+                connection={outputConnection}
+                connectionId={connectionId}
+                onClick={() => {
+                    connectionState.preview.loadConnection(connectionId)
+                }}
+            />
+        })}
+
         {
             ports.map(port => {
 
-                return <Port
+                return <PortDisplay
                     key={port.index[1] * props.columns + port.index[0]}
                     index={port.index}
                     position={port.position}
@@ -151,22 +186,74 @@ export function BoardDisplay(props: {
                     onClick={port.onClick}
                     clickable={port.clickable}
                     style={port.style}
-                >
+                />
 
-                </Port>
             })
         }
     </>
 
     const editConnection = connectionState.preview.active ? <ConnectionEditor
         connectionState={connectionState}
-    /> : <Button
-        onClick={_ => {
-            connectionState.preview.loadNewConnection()
-        }}
-    >New Connection</Button>
+    /> : undefined
+
+    const [selectConnectionDropdownOpen, setSelectConnectionDropdownOpen] = useState<boolean>(false)
+    const selectConnectionDropdownRef = useRef(null);
+
+    const selectConnection = <>
+        <Button
+            ref={selectConnectionDropdownRef}
+            onClick={e => {
+                setSelectConnectionDropdownOpen(!selectConnectionDropdownOpen)
+                e.stopPropagation()
+            }}
+            sx={{
+                margin: 1,
+                marginX: 2,
+            }}
+        >
+            <Typography sx={{ color: theme.vars.palette.common.white }}>{connectionState.preview.active &&
+                <>Connection {connectionState.preview.connection}</>
+            }{!connectionState.preview.active &&
+                <>Select Connection</>
+                }
+                <ArrowDropDown sx={{ verticalAlign: 'bottom' }} />
+            </Typography>
+        </Button>
+        <Menu
+            open={selectConnectionDropdownOpen}
+            onClose={() => setSelectConnectionDropdownOpen(false)}
+            anchorEl={selectConnectionDropdownRef.current}
+            sx={{
+                maxHeight: 300
+            }}
+        >
+            <MenuItem
+                onClick={_ => {
+                    connectionState.preview.loadNewConnection()
+                }}
+            >
+                <Typography sx={{
+                    color: theme.vars.palette.common.white
+                }}>New Connection</Typography>
+            </MenuItem>
+            {Object.entries(connectionState.connections).map(([id, _]) => {
+                const connectionId = parseFloat(id)
+                return <MenuItem
+                    key={connectionId}
+                    onClick={_ => {
+                        connectionState.preview.loadConnection(connectionId)
+                    }}
+                >
+                    <Typography sx={{
+                        color: theme.vars.palette.common.white
+                    }}>Connection {connectionId}</Typography>
+                </MenuItem>
+            })}
+        </Menu>
+    </>
 
     return <>
+        {selectConnection}
         {editConnection}
         <svg
             width="100%"
@@ -176,3 +263,19 @@ export function BoardDisplay(props: {
         </svg>
     </>
 }
+
+/*<IconButton
+            variant="solid"
+            color="primary"
+            aria-controls={selectConnectionDropdownOpen ? 'split-button-menu' : undefined}
+            aria-expanded={selectConnectionDropdownOpen ? 'true' : undefined}
+            aria-label="select connection"
+            aria-haspopup="menu"
+            onClick={e => {
+                setSelectConnectionDropdownOpen(!selectConnectionDropdownOpen)
+                e.stopPropagation()
+            }}
+        >
+            <ArrowDropDown />
+        </IconButton>*/
+

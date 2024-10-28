@@ -2,7 +2,7 @@ import { Tooltip, useTheme } from "@mui/joy"
 import { useState } from "react"
 import { portIndexToString } from "../utils/ports"
 
-export function Port(props: {
+export function PortDisplay(props: {
     index: [number, number]
     position: [number, number]
     diameter: number
