@@ -155,13 +155,13 @@ export function BoardDisplay(props: {
 
     </rect>
 
-        {props.outputConnections !== undefined && Object.entries(connectionState.connections).map(([id, connection]) => {
+        {props.outputConnections !== undefined && Object.entries(connectionState.connections).map(([id, _connection]) => {
             const connectionId = parseFloat(id)
             if (props.outputConnections === undefined) {
                 return undefined
             }
-            const outputConnection = props.outputConnections.connections[connectionId]
-            console.log(props.outputConnections)
+            const outputConnection = props.outputConnections?.[connectionId]
+            console.log(connectionState.connections, connectionId, props.outputConnections, outputConnection)
             if (outputConnection === undefined) {
                 return undefined
             }

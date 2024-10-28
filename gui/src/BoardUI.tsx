@@ -424,7 +424,7 @@ export function BoardUI() {
                                     ...s,
                                     connections: c
                                 }))}
-                                outputConnections={output}
+                                outputConnections={output.connections}
                                 closeDropdown={closeDropdown}
                             ></BoardDisplay>
                         }
