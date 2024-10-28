@@ -161,7 +161,6 @@ export function BoardDisplay(props: {
                 return undefined
             }
             const outputConnection = props.outputConnections?.[connectionId]
-            console.log(connectionState.connections, connectionId, props.outputConnections, outputConnection)
             if (outputConnection === undefined) {
                 return undefined
             }
