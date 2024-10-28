@@ -1,4 +1,4 @@
-import { Box, Button, FormControl, FormHelperText, FormLabel, Input, Stack, Typography, useTheme } from "@mui/joy";
+import { Button, FormControl, FormHelperText, FormLabel, Input, Stack, Typography, useTheme } from "@mui/joy";
 import { useId } from "react";
 import AddIcon from '@mui/icons-material/Add';
 import { PortField, useConnectionState } from "../hooks/useConnectionState";

@@ -1,5 +1,5 @@
 import { Autocomplete, Box, FormControl, FormHelperText, FormLabel, Input } from "@mui/joy"
-import { ReactNode, useId, useState } from "react"
+import { ReactNode, useId } from "react"
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
 
 export type MicrometerProps = {

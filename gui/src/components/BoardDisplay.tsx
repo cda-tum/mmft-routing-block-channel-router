@@ -1,12 +1,12 @@
-import { Box, Button, ButtonGroup, IconButton, Menu, MenuItem, Typography, useTheme } from "@mui/joy"
+import { Button, Menu, MenuItem, Typography, useTheme } from "@mui/joy"
 import { PortDisplay } from "./PortDisplay"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { portIndexToString, PortKey } from "../utils/ports"
-import { ConnectionsState, ConnectionStateConnection, useConnectionState } from "../hooks/useConnectionState"
+import { ConnectionsState, useConnectionState } from "../hooks/useConnectionState"
 import { ConnectionEditor } from "./ConnectionEditor"
-import { ConnectionID, OutputConnections } from "../utils/connections"
+import { OutputConnections } from "../utils/connections"
 import { ConnectionDisplay } from "./ConnectionDisplay"
-import { ArrowDropDown, ArrowDropDownCircleOutlined } from "@mui/icons-material"
+import { ArrowDropDown } from "@mui/icons-material"
 
 export function BoardDisplay(props: {
     boardWidth: number
