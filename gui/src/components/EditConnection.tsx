@@ -1,5 +1,5 @@
 import { Box, Button, FormControl, FormHelperText, FormLabel, Input, Typography, useTheme } from "@mui/joy";
-import { Port, portIndexToString, PortKey, portStringToIndex } from "../utils/ports";
+import { portIndexToString, PortKey, portStringToIndex } from "../utils/ports";
 import { useEffect, useId, useState } from "react";
 import { BoardEdit } from "../BoardUI";
 import AddIcon from '@mui/icons-material/Add';

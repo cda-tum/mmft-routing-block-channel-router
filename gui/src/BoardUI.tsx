@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
 import { Box, Button, Stack, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
@@ -6,7 +6,6 @@ import { defaultInputParameters, InputParameters, validate, validateAble } from 
 import { defaultInputPorts, generatePorts, InputPorts, PortKey } from "./utils/ports"
 import { ConnectionID, defaultInputConnections, defaultOutputConnections, OutputConnections } from "./utils/connections"
 import { route } from "./utils/route"
-import { oklabrandom } from "./utils/color"
 import { LayoutChoice } from "./components/LayoutChoice"
 import { downloadDXF, generateDXF, generateOutlines } from "./utils/dxf"
 import { nanoid } from "nanoid"
@@ -80,93 +79,9 @@ enum BoardEditState {
 }
 
 export function BoardUI() {
-
-    const colorGenerator = useMemo(() => {
-        return oklabrandom(0.55, 0.9, '  Fine-Sir-1584660650  ')
-    }, [])
-
     const [dxfDownload, setDXFDownload] = useState<(undefined | string)>(undefined)
     const [input, setInput] = useState<InputState>(defaultInputState)
     const [output, setOutput] = useState<OutputState>(defaultOutputState)
-    const [boardEdit, setBoardEdit] = useState<BoardEdit>({
-        state: BoardEditState.Default,
-        nextConnection: -1,
-        nextConnectionColor: '#fff'
-    })
-
-
-    const createConnection = useCallback(() => {
-        let i = 0
-        while (input.connections[i] !== undefined) {
-            i++
-        }
-        const colorValues = colorGenerator.next().value as [number, number, number]
-        const color = `oklab(${colorValues[0]} ${colorValues[1]} ${colorValues[2]})`
-        setInput(s => {
-            return {
-                ...s,
-                connections: {
-                    ...s.connections,
-                    [i]: {
-                        color,
-                        ports: []
-                    }
-                }
-            }
-        })
-
-        return { index: i, color }
-    }, [input.connections])
-
-    const deleteConnection = useCallback((connectionId: number) => {
-        const { [connectionId]: removed, ...connections } = input.connections
-        setInput(i => ({
-            ...i,
-            connections
-        }))
-        /*setPortConnectionMap(m => ({
-            ...m,
-            [removed.ports[0][0]]: {
-                ...m[removed.ports[0][0]],
-                [removed.ports[0][1]]: undefined
-            }
-        }))
-        setPortConnectionMap(m => ({
-            ...m,
-            [removed.ports[1][0]]: {
-                ...m[removed.ports[1][0]],
-                [removed.ports[1][1]]: undefined
-            }
-        }))*/
-        //resetBoardEdit()
-        resetOutput()
-    }, [output, input, /*portConnectionMap*/])
-
-    
-
-    /*const resetBoardEdit = useCallback(() => {
-        setBoardEdit(s => ({
-            state: BoardEditState.Default,
-            nextConnection: s.nextConnection,
-            nextConnectionColor: input.connections[s.nextConnection]?.color ?? s.nextConnectionColor//input.connections[s.nextConnection].color
-        }))
-    }, [input.connections])*/
-
-    useEffect(() => {
-        if (boardEdit.nextConnection === -1) {
-            createConnection()
-            //resetBoardEdit()
-            setBoardEdit(e => ({
-                ...e,
-                nextConnection: 0
-            }))
-            updateInputParameters(defaultInputParameters)
-        }
-    }, [boardEdit.nextConnection])
-
-    useEffect(() => {
-        //resetBoardEdit()
-    }, [input.ports])
 
     const updateInputParameter = (parameter: string, fieldValue: string, parsedValue: string | number | undefined) => {
         if (!(parameter in input.parameters)) {

@@ -2,7 +2,6 @@ import { FormControl, FormLabel, Radio, radioClasses, RadioGroup, Sheet } from "
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import { RectilinearIcon } from "../icons/RectilinearIcon";
 import { OctilinearIcon } from "../icons/OctilinearIcon";
-import { MixedIcon } from "../icons/MixedIcon";
 import { useId } from "react";
 
 export type LayoutChoiceProps = {
