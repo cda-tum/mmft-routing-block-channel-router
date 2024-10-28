@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
-import { Box, Button, ButtonGroup, Card, CardContent, IconButton, Menu, MenuItem, Stack, Tooltip, Typography, useTheme } from "@mui/joy"
+import { Box, Button, Stack, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
 import { defaultInputParameters, InputParameters, validate, validateAble } from "./utils/input-parameters"
 import { defaultInputPorts, generatePorts, InputPorts, PortKey } from "./utils/ports"
-import { computePathLength, ConnectionID, defaultInputConnections, defaultOutputConnections, InputConnections, OutputConnections } from "./utils/connections"
+import { ConnectionID, defaultInputConnections, defaultOutputConnections, OutputConnections } from "./utils/connections"
 import { route } from "./utils/route"
 import { oklabrandom } from "./utils/color"
 import { LayoutChoice } from "./components/LayoutChoice"
@@ -12,12 +12,7 @@ import { downloadDXF, generateDXF, generateOutlines } from "./utils/dxf"
 import { nanoid } from "nanoid"
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import TouchAppIcon from '@mui/icons-material/TouchApp';
-import CheckIcon from '@mui/icons-material/Check';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import { BoardDisplay } from "./components/BoardDisplay"
-import { OctilinearIcon } from "./icons/OctilinearIcon"
 import { BoardWidthIcon } from "./icons/BoardWidthIcon"
 import { BoardHeightIcon } from "./icons/BoardHeightIcon"
 import { PitchIcon } from "./icons/PitchIcon"
