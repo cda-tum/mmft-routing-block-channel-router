@@ -4,18 +4,21 @@ use std::cmp::Ordering;
 
 use crate::graph_search::{a_star, AStarNode};
 
+type Coordinate = i64;
+type Length = u64;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RouteInput {
-    pub channel_width: f64,
-    pub channel_spacing: f64,
+    pub channel_width: Length,
+    pub channel_spacing: Length,
     pub layout: Layout,
-    pub board_width: f64,
-    pub board_height: f64,
-    pub pitch: f64,
-    pub pitch_offset_x: f64,
-    pub pitch_offset_y: f64,
-    pub min_grid_size: f64,
-    pub port_diameter: f64,
+    pub board_width: Length,
+    pub board_height: Length,
+    pub pitch: Length,
+    pub pitch_offset_x: Length,
+    pub pitch_offset_y: Length,
+    pub min_grid_size: Length,
+    pub port_diameter: Length,
     pub max_ports: usize,
     pub connections: RouteInputConnections,
 }
@@ -45,23 +48,24 @@ pub struct BoardRouterOutputBoard {
     pub connections: Vec<BoardRouterOutputConnection>, // this is the output -- a vector of the channel connections on the routing board
 }
 
-pub type BoardRouterOutputConnection = (usize, Channel); // tuple of connection ID (unsigned integer) and channel, the channel consists of a vector of points
+pub type BoardRouterOutputConnection = (usize, Channel);  // tuple of connection ID (unsigned integer) and channel, the channel consists of a vector of points
 
 pub type Channel = Vec<Point>;
 
-pub type Point = [f64; 2]; // a point in 2D (x, y)
+pub type Point = [Coordinate; 2]; // a point in 2D (x, y)
 
-#[derive(Debug)]
+#[derive(Eq, Debug)]
 struct GridNode {
     id: usize,
     ix: usize,
     iy: usize,
-    x: f64,
-    y: f64,
+    x: Coordinate,
+    y: Coordinate,
     connection: Option<usize>,
-    blocked: bool,          // can have only one connection
+    blocked: bool, // can have only one connection
     multi_connection: bool, // can have multiple connections
 }
+
 
 impl PartialEq for GridNode {
     fn eq(&self, other: &Self) -> bool {
@@ -145,7 +149,6 @@ fn right_down_if_exists(
     }
 }
 
-/*
 #[inline]
 fn compute_extra_node(nodes: &[GridNode], ports: &[Port], cells_x: usize, cells_y: usize) -> GridNode {
     // // Filter out any invalid ports (ones that are out of bounds), should not be possible based on the input
@@ -204,15 +207,15 @@ fn compute_extra_node(nodes: &[GridNode], ports: &[Port], cells_x: usize, cells_
         blocked: false,
         multi_connection: true, // Allows multiple connections for this center node
     }
-}*/
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ComputePortsInput {
-    board_width: f64,
-    board_height: f64,
-    pitch: f64,
-    pitch_offset_x: f64,
-    pitch_offset_y: f64,
+    board_width: Length,
+    board_height: Length,
+    pitch: Length,
+    pitch_offset_x: Length,
+    pitch_offset_y: Length,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -230,13 +233,13 @@ pub fn compute_ports(
         pitch_offset_y,
     }: ComputePortsInput,
 ) -> ComputePortsOutput {
-    let ports_x = ((board_width - 2. * pitch_offset_x) / pitch).floor() as usize + 1;
-    let ports_y = ((board_height - 2. * pitch_offset_y) / pitch).floor() as usize + 1;
+    let ports_x = usize::try_from((board_width - 2 * pitch_offset_x) / pitch + 1).unwrap();
+    let ports_y = usize::try_from((board_height - 2 * pitch_offset_y) / pitch + 1).unwrap();
     return ComputePortsOutput { ports_x, ports_y };
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ValidateInput {
+pub struct ValidateInputRaw {
     pub channel_width: Option<f64>,
     pub channel_spacing: Option<f64>,
     pub board_width: Option<f64>,
@@ -245,6 +248,20 @@ pub struct ValidateInput {
     pub pitch_offset_x: Option<f64>,
     pub pitch_offset_y: Option<f64>,
     pub min_grid_size: Option<f64>,
+    pub max_ports: Option<f64>,
+    pub layout: Option<Layout>,
+    pub connections: Option<RouteInputConnections>,
+}
+
+pub struct ValidateInput {
+    pub channel_width: Option<Length>,
+    pub channel_spacing: Option<Length>,
+    pub board_width: Option<Length>,
+    pub board_height: Option<Length>,
+    pub pitch: Option<Length>,
+    pub pitch_offset_x: Option<Length>,
+    pub pitch_offset_y: Option<Length>,
+    pub min_grid_size: Option<Length>,
     pub max_ports: Option<usize>,
     pub layout: Option<Layout>,
     pub connections: Option<RouteInputConnections>,
@@ -317,11 +334,11 @@ macro_rules! check_valid_length {
     ($field: ident, $error: ident, $input: ident, $errors: ident) => {
         match $input.$field {
             Some(f) => {
-                if f != (f as f64) {
+                if f != (f as Length) as f64 {
                     $errors.push(ValidationError::$error);
                     None
                 } else {
-                    Some(f as f64)
+                    Some(f as Length)
                 }
             }
             None => None,
@@ -333,7 +350,7 @@ macro_rules! check_valid_usize {
     ($field: ident, $error: ident, $input: ident, $errors: ident) => {
         match $input.$field {
             Some(f) => {
-                if f != (f as usize) {
+                if f != (f as u64) as f64 {
                     $errors.push(ValidationError::$error);
                     None
                 } else {
@@ -350,7 +367,7 @@ macro_rules! check_positive {
         not_missing!(
             $input,
             {
-                if $field <= 0. {
+                if $field <= 0 {
                     $errors.push(ValidationError::$error);
                 }
             },
@@ -359,7 +376,7 @@ macro_rules! check_positive {
     };
 }
 
-pub fn validate(validate_input: ValidateInput) -> Result<(), Vec<ValidationError>> {
+pub fn validate(validate_input: ValidateInputRaw) -> Result<(), Vec<ValidationError>> {
     let mut errors = Vec::new();
 
     check_missing!(channel_width, MissingChannelWidth, validate_input, errors);
@@ -461,11 +478,11 @@ pub fn validate(validate_input: ValidateInput) -> Result<(), Vec<ValidationError
     not_missing!(
         input,
         {
-            if board_width > 0.
-                && board_height > 0.
-                && pitch > 0.
-                && pitch_offset_x > 0.
-                && pitch_offset_y > 0.
+            if board_width > 0
+                && board_height > 0
+                && pitch > 0
+                && pitch_offset_x > 0
+                && pitch_offset_y > 0
             {
                 let ComputePortsOutput { ports_x, ports_y } = compute_ports(ComputePortsInput {
                     board_width,
@@ -498,11 +515,11 @@ pub fn validate(validate_input: ValidateInput) -> Result<(), Vec<ValidationError
     not_missing!(
         input,
         {
-            if board_width > 0.
-                && board_height > 0.
-                && pitch > 0.
-                && pitch_offset_x > 0.
-                && pitch_offset_y > 0.
+            if board_width > 0
+                && board_height > 0
+                && pitch > 0
+                && pitch_offset_x > 0
+                && pitch_offset_y > 0
             {
                 let ComputePortsOutput { ports_x, ports_y } = compute_ports(ComputePortsInput {
                     board_width,
@@ -533,12 +550,11 @@ pub fn validate(validate_input: ValidateInput) -> Result<(), Vec<ValidationError
     }
 }
 
-pub fn route(input: RouteInput) -> BoardRouterOutput {
-    // this is the main function I want to adapt
+pub fn route(input: RouteInput) -> BoardRouterOutput { // this is the main function I want to adapt
     let channel_distance = input.channel_width + input.channel_spacing;
-    let cells_per_pitch = (input.pitch / channel_distance).floor() as usize;
-    let cell_size = input.pitch / (cells_per_pitch as f64);
-    let half_cell_size = cell_size / 2.;
+    let cells_per_pitch = input.pitch / channel_distance;
+    let cell_size = input.pitch / cells_per_pitch;
+    let half_cell_size = cell_size / 2;
     let ComputePortsOutput { ports_x, ports_y } = compute_ports(ComputePortsInput {
         board_width: input.board_width,
         board_height: input.board_height,
@@ -546,16 +562,19 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         pitch_offset_x: input.pitch_offset_x,
         pitch_offset_y: input.pitch_offset_y,
     });
-    let cells_x = ports_x * cells_per_pitch - (1 - cells_per_pitch % 2);
-    let cells_y = ports_y * cells_per_pitch - (1 - cells_per_pitch % 2);
+    let cells_x =
+        usize::try_from(ports_x as u64 * cells_per_pitch - (1 - cells_per_pitch % 2)).unwrap();
+    let cells_y =
+        usize::try_from(ports_y as u64 * cells_per_pitch - (1 - cells_per_pitch % 2)).unwrap();
     let cell_offset_x =
-        input.pitch_offset_x - ((cells_per_pitch as f64 - 1.) / 2.) * cell_size;
+        input.pitch_offset_x - ((cells_per_pitch - 1) / 2) * cell_size - half_cell_size;
     let cell_offset_y =
-        input.pitch_offset_y - ((cells_per_pitch as f64 - 1.) / 2.) * cell_size;
+        input.pitch_offset_y - ((cells_per_pitch - 1) / 2) * cell_size - half_cell_size;
 
-    let port_radius = input.port_diameter / 2.;
-    let port_influence_radius = port_radius + input.channel_spacing + input.channel_width / 2.;
-    let box_size = (port_influence_radius - 1.) / cell_size;
+    let port_radius = input.port_diameter / 2;
+    let port_influence_radius =
+        port_radius + input.channel_spacing + input.channel_width.div_ceil(2);
+    let box_size = (port_influence_radius - 1) / cell_size;
 
     let mut nodes = Vec::<GridNode>::new();
 
@@ -566,8 +585,14 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                 id: (x * cells_y + y) as usize,
                 ix: x,
                 iy: y,
-                x: cell_offset_x + half_cell_size + x as f64 * cell_size,
-                y: cell_offset_y + half_cell_size + y as f64 * cell_size,
+                x: i64::try_from(
+                    cell_offset_x + half_cell_size + u64::try_from(x).unwrap() * cell_size,
+                )
+                .unwrap(),
+                y: i64::try_from(
+                    cell_offset_y + half_cell_size + u64::try_from(y).unwrap() * cell_size,
+                )
+                .unwrap(),
                 connection: None,
                 blocked: false,
                 multi_connection: false,
@@ -584,13 +609,12 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     let n_input_connections = input_connections.len();
 
     // here are the extra connections to the center node for start like connections are stored
-    //let mut extra_connections = Vec::new();
-    //let mut next_connection_id = n_input_connections;
+    let mut extra_connections = Vec::new(); 
+    let mut next_connection_id = n_input_connections; 
 
     // Reserve cells at and around used ports for the corresponding connection only (prevent other connections from crossing foreign ports)
-    /*for (c_id, ports) in input_connections.iter() {
-        if ports.len() > 2 {
-            // there are more than 2 nodes connected, so we connect them in a star like structure
+    for (c_id, ports) in input_connections.iter() {
+        if ports.len() > 2 { // there are more than 2 nodes connected, so we connect them in a star like structure
             // define the center node
             let mut center_node = compute_extra_node(&nodes, &ports, cells_x, cells_y);
 
@@ -602,14 +626,17 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             nodes.push(center_node);
             // create a connection from each port to the center node
             for port in ports.iter() {
-                let new_connection = (next_connection_id, vec![*port, (center_ix, center_iy)]);
+                let new_connection = (
+                    next_connection_id,
+                    vec![*port, (center_ix, center_iy)]
+                );
 
                 extra_connections.push(new_connection);
                 next_connection_id += 1;
-            }
+            } 
         }
     }
-    input_connections.extend(extra_connections);*/
+    input_connections.extend(extra_connections);
 
     for (c_id, ports) in input_connections.iter() {
         // Extract the two ports to connect
@@ -634,7 +661,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             b_cell_x = bx;
             b_cell_y = by;
         }
-
+        
         let a_node_position = (
             nodes[a_cell_x * cells_y + a_cell_y].x,
             nodes[a_cell_x * cells_y + a_cell_y].y,
@@ -643,6 +670,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             nodes[b_cell_x * cells_y + b_cell_y].x,
             nodes[b_cell_x * cells_y + b_cell_y].y,
         );
+
 
         for box_x in usize::saturating_sub(a_cell_x, box_size as usize)
             ..(a_cell_x + 1 + box_size as usize).clamp(0, cells_x)
@@ -658,9 +686,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                     node_position.0 as f64 - a_node_position.0 as f64,
                     node_position.1 as f64 - a_node_position.1 as f64,
                 );
-                if distance < port_influence_radius as f64
-                    && nodes[box_x * cells_y + box_y].multi_connection == false
-                {
+                if distance < port_influence_radius as f64 && nodes[box_x * cells_y + box_y].multi_connection == false {
                     // If the cell is already reserved for another connection (e.g., ports close to each other), no connection can be routed through this cell
                     if nodes[box_x * cells_y + box_y].connection.is_none() {
                         nodes[box_x * cells_y + box_y].connection = Some(*c_id);
@@ -685,9 +711,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                     node_position.0 as f64 - b_node_position.0 as f64,
                     node_position.1 as f64 - b_node_position.1 as f64,
                 );
-                if distance < port_influence_radius as f64
-                    && nodes[box_x * cells_y + box_y].multi_connection == false
-                {
+                if distance < port_influence_radius as f64 && nodes[box_x * cells_y + box_y].multi_connection == false {
                     // If the cell is already reserved for another connection (e.g., ports close to each other), no connection can be routed through this cell
                     if nodes[box_x * cells_y + box_y].connection.is_none() {
                         nodes[box_x * cells_y + box_y].connection = Some(*c_id);
@@ -698,6 +722,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             }
         }
     }
+    
 
     // Sort connections by direct distance, ascending
     fn cmp_connections((_, a): &RouteInputConnection, (_, b): &RouteInputConnection) -> Ordering {
@@ -1078,8 +1103,8 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         // Set euclidean distance as heuristic
         let heuristic = |i: &usize| -> f64 {
             let n = &nodes[*i];
-            let dx = n.ix.abs_diff(target_node.ix);
-            let dy = n.iy.abs_diff(target_node.iy);
+            let dx = n.ix as isize - target_node.ix as isize;
+            let dy = n.iy as isize - target_node.iy as isize;
             f64::hypot(dx as f64, dy as f64)
         };
 
