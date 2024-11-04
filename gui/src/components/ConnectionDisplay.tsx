@@ -38,7 +38,7 @@ export function ChannelDisplay(props: {
         stroke={theme.vars.palette.primary[500]}
         strokeWidth={props.channelWidth}
         fill="none"
-        style={{ cursor: 'pointer' }}
+        style={{ cursor: 'pointer', strokeLinecap: 'butt' }}
         onClick={() => props.onClick?.()}
         onPointerEnter={_ => {
             setHover(true)

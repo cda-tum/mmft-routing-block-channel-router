@@ -170,18 +170,17 @@ fn compute_extra_node(
     ports: &[Port],
     cells_x: usize,
     cells_y: usize,
+    cells_per_pitch: usize,
 ) -> Option<(usize, usize)> {
     // Compute centroid
-    let s = ports
-        .iter()
-        .copied()
-        .reduce(|a, p| {
-            (
-                a.0 + nodes[p.0 * cells_y + p.1].ix,
-                a.1 + nodes[p.0 * cells_y + p.1].iy,
-            )
-        })
-        .unwrap();
+    let s = ports.iter().copied().fold((0, 0), |a, p| {
+        let port_cell_x = ((cells_per_pitch - 1) / 2) + cells_per_pitch * p.0;
+        let port_cell_y = ((cells_per_pitch - 1) / 2) + cells_per_pitch * p.1;
+        (
+            a.0 + nodes[port_cell_x * cells_y + port_cell_y].ix,
+            a.1 + nodes[port_cell_x * cells_y + port_cell_y].iy,
+        )
+    });
     let center = (s.0 / ports.len(), s.1 / ports.len());
 
     let mut open = VecDeque::from([center.0 * cells_y + center.1]);
@@ -598,74 +597,37 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
 
     // Reserve cells at and around used ports for the corresponding connection only (prevent other connections from crossing foreign ports)
     for (c_id, ports) in input_connections.iter() {
-        // Extract the two ports to connect
-        let (ax, ay) = ports[0];
-        let (bx, by) = ports[1];
+        for port in ports {
+            let (x, y) = port;
+            let cell_x = ((cells_per_pitch - 1) / 2) + cells_per_pitch * x;
+            let cell_y = ((cells_per_pitch - 1) / 2) + cells_per_pitch * y;
 
-        let cpp = usize::try_from(cells_per_pitch).unwrap();
-        dbg!(cpp, ax, ay, bx, by);
+            let node_position = (
+                nodes[cell_x * cells_y + cell_y].x,
+                nodes[cell_x * cells_y + cell_y].y,
+            );
 
-        let (a_cell_x, a_cell_y, b_cell_x, b_cell_y);
-
-        a_cell_x = ((cpp - 1) / 2) + cpp * ax;
-        a_cell_y = ((cpp - 1) / 2) + cpp * ay;
-        b_cell_x = ((cpp - 1) / 2) + cpp * bx;
-        b_cell_y = ((cpp - 1) / 2) + cpp * by;
-
-        let a_node_position = (
-            nodes[a_cell_x * cells_y + a_cell_y].x,
-            nodes[a_cell_x * cells_y + a_cell_y].y,
-        );
-        let b_node_position = (
-            nodes[b_cell_x * cells_y + b_cell_y].x,
-            nodes[b_cell_x * cells_y + b_cell_y].y,
-        );
-
-        for box_x in usize::saturating_sub(a_cell_x, box_size as usize)
-            ..(a_cell_x + 1 + box_size as usize).clamp(0, cells_x)
-        {
-            for box_y in usize::saturating_sub(a_cell_y, box_size as usize)
-                ..(a_cell_y + 1 + box_size as usize).clamp(0, cells_y)
+            for box_x in usize::saturating_sub(cell_x, box_size as usize)
+                ..(cell_x + 1 + box_size as usize).clamp(0, cells_x)
             {
-                let node_position = (
-                    nodes[box_x * cells_y + box_y].x,
-                    nodes[box_x * cells_y + box_y].y,
-                );
-                let distance = f64::hypot(
-                    node_position.0 - a_node_position.0,
-                    node_position.1 - a_node_position.1,
-                );
-                if distance < port_influence_radius {
-                    // If the cell is already reserved for another connection (e.g., ports close to each other), no connection can be routed through this cell
-                    if nodes[box_x * cells_y + box_y].connection.is_none() {
-                        nodes[box_x * cells_y + box_y].connection = Some(*c_id);
-                    } else {
-                        nodes[box_x * cells_y + box_y].blocked = true;
-                    }
-                }
-            }
-        }
-
-        for box_x in usize::saturating_sub(b_cell_x, box_size as usize)
-            ..(b_cell_x + 1 + box_size as usize).clamp(0, cells_x)
-        {
-            for box_y in usize::saturating_sub(b_cell_y, box_size as usize)
-                ..(b_cell_y + 1 + box_size as usize).clamp(0, cells_y)
-            {
-                let node_position = (
-                    nodes[box_x * cells_y + box_y].x,
-                    nodes[box_x * cells_y + box_y].y,
-                );
-                let distance = f64::hypot(
-                    node_position.0 - b_node_position.0,
-                    node_position.1 - b_node_position.1,
-                );
-                if distance < port_influence_radius {
-                    // If the cell is already reserved for another connection (e.g., ports close to each other), no connection can be routed through this cell
-                    if nodes[box_x * cells_y + box_y].connection.is_none() {
-                        nodes[box_x * cells_y + box_y].connection = Some(*c_id);
-                    } else {
-                        nodes[box_x * cells_y + box_y].blocked = true;
+                for box_y in usize::saturating_sub(cell_y, box_size as usize)
+                    ..(cell_y + 1 + box_size as usize).clamp(0, cells_y)
+                {
+                    let box_node_position = (
+                        nodes[box_x * cells_y + box_y].x,
+                        nodes[box_x * cells_y + box_y].y,
+                    );
+                    let distance = f64::hypot(
+                        box_node_position.0 - node_position.0,
+                        box_node_position.1 - node_position.1,
+                    );
+                    if distance < port_influence_radius {
+                        // If the cell is already reserved for another connection (e.g., ports close to each other), no connection can be routed through this cell
+                        if nodes[box_x * cells_y + box_y].connection.is_none() {
+                            nodes[box_x * cells_y + box_y].connection = Some(*c_id);
+                        } else {
+                            nodes[box_x * cells_y + box_y].blocked = true;
+                        }
                     }
                 }
             }
@@ -678,7 +640,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         if ports.len() > 2 {
             // there are more than 2 nodes connected, so we connect them in a star like structure
             // define the center node
-            let mut center_node = compute_extra_node(&nodes, &ports, cells_x, cells_y);
+            let center_node = compute_extra_node(&nodes, &ports, cells_x, cells_y, cells_per_pitch);
             if let Some(node) = center_node {
                 let id = node.0 * cells_y + node.1;
                 nodes[id].multi_connection = Some(*c_id);
@@ -886,6 +848,11 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                                     return None;
                                 }
                             }
+                            if let Some(c) = node.multi_connection {
+                                if c != c_id {
+                                    return None;
+                                }
+                            }
                             if node.blocked {
                                 return None;
                             }
@@ -983,6 +950,11 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                                     return None;
                                 }
                             }
+                            if let Some(c) = node.multi_connection {
+                                if c != c_id {
+                                    return None;
+                                }
+                            }
                             if node.blocked {
                                 return None;
                             }
@@ -994,7 +966,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                                         return None;
                                     }
                                 }
-                                if node_a.blocked {
+                                if node_a.blocked && node_a.multi_connection.is_none() {
                                     return None;
                                 }
 
@@ -1005,7 +977,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                                         return None;
                                     }
                                 }
-                                if node_b.blocked {
+                                if node_b.blocked && node_b.multi_connection.is_none() {
                                     return None;
                                 }
                             }
@@ -1017,6 +989,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                 .collect()
         };
 
+        // Not used currently, not up to date
         let mixed = |a: &AStarNode<usize>| -> Vec<(usize, f64)> {
             let n = &nodes[a.node];
             let options = match a.previous {
