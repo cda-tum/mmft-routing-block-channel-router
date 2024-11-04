@@ -7,7 +7,7 @@ import ClearIcon from '@mui/icons-material/Clear';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 const minPorts: number = 2;
-const maxPorts: number = 2;
+const maxPorts: number = 4;
 
 export function ConnectionEditor(props: {
     connectionState: ReturnType<typeof useConnectionState>

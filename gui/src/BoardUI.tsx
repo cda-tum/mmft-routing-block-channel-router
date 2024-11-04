@@ -348,6 +348,8 @@ export function BoardUI() {
                         onClick={_ => {
                             //resetBoardEdit()
                             const r = route(input)
+                            //TODO: adapt for multi-connection
+                            /*
                             const outlines = generateOutlines(input.parameters.channelWidth.value!, r.connections)
                             const dxf = generateDXF({
                                 width: input.parameters.boardWidth.value!,
@@ -355,7 +357,7 @@ export function BoardUI() {
                                 originX: 0,
                                 originY: 0,
                             }, outlines)
-                            setDXFDownload(dxf)
+                            setDXFDownload(dxf)*/
                             setOutput(r)
                         }}
                         sx={{

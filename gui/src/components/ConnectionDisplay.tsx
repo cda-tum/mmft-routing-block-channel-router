@@ -1,5 +1,5 @@
 import { Tooltip, useTheme } from "@mui/joy"
-import { computePathLength, ConnectionID, OutputConnection } from "../utils/connections"
+import { Channel, computePathLength, ConnectionID, OutputConnection } from "../utils/connections"
 import { useState } from "react"
 
 export function ConnectionDisplay(props: {
@@ -8,8 +8,26 @@ export function ConnectionDisplay(props: {
     connectionId: ConnectionID
     onClick?: () => void
 }) {
+    const channels = props.connection
+
+    return <>
+        {channels.map(c => <ChannelDisplay
+            channelWidth={props.channelWidth}
+            connectionId={props.connectionId}
+            channel={c}
+            onClick={props.onClick}
+        />)}
+    </>
+}
+
+export function ChannelDisplay(props: {
+    channelWidth: number
+    channel: Channel
+    connectionId: ConnectionID
+    onClick?: () => void
+}) {
     const theme = useTheme()
-    const points = props.connection
+    const points = props.channel
 
     const [hover, setHover] = useState<boolean>(false)
     return <Tooltip

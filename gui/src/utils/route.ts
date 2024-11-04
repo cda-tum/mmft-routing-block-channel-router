@@ -1,11 +1,11 @@
 import { InputState } from "../BoardUI";
 import { route as wasm_route } from '../../../pkg/mmft_board_router';
-import { OutputConnections } from "./connections";
+import { Channel, OutputConnections } from "./connections";
 
 
-function connections(resultConnections: [number, [number, number][]][]) {
+function connections(resultConnections: [number, Channel[]][]) {
     const connections: OutputConnections = {}
-    resultConnections.forEach(([connection_id, connection_points]: [number, [number, number][]]) => {
+    resultConnections.forEach(([connection_id, connection_points]: [number, Channel[]]) => {
         connections[connection_id] = connection_points
     });
     return connections
@@ -23,7 +23,7 @@ export function route(input: InputState) {
             pitch_offset_y: input.parameters.pitchOffsetY.value,
             port_diameter: input.parameters.portDiameter.value,
             max_ports: input.parameters.maxPorts.value,
-            connections: Object.entries(input.connections).filter(([_, connection]) => connection.ports.length == 2).map(([c_id, connection]) => [parseInt(c_id), connection.ports]),
+            connections: Object.entries(input.connections).filter(([_, connection]) => connection.ports.length > 1).map(([c_id, connection]) => [parseInt(c_id), connection.ports]),
             min_grid_size: 0,
             layout: input.parameters.layout.value,
         }

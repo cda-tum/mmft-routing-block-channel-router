@@ -13,7 +13,8 @@ export const defaultInputConnections: InputConnections = {}
 
 
 export type Point = [number, number]
-export type OutputConnection = Point[]
+export type Channel = Point[]
+export type OutputConnection = Channel[]
 export type OutputConnections = Record<ConnectionID, OutputConnection>
 
 export const defaultOutputConnections: OutputConnections = {}
