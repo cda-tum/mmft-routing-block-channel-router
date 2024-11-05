@@ -133,4 +133,24 @@ mod tests {
             ]),
         });
     }
+
+    #[test]
+    fn longer_board_connection() {
+        let result = route(RouteInput {
+            channel_width: 0.5,
+            channel_spacing: 0.5,
+            board_width: 105.,
+            board_height: 15.,
+            pitch: 1.5,
+            pitch_offset_x: 1.5,
+            pitch_offset_y: 1.5,
+            port_diameter: 0.4,
+            min_grid_size: 0.,
+            max_ports: 20000,
+            layout: Layout::Octilinear,
+            connections: Vec::from([
+                (0, vec![(0, 0), (5, 5)]),
+            ]),
+        });
+    }
 }

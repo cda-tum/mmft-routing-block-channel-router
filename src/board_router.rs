@@ -580,8 +580,10 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                 id: (x * cells_y + y) as usize,
                 ix: x,
                 iy: y,
-                x: cell_offset_x + half_cell_size + x as f64 * cell_size,
-                y: cell_offset_y + half_cell_size + y as f64 * cell_size,
+                //x: cell_offset_x + half_cell_size + x as f64 * cell_size,
+                //y: cell_offset_y + half_cell_size + y as f64 * cell_size,
+                x: cell_offset_x + if cells_per_pitch % 2 == 0 { half_cell_size } else { 0. } + x as f64 * cell_size,
+                y: cell_offset_y + if cells_per_pitch % 2 == 0 { half_cell_size } else { 0. } + y as f64 * cell_size,
                 connection: None,
                 blocked: false,
                 multi_connection: None,
@@ -601,6 +603,8 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             let (x, y) = port;
             let cell_x = ((cells_per_pitch - 1) / 2) + cells_per_pitch * x;
             let cell_y = ((cells_per_pitch - 1) / 2) + cells_per_pitch * y;
+
+            dbg!(x, y, cell_x, cell_y, nodes[cell_x * cells_y + cell_y].x, nodes[cell_x * cells_y + cell_y].y, cell_offset_x, cell_offset_y);
 
             let node_position = (
                 nodes[cell_x * cells_y + cell_y].x,

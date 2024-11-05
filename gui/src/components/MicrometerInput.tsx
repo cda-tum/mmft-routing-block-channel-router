@@ -32,7 +32,7 @@ export function MicrometerInput(props: MicrometerProps) {
             minWidth,
         },
         startDecorator: <Box sx={{ width: '3em', height: '3em', margin: 1 }}>{props.explainIcon}</Box>,
-        endDecorator: "μm",
+        endDecorator: "mm",
     }
 
     const field = props.autocompleteValues !== undefined ? <Autocomplete
@@ -43,7 +43,7 @@ export function MicrometerInput(props: MicrometerProps) {
         {...shared}
         onInputChange={(_, value) => {
             if (value !== null) {
-                const isNumber = parseFloat(value).toString() === value && Number.isSafeInteger(parseFloat(value))
+                const isNumber = parseFloat(value).toString() === value
                 const i = parseFloat(value)
                 props.onChange?.(value, isNumber ? i : undefined)
             }
@@ -52,7 +52,7 @@ export function MicrometerInput(props: MicrometerProps) {
         {...shared}
         onChange={e => {
             const value = e.target.value
-            const isNumber = parseFloat(value).toString() === value && Number.isSafeInteger(parseFloat(value))
+            const isNumber = parseFloat(value).toString() === value
             const i = parseFloat(value)
             props.onChange?.(value, isNumber ? i : undefined)
         }}

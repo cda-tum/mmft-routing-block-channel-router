@@ -16,14 +16,14 @@ export type InvalidValue<VALIDTYPE> = {
 }
 
 export const defaultInputParameterValues: InputParameterValues = {
-    boardWidth: 10000,
-    boardHeight: 5000,
-    pitch: 500,
-    pitchOffsetX: 500,
-    pitchOffsetY: 500,
-    portDiameter: 200,
-    channelWidth: 100,
-    channelSpacing: 100,
+    boardWidth: 105,
+    boardHeight: 15,
+    pitch: 1.5,
+    pitchOffsetX: 1.5,
+    pitchOffsetY: 1.5,
+    portDiameter: 0.4,
+    channelWidth: 0.5,
+    channelSpacing: 0.5,
     layout: 'Octilinear',
     maxPorts: 5000
 }
