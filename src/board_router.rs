@@ -563,8 +563,8 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     });
     let cells_x = ports_x * cells_per_pitch - (1 - cells_per_pitch % 2);
     let cells_y = ports_y * cells_per_pitch - (1 - cells_per_pitch % 2);
-    let cell_offset_x = input.pitch_offset_x - ((cells_per_pitch as f64 - 1.) / 2.) * cell_size;
-    let cell_offset_y = input.pitch_offset_y - ((cells_per_pitch as f64 - 1.) / 2.) * cell_size;
+    let cell_offset_x = input.pitch_offset_x - ((cells_per_pitch as f64 - 1.) / 2.) * cell_size + if cells_per_pitch % 2 == 0 { half_cell_size } else { 0. };
+    let cell_offset_y = input.pitch_offset_y - ((cells_per_pitch as f64 - 1.) / 2.) * cell_size + if cells_per_pitch % 2 == 0 { half_cell_size } else { 0. };
 
     let port_radius = input.port_diameter / 2.;
     let port_influence_radius = port_radius + input.channel_spacing + input.channel_width / 2.;
@@ -580,8 +580,8 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                 id: (x * cells_y + y) as usize,
                 ix: x,
                 iy: y,
-                x: cell_offset_x + if cells_per_pitch % 2 == 0 { half_cell_size } else { 0. } + x as f64 * cell_size,
-                y: cell_offset_y + if cells_per_pitch % 2 == 0 { half_cell_size } else { 0. } + y as f64 * cell_size,
+                x: cell_offset_x + x as f64 * cell_size,
+                y: cell_offset_y + y as f64 * cell_size,
                 connection: None,
                 blocked: false,
                 multi_connection: None,
