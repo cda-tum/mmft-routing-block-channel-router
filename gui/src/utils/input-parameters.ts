@@ -21,7 +21,7 @@ export const defaultInputParameterValues: InputParameterValues = {
     pitch: 1.5,
     pitchOffsetX: 1.5,
     pitchOffsetY: 1.5,
-    portDiameter: 0.4,
+    portDiameter: 1,
     channelWidth: 0.5,
     channelSpacing: 0.5,
     layout: 'Octilinear',

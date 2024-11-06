@@ -230,7 +230,7 @@ export function BoardUI() {
                             error={input.parameters.pitch.error ? input.parameters.pitch.errorMessage : undefined}
                             onChange={(fv, pv) => updateInputParameter('pitch', fv, pv)}
                             description="Distance between ports on the port grid."
-                            autocompleteValues={[1500, 3000, 4500, 6000, 7500, 9000, 10500, 12000, 13500, 15000]}
+                            autocompleteValues={[1.500, 3.000, 4.500, 6.000, 7.500, 9.000, 10.500, 12.000, 13.500, 15.000]}
                         />
                     </Stack>
                     <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>

@@ -45,7 +45,7 @@ export function PortDisplay(props: {
         cy={props.position[1]}
         r={props.diameter / 2}
         style={{
-            stroke: theme.vars.palette.text.primary,
+            stroke: theme.vars.palette.text.tertiary,
             strokeWidth: props.diameter / 10,
             ...baseStyle,
             ...(props.style ?? {}),

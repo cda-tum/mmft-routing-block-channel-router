@@ -31,7 +31,7 @@ export function ChannelDisplay(props: {
 
     const [hover, setHover] = useState<boolean>(false)
     return <Tooltip
-        title={`Length: ${computePathLength(points)} μm`}
+        title={`Length: ${computePathLength(points).toFixed(3)} mm`}
         open={hover}
     ><path
         d={`M ${points.map(p => `${p[0]},${p[1]}`).join('L')}`}
