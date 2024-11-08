@@ -1,6 +1,7 @@
 mod board_router;
 mod board_router_wasm;
 mod graph_search;
+mod validation;
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
@@ -11,8 +12,9 @@ mod tests {
 
 
     use board_router::{
-        route, validate, Layout, RouteInput, ValidateInput
+        route, Layout, RouteInput
     };
+    use validation::{validate, ValidateInput};
 
     use super::*;
 
@@ -26,6 +28,7 @@ mod tests {
             pitch: Some(500.0),
             pitch_offset_x: Some(500.0),
             pitch_offset_y: Some(500.0),
+            port_diameter: Some(200.0),
             min_grid_size: None,
             max_ports: Some(20000),
             layout: Some(Layout::Rectilinear),

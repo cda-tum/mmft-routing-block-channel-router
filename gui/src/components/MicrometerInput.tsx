@@ -8,6 +8,7 @@ export type MicrometerProps = {
     defaultValue?: string | undefined
     value?: string | undefined
     error?: string | undefined
+    warning?: string | undefined
     placeholder?: string | undefined
     autocompleteValues?: undefined | number[]
     explainIcon?: undefined | ReactNode
@@ -65,12 +66,13 @@ export function MicrometerInput(props: MicrometerProps) {
                 marginBottom: '1em',
                 flexGrow: 1
             }}
+            color={props.warning ? 'warning' : undefined}
         >
             {props.label &&
                 <FormLabel htmlFor={id}>{props.label}</FormLabel>
             }
             {field}
-            {props.description && !props.error &&
+            {props.description && !props.error && !props.warning &&
                 <FormHelperText
                     sx={{
                         minWidth
@@ -85,6 +87,16 @@ export function MicrometerInput(props: MicrometerProps) {
                 >
                     <InfoOutlined />
                     {props.error}
+                </FormHelperText>
+            }
+            {props.warning &&
+                <FormHelperText
+                    sx={{
+                        minWidth
+                    }}
+                >
+                    <InfoOutlined color='warning'/>
+                    {props.warning}
                 </FormHelperText>
             }
         </FormControl>

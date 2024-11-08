@@ -3,7 +3,7 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub fn validate(input: JsValue) -> JsValue {
-    JsValue::from_serde(&crate::board_router::validate(input.into_serde().unwrap())).unwrap()
+    JsValue::from_serde(&crate::validation::validate(input.into_serde().unwrap())).unwrap()
 }
 
 

@@ -195,6 +195,7 @@ export function BoardUI() {
                         explainIcon={<BoardWidthIcon width={50} height={50} />}
                         value={input.parameters.boardWidth.fieldValue}
                         error={input.parameters.boardWidth.error ? input.parameters.boardWidth.errorMessage : undefined}
+                        warning={input.parameters.boardWidth.warning}
                         onChange={(fv, pv) => updateInputParameter('boardWidth', fv, pv)}
                         description="Absolute width of the routing board."
                     />
@@ -203,6 +204,7 @@ export function BoardUI() {
                         explainIcon={<BoardHeightIcon width={50} height={50} />}
                         value={input.parameters.boardHeight.fieldValue}
                         error={input.parameters.boardHeight.error ? input.parameters.boardHeight.errorMessage : undefined}
+                        warning={input.parameters.boardHeight.warning}
                         onChange={(fv, pv) => updateInputParameter('boardHeight', fv, pv)}
                         description="Absolute height of the routing board."
                     />
@@ -220,6 +222,7 @@ export function BoardUI() {
                             explainIcon={<PortDiameterIcon width={50} height={50} />}
                             value={input.parameters.portDiameter.fieldValue}
                             error={input.parameters.portDiameter.error ? input.parameters.portDiameter.errorMessage : undefined}
+                            warning={input.parameters.portDiameter.warning}
                             onChange={(fv, pv) => updateInputParameter('portDiameter', fv, pv)}
                             description="Diameter of ports."
                         />
@@ -228,9 +231,10 @@ export function BoardUI() {
                             explainIcon={<PitchIcon width={50} height={50} />}
                             value={input.parameters.pitch.fieldValue}
                             error={input.parameters.pitch.error ? input.parameters.pitch.errorMessage : undefined}
+                            warning={input.parameters.pitch.warning}
                             onChange={(fv, pv) => updateInputParameter('pitch', fv, pv)}
                             description="Distance between ports on the port grid."
-                            autocompleteValues={[1.500, 3.000, 4.500, 6.000, 7.500, 9.000, 10.500, 12.000, 13.500, 15.000]}
+                            autocompleteValues={[1.5, 3.0, 4.5, 6.0, 7.5, 9.0, 10.5, 12.0, 13.5, 15.0]}
                         />
                     </Stack>
                     <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
@@ -239,6 +243,7 @@ export function BoardUI() {
                             explainIcon={<PitchOffsetXIcon width={50} height={50} />}
                             value={input.parameters.pitchOffsetX.fieldValue}
                             error={input.parameters.pitchOffsetX.error ? input.parameters.pitchOffsetX.errorMessage : undefined}
+                            warning={input.parameters.pitchOffsetX.warning}
                             onChange={(fv, pv) => updateInputParameter('pitchOffsetX', fv, pv)}
                             description="Offset of the top left port in X direction."
                         />
@@ -247,6 +252,7 @@ export function BoardUI() {
                             explainIcon={<PitchOffsetYIcon width={50} height={50} />}
                             value={input.parameters.pitchOffsetY.fieldValue}
                             error={input.parameters.pitchOffsetY.error ? input.parameters.pitchOffsetY.errorMessage : undefined}
+                            warning={input.parameters.pitchOffsetY.warning}
                             onChange={(fv, pv) => updateInputParameter('pitchOffsetY', fv, pv)}
                             description="Offset of the top left port in Y direction."
                         />
@@ -265,6 +271,7 @@ export function BoardUI() {
                         explainIcon={<ChannelWidthIcon width={50} height={50} />}
                         value={input.parameters.channelWidth.fieldValue}
                         error={input.parameters.channelWidth.error ? input.parameters.channelWidth.errorMessage : undefined}
+                        warning={input.parameters.channelWidth.warning}
                         onChange={(fv, pv) => updateInputParameter('channelWidth', fv, pv)}
                         description="Width of channels' cross section."
                     />
@@ -273,6 +280,7 @@ export function BoardUI() {
                         explainIcon={<ChannelSpacingIcon width={50} height={50} />}
                         value={input.parameters.channelSpacing.fieldValue}
                         error={input.parameters.channelSpacing.error ? input.parameters.channelSpacing.errorMessage : undefined}
+                        warning={input.parameters.channelSpacing.warning}
                         onChange={(fv, pv) => updateInputParameter('channelSpacing', fv, pv)}
                         description="Minimal required spacing between channels."
                     />
@@ -343,6 +351,50 @@ export function BoardUI() {
                         marginY: 2
                     }}>
 
+                    <Box
+                        sx={{
+                            marginX: 2,
+                            marginY: 1
+                        }}
+                    >
+                        {input.ports !== undefined &&
+                            <BoardDisplay
+                                boardWidth={input.parameters.boardWidth.value!}
+                                boardHeight={input.parameters.boardHeight.value!}
+                                pitch={input.parameters.pitch.value!}
+                                pitchOffsetX={input.parameters.pitchOffsetX.value!}
+                                pitchOffsetY={input.parameters.pitchOffsetY.value!}
+                                portDiameter={input.parameters.portDiameter.value!}
+                                channelWidth={input.parameters.channelWidth.value!}
+                                columns={input.portsX!}
+                                rows={input.portsY!}
+                                onChange={c => setInput(s => ({
+                                    ...s,
+                                    connections: c
+                                }))}
+                                outputConnections={output.connections}
+                                closeDropdown={closeDropdown}
+                            ></BoardDisplay>
+                        }
+                    </Box>
+                </Box>
+            </Box>
+
+            <Box
+                sx={{
+                    marginY: 4,
+                }}
+            >
+                <Typography level="h4">Design</Typography>
+                <Box
+                    sx={{
+                        backgroundColor: theme.vars.palette.background.surface,
+                        borderRadius: theme.radius.sm,
+                        border: '1px solid',
+                        borderColor: theme.vars.palette.background.level2,
+                        boxShadow: `0px 2px ${theme.vars.palette.background.level1}`,
+                        marginY: 2
+                    }}>
                     <Button
                         disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
                         onClick={_ => {
@@ -404,33 +456,6 @@ export function BoardUI() {
                             {output.error}
                         </Typography>
                     }
-
-                    <Box
-                        sx={{
-                            marginX: 2,
-                            marginY: 1
-                        }}
-                    >
-                        {input.ports !== undefined &&
-                            <BoardDisplay
-                                boardWidth={input.parameters.boardWidth.value!}
-                                boardHeight={input.parameters.boardHeight.value!}
-                                pitch={input.parameters.pitch.value!}
-                                pitchOffsetX={input.parameters.pitchOffsetX.value!}
-                                pitchOffsetY={input.parameters.pitchOffsetY.value!}
-                                portDiameter={input.parameters.portDiameter.value!}
-                                channelWidth={input.parameters.channelWidth.value!}
-                                columns={input.portsX!}
-                                rows={input.portsY!}
-                                onChange={c => setInput(s => ({
-                                    ...s,
-                                    connections: c
-                                }))}
-                                outputConnections={output.connections}
-                                closeDropdown={closeDropdown}
-                            ></BoardDisplay>
-                        }
-                    </Box>
                 </Box>
             </Box>
         </main>

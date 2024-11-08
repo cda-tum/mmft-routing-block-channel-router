@@ -17,15 +17,16 @@ pub struct RouteInput {
     pub pitch: f64,
     pub pitch_offset_x: f64,
     pub pitch_offset_y: f64,
-    pub min_grid_size: f64,
     pub port_diameter: f64,
+    pub min_grid_size: f64,
     pub max_ports: usize,
     pub connections: RouteInputConnections,
 }
 
-type RouteInputConnections = Vec<RouteInputConnection>;
-type RouteInputConnection = (ConnectionID, Vec<Port>); // Handle multiple ports for one connection
-type Port = (usize, usize);
+pub type ConnectionID = usize;
+pub type RouteInputConnections = Vec<RouteInputConnection>;
+pub type RouteInputConnection = (ConnectionID, Vec<Port>); // Handle multiple ports for one connection
+pub type Port = (usize, usize);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Layout {
@@ -250,304 +251,6 @@ pub fn compute_ports(
     return ComputePortsOutput { ports_x, ports_y };
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ValidateInput {
-    pub channel_width: Option<f64>,
-    pub channel_spacing: Option<f64>,
-    pub board_width: Option<f64>,
-    pub board_height: Option<f64>,
-    pub pitch: Option<f64>,
-    pub pitch_offset_x: Option<f64>,
-    pub pitch_offset_y: Option<f64>,
-    pub min_grid_size: Option<f64>,
-    pub max_ports: Option<usize>,
-    pub layout: Option<Layout>,
-    pub connections: Option<RouteInputConnections>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-enum ValidateOutput {
-    Ok(),
-    Err(Vec<ValidationError>),
-}
-
-type ConnectionID = usize;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum ValidationError {
-    MissingChannelWidth,
-    MissingChannelSpacing,
-    MissingBoardWidth,
-    MissingBoardHeight,
-    MissingPitch,
-    MissingPitchOffsetX,
-    MissingPitchOffsetY,
-    MissingMinGridSize,
-    MissingConnections,
-    InvalidChannelWidth,
-    InvalidChannelSpacing,
-    InvalidBoardWidth,
-    InvalidBoardHeight,
-    InvalidPitch,
-    InvalidPitchOffsetX,
-    InvalidPitchOffsetY,
-    InvalidMinGridSize,
-    InvalidMaxPorts,
-    ChannelWidthNotPositive,
-    ChannelSpacingNotPositive,
-    BoardWidthNotPositive,
-    BoardHeightNotPositive,
-    PitchNotPositive,
-    PitchOffsetXNotPositive,
-    PitchOffsetYNotPositive,
-    PitchOffsetXTooSmall,
-    PitchOffsetYTooSmall,
-    ChannelDimensionsTooLarge,
-    MaxPortsExceeded(usize, usize),
-    InvalidConnectionPortX(ConnectionID, Port),
-    InvalidConnectionPortY(ConnectionID, Port),
-}
-
-macro_rules! check_missing {
-    ( $field:ident, $error:ident, $input: ident, $errors: ident ) => {{
-        match $input.$field {
-            None => $errors.push(ValidationError::$error),
-            _ => (),
-        }
-    }};
-}
-
-macro_rules! not_missing {
-    ($input: ident, $code: block, $($field: ident),*) => {
-        match ($($input.$field,)*) {
-            ($(Some($field)),*,) => {
-                $code
-            },
-            _ => ()
-        }
-    };
-}
-
-macro_rules! check_valid_length {
-    ($field: ident, $error: ident, $input: ident, $errors: ident) => {
-        match $input.$field {
-            Some(f) => {
-                if f != (f as f64) {
-                    $errors.push(ValidationError::$error);
-                    None
-                } else {
-                    Some(f as f64)
-                }
-            }
-            None => None,
-        }
-    };
-}
-
-macro_rules! check_valid_usize {
-    ($field: ident, $error: ident, $input: ident, $errors: ident) => {
-        match $input.$field {
-            Some(f) => {
-                if f != (f as usize) {
-                    $errors.push(ValidationError::$error);
-                    None
-                } else {
-                    Some(f as usize)
-                }
-            }
-            None => None,
-        }
-    };
-}
-
-macro_rules! check_positive {
-    ($field: ident, $error: ident, $input: ident, $errors: ident) => {
-        not_missing!(
-            $input,
-            {
-                if $field <= 0. {
-                    $errors.push(ValidationError::$error);
-                }
-            },
-            $field
-        )
-    };
-}
-
-pub fn validate(validate_input: ValidateInput) -> Result<(), Vec<ValidationError>> {
-    let mut errors = Vec::new();
-
-    check_missing!(channel_width, MissingChannelWidth, validate_input, errors);
-    check_missing!(
-        channel_spacing,
-        MissingChannelSpacing,
-        validate_input,
-        errors
-    );
-    check_missing!(board_width, MissingBoardWidth, validate_input, errors);
-    check_missing!(board_height, MissingBoardHeight, validate_input, errors);
-    check_missing!(pitch, MissingPitch, validate_input, errors);
-    check_missing!(pitch_offset_x, MissingPitchOffsetX, validate_input, errors);
-    check_missing!(pitch_offset_y, MissingPitchOffsetY, validate_input, errors);
-    check_missing!(connections, MissingConnections, validate_input, errors);
-
-    let input = ValidateInput {
-        channel_width: check_valid_length!(
-            channel_width,
-            InvalidChannelWidth,
-            validate_input,
-            errors
-        ),
-        channel_spacing: check_valid_length!(
-            channel_spacing,
-            InvalidChannelSpacing,
-            validate_input,
-            errors
-        ),
-        board_width: check_valid_length!(board_width, InvalidBoardWidth, validate_input, errors),
-        board_height: check_valid_length!(board_height, InvalidBoardHeight, validate_input, errors),
-        pitch: check_valid_length!(pitch, InvalidPitch, validate_input, errors),
-        pitch_offset_x: check_valid_length!(
-            pitch_offset_x,
-            InvalidPitchOffsetX,
-            validate_input,
-            errors
-        ),
-        pitch_offset_y: check_valid_length!(
-            pitch_offset_y,
-            InvalidPitchOffsetY,
-            validate_input,
-            errors
-        ),
-        min_grid_size: check_valid_length!(
-            min_grid_size,
-            InvalidMinGridSize,
-            validate_input,
-            errors
-        ),
-        max_ports: check_valid_usize!(max_ports, InvalidMaxPorts, validate_input, errors),
-        layout: validate_input.layout,
-        connections: validate_input.connections,
-    };
-
-    check_positive!(channel_width, ChannelWidthNotPositive, input, errors);
-    check_positive!(channel_spacing, ChannelSpacingNotPositive, input, errors);
-    check_positive!(board_width, BoardWidthNotPositive, input, errors);
-    check_positive!(board_height, BoardHeightNotPositive, input, errors);
-    check_positive!(pitch, PitchNotPositive, input, errors);
-    check_positive!(pitch_offset_x, PitchOffsetXNotPositive, input, errors);
-    check_positive!(pitch_offset_y, PitchOffsetYNotPositive, input, errors);
-
-    not_missing!(
-        input,
-        {
-            if pitch_offset_x < pitch {
-                errors.push(ValidationError::PitchOffsetXTooSmall);
-            }
-        },
-        pitch_offset_x,
-        pitch
-    );
-
-    not_missing!(
-        input,
-        {
-            if pitch_offset_y < pitch {
-                errors.push(ValidationError::PitchOffsetYTooSmall);
-            }
-        },
-        pitch_offset_y,
-        pitch
-    );
-
-    not_missing!(
-        input,
-        {
-            let channel_distance = channel_width + channel_spacing;
-            if channel_distance > pitch {
-                errors.push(ValidationError::ChannelDimensionsTooLarge);
-            }
-        },
-        channel_width,
-        channel_spacing,
-        pitch
-    );
-
-    not_missing!(
-        input,
-        {
-            if board_width > 0.
-                && board_height > 0.
-                && pitch > 0.
-                && pitch_offset_x > 0.
-                && pitch_offset_y > 0.
-            {
-                let ComputePortsOutput { ports_x, ports_y } = compute_ports(ComputePortsInput {
-                    board_width,
-                    board_height,
-                    pitch,
-                    pitch_offset_x,
-                    pitch_offset_y,
-                });
-
-                for (c_id, ports) in connections.iter() {
-                    for (x, y) in ports.iter() {
-                        if *x >= ports_x {
-                            errors.push(ValidationError::InvalidConnectionPortX(*c_id, (*x, *y)));
-                        }
-                        if *y >= ports_y {
-                            errors.push(ValidationError::InvalidConnectionPortY(*c_id, (*x, *y)));
-                        }
-                    }
-                }
-            }
-        },
-        board_width,
-        board_height,
-        pitch,
-        pitch_offset_x,
-        pitch_offset_y,
-        connections
-    );
-
-    not_missing!(
-        input,
-        {
-            if board_width > 0.
-                && board_height > 0.
-                && pitch > 0.
-                && pitch_offset_x > 0.
-                && pitch_offset_y > 0.
-            {
-                let ComputePortsOutput { ports_x, ports_y } = compute_ports(ComputePortsInput {
-                    board_width,
-                    board_height,
-                    pitch,
-                    pitch_offset_x,
-                    pitch_offset_y,
-                });
-
-                let ports = ports_x * ports_y;
-                if ports > max_ports {
-                    errors.push(ValidationError::MaxPortsExceeded(ports, max_ports));
-                }
-            }
-        },
-        board_width,
-        board_height,
-        pitch,
-        pitch_offset_x,
-        pitch_offset_y,
-        max_ports
-    );
-
-    if errors.len() > 0 {
-        Err(errors)
-    } else {
-        Ok(())
-    }
-}
-
 pub fn route(input: RouteInput) -> BoardRouterOutput {
     // this is the main function I want to adapt
     let channel_distance = input.channel_width + input.channel_spacing;
@@ -563,8 +266,18 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     });
     let cells_x = ports_x * cells_per_pitch - (1 - cells_per_pitch % 2);
     let cells_y = ports_y * cells_per_pitch - (1 - cells_per_pitch % 2);
-    let cell_offset_x = input.pitch_offset_x - ((cells_per_pitch as f64 - 1.) / 2.) * cell_size + if cells_per_pitch % 2 == 0 { half_cell_size } else { 0. };
-    let cell_offset_y = input.pitch_offset_y - ((cells_per_pitch as f64 - 1.) / 2.) * cell_size + if cells_per_pitch % 2 == 0 { half_cell_size } else { 0. };
+    let cell_offset_x = input.pitch_offset_x - ((cells_per_pitch as f64 - 1.) / 2.) * cell_size
+        + if cells_per_pitch % 2 == 0 {
+            half_cell_size
+        } else {
+            0.
+        };
+    let cell_offset_y = input.pitch_offset_y - ((cells_per_pitch as f64 - 1.) / 2.) * cell_size
+        + if cells_per_pitch % 2 == 0 {
+            half_cell_size
+        } else {
+            0.
+        };
 
     let port_radius = input.port_diameter / 2.;
     let port_influence_radius = port_radius + input.channel_spacing + input.channel_width / 2.;

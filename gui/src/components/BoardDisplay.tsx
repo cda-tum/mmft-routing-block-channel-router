@@ -1,4 +1,4 @@
-import { Button, Menu, MenuItem, Typography, useTheme } from "@mui/joy"
+import { Box, Button, Menu, MenuItem, Typography, useTheme } from "@mui/joy"
 import { PortDisplay } from "./PortDisplay"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { portIndexToString, PortKey } from "../utils/ports"
@@ -206,8 +206,7 @@ export function BoardDisplay(props: {
                 e.stopPropagation()
             }}
             sx={{
-                margin: 1,
-                marginX: 2,
+                marginY: 2,
             }}
         >
             <Typography sx={{ color: theme.vars.palette.common.white }}>{connectionState.preview.active &&
@@ -245,7 +244,7 @@ export function BoardDisplay(props: {
                 >
                     <Typography sx={{
                         color: theme.vars.palette.common.white
-                    }}>Connection {connectionId}</Typography>
+                    }}>Connection #{connectionId}</Typography>
                 </MenuItem>
             })}
         </Menu>
@@ -254,12 +253,16 @@ export function BoardDisplay(props: {
     return <>
         {selectConnection}
         {editConnection}
+        <Box
+            marginY={2}
+        >
         <svg
             width="100%"
             viewBox={viewBox}
         >
             {contents}
         </svg>
+        </Box>
     </>
 }
 
