@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
-import { Box, Button, Stack, Typography, useTheme } from "@mui/joy"
+import { Box, Button, Link, Stack, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
 import { defaultInputParameters, InputParameters, validate, validateAble } from "./utils/input-parameters"
 import { defaultInputPorts, generatePorts, InputPorts, PortKey } from "./utils/ports"
@@ -185,8 +185,11 @@ export function BoardUI() {
             </Typography></a>
         </header>
         <main>
+            <Box>
+                <Typography>A short introductionary paragraph and a link to further resources. <Link href="#">Learn more</Link>.</Typography>
+            </Box>
             <Box sx={{
-                marginBottom: 4
+                marginY: 4
             }}>
                 <Typography level="h4">Board Settings</Typography>
                 <Stack direction="row" spacing={4} flexWrap='wrap' useFlexGap>
@@ -348,7 +351,7 @@ export function BoardUI() {
                         border: '1px solid',
                         borderColor: theme.vars.palette.background.level2,
                         boxShadow: `0px 2px ${theme.vars.palette.background.level1}`,
-                        marginY: 2
+                        marginY: 2,
                     }}>
 
                     <Box
