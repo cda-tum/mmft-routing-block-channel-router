@@ -251,8 +251,6 @@ export function BoardDisplay(props: {
     </>
 
     return <>
-        {selectConnection}
-        {editConnection}
         <Box
             marginY={2}
         >
@@ -262,6 +260,8 @@ export function BoardDisplay(props: {
         >
             {contents}
         </svg>
+        {selectConnection}
+        {editConnection}
         </Box>
     </>
 }

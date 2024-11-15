@@ -2,6 +2,7 @@ mod board_router;
 mod board_router_wasm;
 mod graph_search;
 mod validation;
+mod dxf;
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
