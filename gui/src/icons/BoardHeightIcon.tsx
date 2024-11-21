@@ -1,5 +1,5 @@
 import { useTheme } from "@mui/joy"
-import { LayoutIcon } from "./LayoutIcon"
+import { BaseIcon } from "./BaseIcon"
 
 export function BoardHeightIcon(props: {
     width?: number,
@@ -8,7 +8,7 @@ export function BoardHeightIcon(props: {
 
     const theme = useTheme()
 
-    return <LayoutIcon
+    return <BaseIcon
         {...props}
         objects={[{
             type: 'path',

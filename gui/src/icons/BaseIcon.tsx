@@ -9,12 +9,13 @@ export type PathObject = {
     type: 'path'
     pathData: string
     stroke?: string
+    strokeDashArray?: string
     width: number
     fill?: string
     opacity?: number
 }
 
-export function LayoutIcon(props: {
+export function BaseIcon(props: {
     objects: (PathObject | SVGObject)[]
     width?: number
     height?: number
@@ -36,6 +37,7 @@ export function LayoutIcon(props: {
                     d={obj.pathData}
                     fill={obj.fill ?? "none"}
                     stroke={obj.stroke ?? theme.vars.palette.primary[500]}
+                    strokeDasharray={obj.strokeDashArray}
                     strokeWidth={obj.width}
                     opacity={obj.opacity}
                 />

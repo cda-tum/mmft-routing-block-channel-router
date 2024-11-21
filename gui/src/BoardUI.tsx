@@ -21,6 +21,7 @@ import { PitchOffsetYIcon } from "./icons/PitchOffsetYIcon"
 import { ChannelWidthIcon } from "./icons/ChannelWidthIcon"
 import { ChannelSpacingIcon } from "./icons/ChannelSpacingIcon"
 import { ConnectionsState } from "./hooks/useConnectionState"
+import { OutputChannelCapChoice } from "./components/OutputChannelCapChoice"
 
 export type InputState = {
     parameters: InputParameters
@@ -460,6 +461,20 @@ export function BoardUI() {
                         </Typography>
                     }
                 </Box>
+            </Box>
+            <Box
+                sx={{
+                    marginY: 4,
+                }}
+            >
+                <Typography level="h4">Output Settings</Typography>
+
+                <OutputChannelCapChoice
+                    channelCap={input.parameters.channelCap.value}
+                    channelCapCustom={input.parameters.channelCapCustom}
+                    onChangeChannelCap={channelCap => updateInputParameter('channelCap', channelCap, channelCap)}
+                    onChangeChannelCapCustom={channelCapCustom => updateInputParameter('channelCapCustom', channelCapCustom, channelCapCustom)}
+                />
             </Box>
         </main>
         <footer

@@ -1,5 +1,5 @@
 import { useTheme } from "@mui/joy"
-import { LayoutIcon } from "./LayoutIcon"
+import { BaseIcon } from "./BaseIcon"
 import { arrowPath } from "./ArrowPath"
 
 export function ChannelWidthIcon(props: {
@@ -11,7 +11,7 @@ export function ChannelWidthIcon(props: {
 
     const arrow = arrowPath([30, 50], [70, 50])
 
-    return <LayoutIcon
+    return <BaseIcon
         {...props}
         objects={[{
             type: 'path',

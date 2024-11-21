@@ -27,6 +27,8 @@ export const defaultInputParameterValues: InputParameterValues = {
     channelWidth: 0.5,
     channelSpacing: 0.5,
     layout: 'Octilinear',
+    channelCap: 'Square',
+    channelCapCustom: 0.8,
     maxPorts: 5000
 }
 
@@ -46,6 +48,8 @@ export type InputParameterValues = {
     channelWidth: number
     channelSpacing: number
     layout: string
+    channelCap: string
+    channelCapCustom: number
     maxPorts: number
 }
 

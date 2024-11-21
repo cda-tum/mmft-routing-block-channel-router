@@ -7,7 +7,7 @@ use crate::board_router::Channel;
 struct OctilinearOutlineInput {
     channels: Vec<Channel>,
     channel_width: f64,
-    line_cap: LineCap,
+    channel_cap: ChannelCap,
 }
 
 #[derive(Clone, Copy)]
@@ -17,10 +17,10 @@ pub struct PortDiameter(f64);
 pub struct ExceedBy(f64);
 
 #[derive(Clone, Copy)]
-pub enum LineCap {
+pub enum ChannelCap {
     Butt,
     Square,
-    CustomExceedPort(ExceedBy),
+    Custom(ExceedBy),
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
@@ -265,7 +265,7 @@ fn rotate_right_by(v: &[f64; 2], by: isize) -> [f64; 2] {
 pub fn octilinear_outline(
     channels: &Vec<Channel>,
     channel_width: f64,
-    line_cap: &LineCap,
+    line_cap: &ChannelCap,
 ) -> Vec<[f64; 2]>{
     if channels.len() == 1 {
         octilinear_outline_single_channel(&channels[0], channel_width, line_cap)
@@ -277,7 +277,7 @@ pub fn octilinear_outline(
 pub fn octilinear_outline_single_channel(
     channel: &Channel,
     channel_width: f64,
-    line_cap: &LineCap,
+    line_cap: &ChannelCap,
 ) -> Vec<[f64; 2]> {
     let start_point = channel[0];
     let start_orientation = Orientation::from_vector(start_point, channel[1]).unwrap();
@@ -323,7 +323,7 @@ pub fn octilinear_outline_single_channel(
 pub fn octilinear_outline_star_shape(
     channels: &Vec<Channel>,
     channel_width: f64,
-    line_cap: &LineCap,
+    line_cap: &ChannelCap,
 ) -> Vec<[f64; 2]> {
     let base_point = channels[0][0];
     let mut ordered_channels = channels.clone();
@@ -465,16 +465,16 @@ fn end_points(
     end_point: [f64; 2],
     orientation: Orientation,
     channel_width: f64,
-    line_cap: &LineCap,
+    line_cap: &ChannelCap,
 ) -> [[f64; 2]; 2] {
     let w = channel_width;
     let r = w * f64::consts::SQRT_2;
     let [px, py] = end_point;
 
     let la = match line_cap {
-        LineCap::Butt => 0.,
-        LineCap::Square => w,
-        LineCap::CustomExceedPort(ExceedBy(exceed_by)) => *exceed_by,
+        ChannelCap::Butt => 0.,
+        ChannelCap::Square => w / 2.,
+        ChannelCap::Custom(ExceedBy(exceed_by)) => *exceed_by,
     };
 
     let lb = la * f64::consts::SQRT_2;

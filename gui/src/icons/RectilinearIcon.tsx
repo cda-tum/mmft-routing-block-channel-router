@@ -1,10 +1,10 @@
-import { LayoutIcon } from "./LayoutIcon"
+import { BaseIcon } from "./BaseIcon"
 
 export function RectilinearIcon(props: {
     width?: number,
     height?: number
 }) {
-    return <LayoutIcon
+    return <BaseIcon
         {...props}
         objects={[{
             type: 'path',

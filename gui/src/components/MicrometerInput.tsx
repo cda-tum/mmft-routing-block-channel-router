@@ -1,6 +1,7 @@
 import { Autocomplete, Box, FormControl, FormHelperText, FormLabel, Input } from "@mui/joy"
 import { ReactNode, useId } from "react"
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
+import { SxProps } from "@mui/joy/styles/types";
 
 export type MicrometerProps = {
     label?: string
@@ -12,6 +13,7 @@ export type MicrometerProps = {
     placeholder?: string | undefined
     autocompleteValues?: undefined | number[]
     explainIcon?: undefined | ReactNode
+    sx?: SxProps
     onChange?: (fieldValue: string, parsedValue: number | undefined) => void
 }
 
@@ -31,8 +33,9 @@ export function MicrometerInput(props: MicrometerProps) {
                 textAlign: 'right',
             },
             minWidth,
+            ...props.sx
         },
-        startDecorator: <Box sx={{ width: '3em', height: '3em', margin: 1 }}>{props.explainIcon}</Box>,
+        startDecorator: props.explainIcon ? <Box sx={{ width: '3em', height: '3em', margin: 1 }}>{props.explainIcon}</Box> : undefined,
         endDecorator: "mm",
     }
 
@@ -64,6 +67,7 @@ export function MicrometerInput(props: MicrometerProps) {
             sx={{
                 marginTop: '1em',
                 marginBottom: '1em',
+                padding: 0,
                 flexGrow: 1
             }}
             color={props.warning ? 'warning' : undefined}
@@ -75,7 +79,7 @@ export function MicrometerInput(props: MicrometerProps) {
             {props.description && !props.error && !props.warning &&
                 <FormHelperText
                     sx={{
-                        minWidth
+                        minWidth,
                     }}
                 >{props.description}</FormHelperText>
             }
