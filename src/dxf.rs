@@ -1,8 +1,7 @@
 use core::f64;
+use std::io::{self, Error, Result, Write};
 
-use crate::board_router::Channel;
-
-
+use crate::board_router::{Channel, Point};
 
 struct OctilinearOutlineInput {
     channels: Vec<Channel>,
@@ -266,11 +265,19 @@ pub fn octilinear_outline(
     channels: &Vec<Channel>,
     channel_width: f64,
     line_cap: &ChannelCap,
-) -> Vec<[f64; 2]>{
+) -> Polyline {
     if channels.len() == 1 {
-        octilinear_outline_single_channel(&channels[0], channel_width, line_cap)
+        Polyline::Closed(octilinear_outline_single_channel(
+            &channels[0],
+            channel_width,
+            line_cap,
+        ))
     } else {
-        octilinear_outline_star_shape(channels, channel_width, line_cap)
+        Polyline::Closed(octilinear_outline_star_shape(
+            channels,
+            channel_width,
+            line_cap,
+        ))
     }
 }
 
@@ -342,11 +349,8 @@ pub fn octilinear_outline_star_shape(
         let current_orientation =
             Orientation::from_vector(base_point, current_anchor_point).unwrap();
 
-        let join_points = next_cw_join_points(
-            previous_orientation,
-            current_orientation,
-            channel_width,
-        );
+        let join_points =
+            next_cw_join_points(previous_orientation, current_orientation, channel_width);
 
         match join_points {
             JoinPoints::One(point) => outline_points.push(point),
@@ -378,12 +382,7 @@ pub fn octilinear_outline_star_shape(
         let end_point = channel[channel.len() - 1];
         let end_orientation =
             Orientation::from_vector(end_point, channel[channel.len() - 2]).unwrap();
-        let end_points = end_points(
-            end_point,
-            end_orientation,
-            channel_width,
-            line_cap,
-        );
+        let end_points = end_points(end_point, end_orientation, channel_width, line_cap);
 
         right_list.reverse();
 
@@ -489,4 +488,141 @@ fn end_points(
         Orientation::W => [[px + la, py - w], [px + la, py + w]],
         Orientation::NW => [[px + r + lb, py - r + lb], [px - r + lb, py + r + lb]],
     }
+}
+
+pub enum DXFEntity {
+    Polyline(Polyline),
+    Line(Line),
+}
+
+pub enum Polyline {
+    Closed(Vec<Point>),
+    Open(Vec<Point>),
+}
+
+pub struct Line {
+    from: [f64; 2],
+    to: [f64; 2],
+}
+
+fn to_dxf<W: Write>(out: &mut W, entities: &[DXFEntity]) -> Result<()> {
+    write_dxf_head(out)?;
+    write_dxf_entities(out, entities)?;
+    write_dxf_end(out)?;
+    Ok(())
+}
+
+fn write_dxf_entities<W: Write>(out: &mut W, entities: &[DXFEntity]) -> Result<()> {
+    for entity in entities {
+        match entity {
+            DXFEntity::Polyline(polyline) => write_dxf_polyline(out, polyline)?,
+            DXFEntity::Line(line) => write_dxf_line(out, line)?,
+        }
+    }
+
+    Ok(())
+}
+
+fn write_dxf_polyline<W: Write>(out: &mut W, polyline: &Polyline) -> Result<()> {
+    let points = match polyline {
+        Polyline::Closed(points) => {
+            let n_points = points.len();
+            if n_points > 0 {
+                write_dxf_line(
+                    out,
+                    &Line {
+                        from: points[0],
+                        to: points[n_points - 1],
+                    },
+                )?
+            }
+
+            points
+        }
+        Polyline::Open(points) => points,
+    };
+    for w in points.windows(2) {
+        write_dxf_line(
+            out,
+            &Line {
+                from: w[0],
+                to: w[1],
+            },
+        )?
+    }
+    Ok(())
+}
+
+fn write_dxf_line<W: Write>(out: &mut W, line: &Line) -> Result<()> {
+    out.write_all(b"LINE\n")?;
+    out.write_all(b"8\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"10\n")?;
+    out.write_all(format!("{}\n", line.from[0]).as_bytes())?;
+    out.write_all(b"20\n")?;
+    out.write_all(format!("{}\n", line.from[1]).as_bytes())?;
+    out.write_all(b"11\n")?;
+    out.write_all(format!("{}\n", line.to[0]).as_bytes())?;
+    out.write_all(b"21\n")?;
+    out.write_all(format!("{}\n", line.to[1]).as_bytes())?;
+    out.write_all(b"0\n")?;
+    Ok(())
+}
+
+fn write_dxf_head<W: Write>(out: &mut W) -> Result<()> {
+    out.write_all(b"0\n")?;
+    out.write_all(b"SECTION\n")?;
+    out.write_all(b"2\n")?;
+    out.write_all(b"HEADER\n")?;
+    out.write_all(b"9\n")?;
+    out.write_all(b"$INSUNITS\n")?;
+    out.write_all(b"70\n")?;
+    out.write_all(b"4\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"ENDSEC\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"SECTION\n")?;
+    out.write_all(b"2\n")?;
+    out.write_all(b"TABLES\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"TABLE\n")?;
+    out.write_all(b"2\n")?;
+    out.write_all(b"LTYPE\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"LTYPE\n")?;
+    out.write_all(b"72\n")?;
+    out.write_all(b"65\n")?;
+    out.write_all(b"70\n")?;
+    out.write_all(b"64\n")?;
+    out.write_all(b"2\n")?;
+    out.write_all(b"CONTINUOUS\n")?;
+    out.write_all(b"3\n")?;
+    out.write_all(b"______\n")?;
+    out.write_all(b"73\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"40\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"ENDTAB\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"TABLE\n")?;
+    out.write_all(b"2\n")?;
+    out.write_all(b"LAYER\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"ENDTAB\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"ENDSEC\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"SECTION\n")?;
+    out.write_all(b"2\n")?;
+    out.write_all(b"ENTITIES\n")?;
+    out.write_all(b"0\n")?;
+    Ok(())
+}
+
+fn write_dxf_end<W: Write>(out: &mut W) -> Result<()> {
+    out.write_all(b"ENDSEC\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"EOF")?;
+    Ok(())
 }

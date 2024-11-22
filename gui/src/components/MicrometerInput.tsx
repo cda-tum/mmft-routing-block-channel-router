@@ -67,7 +67,6 @@ export function MicrometerInput(props: MicrometerProps) {
             sx={{
                 marginTop: '1em',
                 marginBottom: '1em',
-                padding: 0,
                 flexGrow: 1
             }}
             color={props.warning ? 'warning' : undefined}
@@ -80,13 +79,15 @@ export function MicrometerInput(props: MicrometerProps) {
                 <FormHelperText
                     sx={{
                         minWidth,
+                        marginX: 0
                     }}
                 >{props.description}</FormHelperText>
             }
             {props.error &&
                 <FormHelperText
                     sx={{
-                        minWidth
+                        minWidth,
+                        marginX: 0
                     }}
                 >
                     <InfoOutlined />
@@ -96,7 +97,8 @@ export function MicrometerInput(props: MicrometerProps) {
             {props.warning &&
                 <FormHelperText
                     sx={{
-                        minWidth
+                        minWidth,
+                        marginX: 0
                     }}
                 >
                     <InfoOutlined color='warning'/>
