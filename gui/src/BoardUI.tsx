@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
 import { Box, Button, Link, Stack, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
@@ -7,9 +7,7 @@ import { defaultInputPorts, generatePorts, InputPorts, PortKey } from "./utils/p
 import { ConnectionID, defaultInputConnections, defaultOutputConnections, OutputConnections } from "./utils/connections"
 import { route } from "./utils/route"
 import { LayoutChoice } from "./components/LayoutChoice"
-import { downloadDXF, generateDXF, generateOutlines } from "./utils/dxf"
 import { nanoid } from "nanoid"
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
 import { BoardDisplay } from "./components/BoardDisplay"
 import { BoardWidthIcon } from "./icons/BoardWidthIcon"
@@ -22,6 +20,7 @@ import { ChannelWidthIcon } from "./icons/ChannelWidthIcon"
 import { ChannelSpacingIcon } from "./icons/ChannelSpacingIcon"
 import { ConnectionsState } from "./hooks/useConnectionState"
 import { OutputChannelCapChoice } from "./components/OutputChannelCapChoice"
+import { DownloadButton } from "./components/DownloadButton"
 
 export type InputState = {
     parameters: InputParameters
@@ -80,9 +79,13 @@ enum BoardEditState {
 }
 
 export function BoardUI() {
-    const [dxfDownload, setDXFDownload] = useState<(undefined | string)>(undefined)
+    const [dxfOutput, setDXFOutput] = useState<(undefined | string)>(undefined)
     const [input, setInput] = useState<InputState>(defaultInputState)
     const [output, setOutput] = useState<OutputState>(defaultOutputState)
+
+    useEffect(() => {
+        setDXFOutput()
+    }, [output])
 
     const updateInputParameter = (parameter: string, fieldValue: string, parsedValue: string | number | undefined) => {
         if (!(parameter in input.parameters)) {
@@ -154,7 +157,7 @@ export function BoardUI() {
             is_partial: false,
             connections: {}
         })
-        setDXFDownload(undefined)
+        //setDXFDownload(undefined)
     }
 
     const theme = useTheme()
@@ -427,23 +430,12 @@ export function BoardUI() {
                             }} /> Route</Typography>
                     </Button>
 
-                    <Button
-                        disabled={dxfDownload === undefined}
-                        onClick={_ => {
-                            if (dxfDownload !== undefined) {
-                                downloadDXF(dxfDownload, nanoid())
-                            }
-                        }}
-                        sx={{
-                            margin: 1,
-                            marginX: 2,
-                        }}
-                    >
-                        <Typography sx={{ color: theme.vars.palette.common.white }}>
-                            <FileDownloadIcon sx={{
-                                verticalAlign: 'bottom'
-                            }} /> Download DXF</Typography>
-                    </Button>
+                    <DownloadButton
+                        label="Download DXF"
+                        fileName={`${nanoid()}.dxf`}
+                        mime={'image/x-dxf'}
+                        content={dxfOutput}
+                    />
 
                     {output.error !== undefined &&
                         <Typography

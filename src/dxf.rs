@@ -1,7 +1,9 @@
 use core::f64;
-use std::io::{self, Error, Result, Write};
+use std::io::{self, Cursor, Error, Result, Write};
 
-use crate::board_router::{Channel, Point};
+use serde::{Deserialize, Serialize};
+
+use crate::board_router::{BoardRouterOutputBoard, Channel, Point};
 
 struct OctilinearOutlineInput {
     channels: Vec<Channel>,
@@ -9,12 +11,11 @@ struct OctilinearOutlineInput {
     channel_cap: ChannelCap,
 }
 
-#[derive(Clone, Copy)]
-pub struct PortDiameter(f64);
-
+#[derive(Serialize, Deserialize)]
 #[derive(Clone, Copy)]
 pub struct ExceedBy(f64);
 
+#[derive(Serialize, Deserialize)]
 #[derive(Clone, Copy)]
 pub enum ChannelCap {
     Butt,
@@ -264,19 +265,19 @@ fn rotate_right_by(v: &[f64; 2], by: isize) -> [f64; 2] {
 pub fn octilinear_outline(
     channels: &Vec<Channel>,
     channel_width: f64,
-    line_cap: &ChannelCap,
+    channel_cap: &ChannelCap,
 ) -> Polyline {
     if channels.len() == 1 {
         Polyline::Closed(octilinear_outline_single_channel(
             &channels[0],
             channel_width,
-            line_cap,
+            channel_cap,
         ))
     } else {
         Polyline::Closed(octilinear_outline_star_shape(
             channels,
             channel_width,
-            line_cap,
+            channel_cap,
         ))
     }
 }
@@ -284,11 +285,11 @@ pub fn octilinear_outline(
 pub fn octilinear_outline_single_channel(
     channel: &Channel,
     channel_width: f64,
-    line_cap: &ChannelCap,
+    channel_cap: &ChannelCap,
 ) -> Vec<[f64; 2]> {
     let start_point = channel[0];
     let start_orientation = Orientation::from_vector(start_point, channel[1]).unwrap();
-    let start_points = end_points(start_point, start_orientation, channel_width, line_cap);
+    let start_points = end_points(start_point, start_orientation, channel_width, channel_cap);
 
     let mut outline_points = Vec::from(start_points);
 
@@ -316,7 +317,7 @@ pub fn octilinear_outline_single_channel(
 
     let end_point = channel[channel.len() - 1];
     let end_orientation = Orientation::from_vector(end_point, channel[channel.len() - 2]).unwrap();
-    let end_points = end_points(end_point, end_orientation, channel_width, line_cap);
+    let end_points = end_points(end_point, end_orientation, channel_width, channel_cap);
 
     right_list.reverse();
 
@@ -330,7 +331,7 @@ pub fn octilinear_outline_single_channel(
 pub fn octilinear_outline_star_shape(
     channels: &Vec<Channel>,
     channel_width: f64,
-    line_cap: &ChannelCap,
+    channel_cap: &ChannelCap,
 ) -> Vec<[f64; 2]> {
     let base_point = channels[0][0];
     let mut ordered_channels = channels.clone();
@@ -382,7 +383,7 @@ pub fn octilinear_outline_star_shape(
         let end_point = channel[channel.len() - 1];
         let end_orientation =
             Orientation::from_vector(end_point, channel[channel.len() - 2]).unwrap();
-        let end_points = end_points(end_point, end_orientation, channel_width, line_cap);
+        let end_points = end_points(end_point, end_orientation, channel_width, channel_cap);
 
         right_list.reverse();
 
@@ -464,13 +465,13 @@ fn end_points(
     end_point: [f64; 2],
     orientation: Orientation,
     channel_width: f64,
-    line_cap: &ChannelCap,
+    channel_cap: &ChannelCap,
 ) -> [[f64; 2]; 2] {
     let w = channel_width;
     let r = w * f64::consts::SQRT_2;
     let [px, py] = end_point;
 
-    let la = match line_cap {
+    let la = match channel_cap {
         ChannelCap::Butt => 0.,
         ChannelCap::Square => w / 2.,
         ChannelCap::Custom(ExceedBy(exceed_by)) => *exceed_by,
@@ -505,7 +506,7 @@ pub struct Line {
     to: [f64; 2],
 }
 
-fn to_dxf<W: Write>(out: &mut W, entities: &[DXFEntity]) -> Result<()> {
+fn write_dxf<W: Write>(out: &mut W, entities: &[DXFEntity]) -> Result<()> {
     write_dxf_head(out)?;
     write_dxf_entities(out, entities)?;
     write_dxf_end(out)?;
@@ -625,4 +626,21 @@ fn write_dxf_end<W: Write>(out: &mut W) -> Result<()> {
     out.write_all(b"0\n")?;
     out.write_all(b"EOF")?;
     Ok(())
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GenerateDXFInput {
+    connections: BoardRouterOutputBoard,
+    channel_width: f64,
+    channel_cap: ChannelCap
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GenerateDXFOutput(String);
+
+pub fn generate_dxf(input: GenerateDXFInput) -> GenerateDXFOutput {
+    let mut s = Vec::new();
+    let mut buf = Cursor::new(&mut s);
+    let _ = write_dxf(&mut buf, &input.connections.connections.iter().map(|(_, connection)| DXFEntity::Polyline(octilinear_outline(connection, input.channel_width, &input.channel_cap))).collect::<Vec<DXFEntity>>());
+    GenerateDXFOutput(String::from_utf8(s).unwrap())
 }
