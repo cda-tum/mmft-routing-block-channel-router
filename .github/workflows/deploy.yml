@@ -36,5 +36,5 @@ jobs:
         chmod -R 700 ~/.ssh
     - name: Deploy webpage from ref ${{ github.ref }}
       working-directory: ./gui
-      run: rsync --rsync-path="mkdir -p ${CDA_TARGET_DIR} && rsync" -rvz --update -e ssh dist/ ${CDA_USER_NAME}@${CDA_HOST_NAME}:${CDA_TARGET_DIR}
+      run: rsync --rsync-path="mkdir -p ${CDA_TARGET_DIR} && rsync" -rvz --update --delete -e ssh dist/ ${CDA_USER_NAME}@${CDA_HOST_NAME}:${CDA_TARGET_DIR}
     
