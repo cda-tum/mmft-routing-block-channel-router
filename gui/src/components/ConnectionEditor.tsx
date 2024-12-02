@@ -1,13 +1,13 @@
-import { Button, FormControl, FormHelperText, FormLabel, Input, Stack, Typography, useTheme } from "@mui/joy";
+import { Box, Button, FormControl, FormHelperText, FormLabel, Input, Stack, Typography, useTheme } from "@mui/joy";
 import { useId } from "react";
-import AddIcon from '@mui/icons-material/Add';
 import { PortField, useConnectionState } from "../hooks/useConnectionState";
 import CheckIcon from '@mui/icons-material/Check';
 import ClearIcon from '@mui/icons-material/Clear';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 
 const minPorts: number = 2;
-const maxPorts: number = 2;
+const maxPorts: number = 4;
 
 export function ConnectionEditor(props: {
     connectionState: ReturnType<typeof useConnectionState>
@@ -16,77 +16,101 @@ export function ConnectionEditor(props: {
 
     const isExistingConnection = props.connectionState.hasConnection(props.connectionState.preview.connection) !== undefined
 
-    return <Stack
-        direction="row"
+    return <Box
+        padding={2}
+        sx={{
+            borderRadius: theme.radius.sm,
+            border: '1px solid',
+            borderColor: theme.vars.palette.background.level3,
+            boxShadow: `0px 2px ${theme.vars.palette.background.level2}`,
+            backgroundColor: theme.vars.palette.background.popup
+        }}
+    ><Stack
+        direction="column"
         spacing={4}
-        flexWrap='wrap'
         useFlexGap
-        marginY={4}
         alignItems='center'
     >
-        {
-            props.connectionState.preview.ports.map((port, i) => <PortInput
-                connectionState={props.connectionState}
-                port={port}
-                index={i}
-            />)
-        }
-
-        {
-            minPorts !== maxPorts &&
-            <Button
-                disabled={maxPorts !== undefined && props.connectionState.preview.ports.length >= maxPorts}
-                onClick={_ => {
-                    props.connectionState.preview.addPort()
-                }}
+            <Stack
+                direction="row"
+                spacing={4}
+                flexWrap='wrap'
+                useFlexGap
             >
-                <Typography sx={{ color: theme.vars.palette.common.white }}>
-                    <AddIcon sx={{
-                        verticalAlign: 'bottom'
-                    }} /> Add Port</Typography>
-            </Button>
-        }
+                {
+                    props.connectionState.preview.ports.map((port, i) => <PortInput
+                        connectionState={props.connectionState}
+                        port={port}
+                        index={i}
+                    />)
+                }
 
-        <Button
-            variant="outlined"
-            onClick={_ => {
-                props.connectionState.preview.setActive(false)
-            }}
-        >
-            <Typography sx={{ color: theme.vars.palette.common.white }}>
-                <ClearIcon sx={{
-                    verticalAlign: 'bottom'
-                }} /> Discard {isExistingConnection ? 'Changes' : ''}</Typography>
-        </Button>
+            </Stack>
 
-        <Button
-            disabled={!props.connectionState.preview.isValid()}
-            onClick={_ => {
-                props.connectionState.preview.acceptPreview()
-            }}
-        >
-            <Typography sx={{ color: theme.vars.palette.common.white }}>
-                <CheckIcon sx={{
-                    verticalAlign: 'bottom'
-                }} /> Save {isExistingConnection ? 'Changes' : ''}</Typography>
-        </Button>
-
-        {isExistingConnection &&
-            <Button
-                variant='outlined'
-                color="danger"
-                onClick={_ => {
-                    props.connectionState.removeConnection(props.connectionState.preview.connection)
-                    props.connectionState.preview.setActive(false)
-                }}
+            <Stack
+                direction="row"
+                spacing={4}
+                flexWrap='wrap'
+                useFlexGap
             >
-                <Typography sx={{ color: theme.vars.palette.common.white }}>
-                    <DeleteOutlineIcon sx={{
-                        verticalAlign: 'bottom'
-                    }} /> Remove </Typography>
-            </Button>
-        }
-    </Stack>
+
+                <Button
+                    disabled={!props.connectionState.preview.isValid()}
+                    onClick={_ => {
+                        props.connectionState.preview.acceptPreview()
+                    }}
+                >
+                    <Typography sx={{ color: theme.vars.palette.common.white }}>
+                        <CheckIcon sx={{
+                            verticalAlign: 'bottom'
+                        }} /> Save {isExistingConnection ? 'Changes' : ''}</Typography>
+                </Button>
+
+                {
+                    minPorts !== maxPorts &&
+                    <Button
+                        disabled={maxPorts !== undefined && props.connectionState.preview.ports.length >= maxPorts}
+                        onClick={_ => {
+                            props.connectionState.preview.addPort()
+                        }}
+                        variant="outlined"
+                    >
+                        <Typography sx={{ color: theme.vars.palette.common.white }}>
+                            <AddCircleOutlineIcon sx={{
+                                verticalAlign: 'bottom'
+                            }} /> Port</Typography>
+                    </Button>
+                }
+
+                <Button
+                    variant="outlined"
+                    onClick={_ => {
+                        props.connectionState.preview.setActive(false)
+                    }}
+                >
+                    <Typography sx={{ color: theme.vars.palette.common.white }}>
+                        <ClearIcon sx={{
+                            verticalAlign: 'bottom'
+                        }} /> Discard {isExistingConnection ? 'Changes' : ''}</Typography>
+                </Button>
+
+                {isExistingConnection &&
+                    <Button
+                        variant='outlined'
+                        color="danger"
+                        onClick={_ => {
+                            props.connectionState.removeConnection(props.connectionState.preview.connection)
+                            props.connectionState.preview.setActive(false)
+                        }}
+                    >
+                        <Typography sx={{ color: theme.vars.palette.common.white }}>
+                            <DeleteOutlineIcon sx={{
+                                verticalAlign: 'bottom'
+                            }} /> Delete</Typography>
+                    </Button>
+                }
+            </Stack>
+        </Stack></Box>
 }
 
 export function PortInput(props: {

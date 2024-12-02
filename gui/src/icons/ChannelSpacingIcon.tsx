@@ -1,5 +1,5 @@
 import { useTheme } from "@mui/joy"
-import { LayoutIcon } from "./LayoutIcon"
+import { BaseIcon } from "./BaseIcon"
 import { arrowPath } from "./ArrowPath"
 
 export function ChannelSpacingIcon(props: {
@@ -11,7 +11,7 @@ export function ChannelSpacingIcon(props: {
 
     const arrow = arrowPath([27.5, 50], [72.5, 50])
 
-    return <LayoutIcon
+    return <BaseIcon
         {...props}
         objects={[{
             type: 'path',

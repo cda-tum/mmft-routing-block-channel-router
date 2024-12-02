@@ -1,5 +1,5 @@
 import { useTheme } from "@mui/joy"
-import { LayoutIcon } from "./LayoutIcon"
+import { BaseIcon } from "./BaseIcon"
 import { arrowPath } from "./ArrowPath"
 
 export function PitchOffsetXIcon(props: {
@@ -11,7 +11,7 @@ export function PitchOffsetXIcon(props: {
 
     const arrow = arrowPath([10, 50], [50, 50])
 
-    return <LayoutIcon
+    return <BaseIcon
         {...props}
         objects={[{
             type: 'object',

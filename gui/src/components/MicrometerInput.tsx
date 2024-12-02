@@ -1,6 +1,7 @@
 import { Autocomplete, Box, FormControl, FormHelperText, FormLabel, Input } from "@mui/joy"
 import { ReactNode, useId } from "react"
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
+import { SxProps } from "@mui/joy/styles/types";
 
 export type MicrometerProps = {
     label?: string
@@ -8,9 +9,11 @@ export type MicrometerProps = {
     defaultValue?: string | undefined
     value?: string | undefined
     error?: string | undefined
+    warning?: string | undefined
     placeholder?: string | undefined
     autocompleteValues?: undefined | number[]
     explainIcon?: undefined | ReactNode
+    sx?: SxProps
     onChange?: (fieldValue: string, parsedValue: number | undefined) => void
 }
 
@@ -30,9 +33,10 @@ export function MicrometerInput(props: MicrometerProps) {
                 textAlign: 'right',
             },
             minWidth,
+            ...props.sx
         },
-        startDecorator: <Box sx={{ width: '3em', height: '3em', margin: 1 }}>{props.explainIcon}</Box>,
-        endDecorator: "μm",
+        startDecorator: props.explainIcon ? <Box sx={{ width: '3em', height: '3em', margin: 1 }}>{props.explainIcon}</Box> : undefined,
+        endDecorator: "mm",
     }
 
     const field = props.autocompleteValues !== undefined ? <Autocomplete
@@ -43,7 +47,7 @@ export function MicrometerInput(props: MicrometerProps) {
         {...shared}
         onInputChange={(_, value) => {
             if (value !== null) {
-                const isNumber = parseFloat(value).toString() === value && Number.isSafeInteger(parseFloat(value))
+                const isNumber = parseFloat(value).toString() === value
                 const i = parseFloat(value)
                 props.onChange?.(value, isNumber ? i : undefined)
             }
@@ -52,7 +56,7 @@ export function MicrometerInput(props: MicrometerProps) {
         {...shared}
         onChange={e => {
             const value = e.target.value
-            const isNumber = parseFloat(value).toString() === value && Number.isSafeInteger(parseFloat(value))
+            const isNumber = parseFloat(value).toString() === value
             const i = parseFloat(value)
             props.onChange?.(value, isNumber ? i : undefined)
         }}
@@ -65,26 +69,40 @@ export function MicrometerInput(props: MicrometerProps) {
                 marginBottom: '1em',
                 flexGrow: 1
             }}
+            color={props.warning ? 'warning' : undefined}
         >
             {props.label &&
                 <FormLabel htmlFor={id}>{props.label}</FormLabel>
             }
             {field}
-            {props.description && !props.error &&
+            {props.description && !props.error && !props.warning &&
                 <FormHelperText
                     sx={{
-                        minWidth
+                        minWidth,
+                        marginX: 0
                     }}
                 >{props.description}</FormHelperText>
             }
             {props.error &&
                 <FormHelperText
                     sx={{
-                        minWidth
+                        minWidth,
+                        marginX: 0
                     }}
                 >
                     <InfoOutlined />
                     {props.error}
+                </FormHelperText>
+            }
+            {props.warning &&
+                <FormHelperText
+                    sx={{
+                        minWidth,
+                        marginX: 0
+                    }}
+                >
+                    <InfoOutlined color='warning'/>
+                    {props.warning}
                 </FormHelperText>
             }
         </FormControl>

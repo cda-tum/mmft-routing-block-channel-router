@@ -1,12 +1,12 @@
 import { InputState } from "../BoardUI";
 import { route as wasm_route } from '../../../pkg/mmft_board_router';
-import { OutputConnections } from "./connections";
+import { Channel, ConnectionID, OutputConnections } from "./connections";
 
 
-function connections(resultConnections: [number, [number, number][]][]) {
+function connections(resultConnections: [number, Channel[]][]) {
     const connections: OutputConnections = {}
-    resultConnections.forEach(([connection_id, connection_points]: [number, [number, number][]]) => {
-        connections[connection_id] = connection_points
+    resultConnections.forEach(([connection_id, connection_channels]: [ConnectionID, Channel[]]) => {
+        connections[connection_id] = connection_channels
     });
     return connections
 }
@@ -23,7 +23,7 @@ export function route(input: InputState) {
             pitch_offset_y: input.parameters.pitchOffsetY.value,
             port_diameter: input.parameters.portDiameter.value,
             max_ports: input.parameters.maxPorts.value,
-            connections: Object.entries(input.connections).filter(([_, connection]) => connection.ports.length == 2).map(([c_id, connection]) => [parseInt(c_id), connection.ports]),
+            connections: Object.entries(input.connections).filter(([_, connection]) => connection.ports.length > 1).map(([c_id, connection]) => [parseInt(c_id), connection.ports]),
             min_grid_size: 0,
             layout: input.parameters.layout.value,
         }
@@ -32,7 +32,7 @@ export function route(input: InputState) {
         console.log('Result:', result)
 
         if ('Ok' in result) {
-            return { connections: connections(result['Ok']['connections']), error: undefined, is_partial: false }
+            return { connections: connections(result['Ok']['connections']), connectionsRaw: result['Ok']['connections'], error: undefined, is_partial: false }
         } else if ('Err' in result) {
             const error = result['Err']
             let error_message = undefined
@@ -47,7 +47,7 @@ export function route(input: InputState) {
                 }
             } else if (typeof error === 'object') {
                 if ('PartialResult' in error) {
-                    return { connections: connections(result['Err']['PartialResult']['connections']), error: 'A partial solution has been found.', is_partial: true }
+                    return { connections: connections(result['Err']['PartialResult']['connections']), connectionsRaw: [], error: 'A partial solution has been found.', is_partial: true }
                 } else {
                     error_message = 'Unexpected error'
                     console.error('Unexpected error')
@@ -56,12 +56,12 @@ export function route(input: InputState) {
                 error_message = 'Unexpected error'
                 console.error('Unexpected error')
             }
-            return { connections: {}, error: error_message, is_partial: false }
+            return { connections: {}, connectionsRaw: [], error: error_message, is_partial: false }
         } else {
             throw 'Unexpected result'
         }
     } catch (e) {
         console.error('An unknown error occurred during execution', e)
-        return { connections: {}, error: "An unknown error occurred during execution.", is_partial: false }
+        return { connections: {}, connectionsRaw: [], error: "An unknown error occurred during execution.", is_partial: false }
     }
 }

@@ -1,15 +1,13 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
-import { Box, Button, Stack, Typography, useTheme } from "@mui/joy"
+import { Box, Button, Link, Stack, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
 import { defaultInputParameters, InputParameters, validate, validateAble } from "./utils/input-parameters"
 import { defaultInputPorts, generatePorts, InputPorts, PortKey } from "./utils/ports"
-import { ConnectionID, defaultInputConnections, defaultOutputConnections, OutputConnections } from "./utils/connections"
+import { Channel, ConnectionID, defaultInputConnections, defaultOutputConnections, defaultOutputConnectionsRaw, generateDXF, OutputConnections, OutputConnectionsRaw } from "./utils/connections"
 import { route } from "./utils/route"
 import { LayoutChoice } from "./components/LayoutChoice"
-import { downloadDXF, generateDXF, generateOutlines } from "./utils/dxf"
 import { nanoid } from "nanoid"
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
 import { BoardDisplay } from "./components/BoardDisplay"
 import { BoardWidthIcon } from "./icons/BoardWidthIcon"
@@ -21,6 +19,8 @@ import { PitchOffsetYIcon } from "./icons/PitchOffsetYIcon"
 import { ChannelWidthIcon } from "./icons/ChannelWidthIcon"
 import { ChannelSpacingIcon } from "./icons/ChannelSpacingIcon"
 import { ConnectionsState } from "./hooks/useConnectionState"
+import { OutputChannelCapChoice } from "./components/OutputChannelCapChoice"
+import { DownloadButton } from "./components/DownloadButton"
 
 export type InputState = {
     parameters: InputParameters
@@ -48,12 +48,14 @@ export type OutputState = {
     error: undefined | string
     is_partial: boolean
     connections: OutputConnections
+    connectionsRaw: OutputConnectionsRaw
 }
 
 const defaultOutputState: OutputState = {
     error: undefined,
     is_partial: false,
-    connections: defaultOutputConnections
+    connections: defaultOutputConnections,
+    connectionsRaw: defaultOutputConnectionsRaw
 }
 
 export type BoardEdit = {
@@ -79,9 +81,21 @@ enum BoardEditState {
 }
 
 export function BoardUI() {
-    const [dxfDownload, setDXFDownload] = useState<(undefined | string)>(undefined)
+    const [dxfOutput, setDXFOutput] = useState<(undefined | string)>(undefined)
     const [input, setInput] = useState<InputState>(defaultInputState)
     const [output, setOutput] = useState<OutputState>(defaultOutputState)
+
+    useEffect(() => {
+        if (output.error === undefined && Object.keys(output.connectionsRaw).length > 0 && input.parameters.channelWidth.value !== undefined && input.parameters.channelCap.value !== undefined && input.parameters.channelCapCustom.value !== undefined) {
+            setDXFOutput(generateDXF(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value))
+        } else {
+            setDXFOutput(undefined)
+        }
+    }, [output, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.channelWidth])
+
+    useEffect(() => {
+        updateInputParameters(input.parameters)
+    }, [])
 
     const updateInputParameter = (parameter: string, fieldValue: string, parsedValue: string | number | undefined) => {
         if (!(parameter in input.parameters)) {
@@ -131,7 +145,6 @@ export function BoardUI() {
             }))
         } else {
             const ports: InputPorts = undefined
-
             setInput(s => ({
                 ...s,
                 ports,
@@ -142,8 +155,6 @@ export function BoardUI() {
             }))
         }
 
-        //resetBoardEdit()
-
         resetOutput()
     }
 
@@ -151,9 +162,9 @@ export function BoardUI() {
         setOutput({
             error: undefined,
             is_partial: false,
-            connections: {}
+            connections: {},
+            connectionsRaw: []
         })
-        setDXFDownload(undefined)
     }
 
     const theme = useTheme()
@@ -185,8 +196,11 @@ export function BoardUI() {
             </Typography></a>
         </header>
         <main>
+            <Box>
+                <Typography>A tool that generates channel connections for microfluidic components. <Link href="#">Learn more</Link>.</Typography>
+            </Box>
             <Box sx={{
-                marginBottom: 4
+                marginY: 4
             }}>
                 <Typography level="h4">Board Settings</Typography>
                 <Stack direction="row" spacing={4} flexWrap='wrap' useFlexGap>
@@ -195,6 +209,7 @@ export function BoardUI() {
                         explainIcon={<BoardWidthIcon width={50} height={50} />}
                         value={input.parameters.boardWidth.fieldValue}
                         error={input.parameters.boardWidth.error ? input.parameters.boardWidth.errorMessage : undefined}
+                        warning={input.parameters.boardWidth.warning}
                         onChange={(fv, pv) => updateInputParameter('boardWidth', fv, pv)}
                         description="Absolute width of the routing board."
                     />
@@ -203,6 +218,7 @@ export function BoardUI() {
                         explainIcon={<BoardHeightIcon width={50} height={50} />}
                         value={input.parameters.boardHeight.fieldValue}
                         error={input.parameters.boardHeight.error ? input.parameters.boardHeight.errorMessage : undefined}
+                        warning={input.parameters.boardHeight.warning}
                         onChange={(fv, pv) => updateInputParameter('boardHeight', fv, pv)}
                         description="Absolute height of the routing board."
                     />
@@ -220,6 +236,7 @@ export function BoardUI() {
                             explainIcon={<PortDiameterIcon width={50} height={50} />}
                             value={input.parameters.portDiameter.fieldValue}
                             error={input.parameters.portDiameter.error ? input.parameters.portDiameter.errorMessage : undefined}
+                            warning={input.parameters.portDiameter.warning}
                             onChange={(fv, pv) => updateInputParameter('portDiameter', fv, pv)}
                             description="Diameter of ports."
                         />
@@ -228,9 +245,10 @@ export function BoardUI() {
                             explainIcon={<PitchIcon width={50} height={50} />}
                             value={input.parameters.pitch.fieldValue}
                             error={input.parameters.pitch.error ? input.parameters.pitch.errorMessage : undefined}
+                            warning={input.parameters.pitch.warning}
                             onChange={(fv, pv) => updateInputParameter('pitch', fv, pv)}
                             description="Distance between ports on the port grid."
-                            autocompleteValues={[1500, 3000, 4500, 6000, 7500, 9000, 10500, 12000, 13500, 15000]}
+                            autocompleteValues={[1.5, 3.0, 4.5, 6.0, 7.5, 9.0, 10.5, 12.0, 13.5, 15.0]}
                         />
                     </Stack>
                     <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
@@ -239,6 +257,7 @@ export function BoardUI() {
                             explainIcon={<PitchOffsetXIcon width={50} height={50} />}
                             value={input.parameters.pitchOffsetX.fieldValue}
                             error={input.parameters.pitchOffsetX.error ? input.parameters.pitchOffsetX.errorMessage : undefined}
+                            warning={input.parameters.pitchOffsetX.warning}
                             onChange={(fv, pv) => updateInputParameter('pitchOffsetX', fv, pv)}
                             description="Offset of the top left port in X direction."
                         />
@@ -247,6 +266,7 @@ export function BoardUI() {
                             explainIcon={<PitchOffsetYIcon width={50} height={50} />}
                             value={input.parameters.pitchOffsetY.fieldValue}
                             error={input.parameters.pitchOffsetY.error ? input.parameters.pitchOffsetY.errorMessage : undefined}
+                            warning={input.parameters.pitchOffsetY.warning}
                             onChange={(fv, pv) => updateInputParameter('pitchOffsetY', fv, pv)}
                             description="Offset of the top left port in Y direction."
                         />
@@ -265,6 +285,7 @@ export function BoardUI() {
                         explainIcon={<ChannelWidthIcon width={50} height={50} />}
                         value={input.parameters.channelWidth.fieldValue}
                         error={input.parameters.channelWidth.error ? input.parameters.channelWidth.errorMessage : undefined}
+                        warning={input.parameters.channelWidth.warning}
                         onChange={(fv, pv) => updateInputParameter('channelWidth', fv, pv)}
                         description="Width of channels' cross section."
                     />
@@ -273,6 +294,7 @@ export function BoardUI() {
                         explainIcon={<ChannelSpacingIcon width={50} height={50} />}
                         value={input.parameters.channelSpacing.fieldValue}
                         error={input.parameters.channelSpacing.error ? input.parameters.channelSpacing.errorMessage : undefined}
+                        warning={input.parameters.channelSpacing.warning}
                         onChange={(fv, pv) => updateInputParameter('channelSpacing', fv, pv)}
                         description="Minimal required spacing between channels."
                     />
@@ -283,6 +305,21 @@ export function BoardUI() {
                     onChange={layout => updateInputParameter('layout', layout, layout)}
                 />
 
+            </Box>
+
+            <Box
+                sx={{
+                    marginY: 4,
+                }}
+            >
+                <Typography level="h4">Output Settings</Typography>
+
+                <OutputChannelCapChoice
+                    channelCap={input.parameters.channelCap.value}
+                    channelCapCustom={input.parameters.channelCapCustom}
+                    onChangeChannelCap={channelCap => updateInputParameter('channelCap', channelCap, channelCap)}
+                    onChangeChannelCapCustom={(fv, pv) => updateInputParameter('channelCapCustom', fv, pv)}
+                />
             </Box>
 
             {input.parameter_errors !== undefined &&
@@ -340,22 +377,57 @@ export function BoardUI() {
                         border: '1px solid',
                         borderColor: theme.vars.palette.background.level2,
                         boxShadow: `0px 2px ${theme.vars.palette.background.level1}`,
-                        marginY: 2
+                        marginY: 2,
                     }}>
 
+                    <Box
+                        sx={{
+                            marginX: 2,
+                            marginY: 1
+                        }}
+                    >
+                        <BoardDisplay
+                            boardWidth={input.parameters.boardWidth.value!}
+                            boardHeight={input.parameters.boardHeight.value!}
+                            pitch={input.parameters.pitch.value!}
+                            pitchOffsetX={input.parameters.pitchOffsetX.value!}
+                            pitchOffsetY={input.parameters.pitchOffsetY.value!}
+                            portDiameter={input.parameters.portDiameter.value!}
+                            channelWidth={input.parameters.channelWidth.value!}
+                            columns={input.portsX}
+                            rows={input.portsY}
+                            onChange={c => setInput(s => ({
+                                ...s,
+                                connections: c
+                            }))}
+                            outputConnections={output.connections}
+                            closeDropdown={closeDropdown}
+                        ></BoardDisplay>
+
+                    </Box>
+                </Box>
+            </Box>
+
+
+            <Box
+                sx={{
+                    marginY: 4,
+                }}
+            >
+                <Typography level="h4">Design</Typography>
+                <Box
+                    sx={{
+                        backgroundColor: theme.vars.palette.background.surface,
+                        borderRadius: theme.radius.sm,
+                        border: '1px solid',
+                        borderColor: theme.vars.palette.background.level2,
+                        boxShadow: `0px 2px ${theme.vars.palette.background.level1}`,
+                        marginY: 2
+                    }}>
                     <Button
                         disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
                         onClick={_ => {
-                            //resetBoardEdit()
                             const r = route(input)
-                            const outlines = generateOutlines(input.parameters.channelWidth.value!, r.connections)
-                            const dxf = generateDXF({
-                                width: input.parameters.boardWidth.value!,
-                                height: input.parameters.boardHeight.value!,
-                                originX: 0,
-                                originY: 0,
-                            }, outlines)
-                            setDXFDownload(dxf)
                             setOutput(r)
                         }}
                         sx={{
@@ -369,23 +441,12 @@ export function BoardUI() {
                             }} /> Route</Typography>
                     </Button>
 
-                    <Button
-                        disabled={dxfDownload === undefined}
-                        onClick={_ => {
-                            if (dxfDownload !== undefined) {
-                                downloadDXF(dxfDownload, nanoid())
-                            }
-                        }}
-                        sx={{
-                            margin: 1,
-                            marginX: 2,
-                        }}
-                    >
-                        <Typography sx={{ color: theme.vars.palette.common.white }}>
-                            <FileDownloadIcon sx={{
-                                verticalAlign: 'bottom'
-                            }} /> Download DXF</Typography>
-                    </Button>
+                    <DownloadButton
+                        label="Download DXF"
+                        fileName={`${nanoid()}.dxf`}
+                        mime={'image/x-dxf'}
+                        content={dxfOutput}
+                    />
 
                     {output.error !== undefined &&
                         <Typography
@@ -402,33 +463,6 @@ export function BoardUI() {
                             {output.error}
                         </Typography>
                     }
-
-                    <Box
-                        sx={{
-                            marginX: 2,
-                            marginY: 1
-                        }}
-                    >
-                        {input.ports !== undefined &&
-                            <BoardDisplay
-                                boardWidth={input.parameters.boardWidth.value!}
-                                boardHeight={input.parameters.boardHeight.value!}
-                                pitch={input.parameters.pitch.value!}
-                                pitchOffsetX={input.parameters.pitchOffsetX.value!}
-                                pitchOffsetY={input.parameters.pitchOffsetY.value!}
-                                portDiameter={input.parameters.portDiameter.value!}
-                                channelWidth={input.parameters.channelWidth.value!}
-                                columns={input.portsX!}
-                                rows={input.portsY!}
-                                onChange={c => setInput(s => ({
-                                    ...s,
-                                    connections: c
-                                }))}
-                                outputConnections={output.connections}
-                                closeDropdown={closeDropdown}
-                            ></BoardDisplay>
-                        }
-                    </Box>
                 </Box>
             </Box>
         </main>

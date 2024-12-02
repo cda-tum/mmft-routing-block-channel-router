@@ -1,4 +1,4 @@
-import { Button, Menu, MenuItem, Typography, useTheme } from "@mui/joy"
+import { Box, Button, Menu, MenuItem, Typography, useTheme } from "@mui/joy"
 import { PortDisplay } from "./PortDisplay"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { portIndexToString, PortKey } from "../utils/ports"
@@ -16,8 +16,8 @@ export function BoardDisplay(props: {
     pitchOffsetX: number
     pitchOffsetY: number
     portDiameter: number
-    columns: number
-    rows: number
+    columns: number | undefined
+    rows: number | undefined
     onChange?: (connections: ConnectionsState) => void
     outputConnections?: OutputConnections
     closeDropdown: boolean
@@ -26,8 +26,8 @@ export function BoardDisplay(props: {
 
     const connectionState = useConnectionState({
         boundaries: {
-            columns: props.columns,
-            rows: props.rows
+            columns: props.columns ?? 0,
+            rows: props.rows ?? 0
         }
     })
 
@@ -178,7 +178,7 @@ export function BoardDisplay(props: {
             ports.map(port => {
 
                 return <PortDisplay
-                    key={port.index[1] * props.columns + port.index[0]}
+                    key={port.index[1] * (props.columns ?? 0) + port.index[0]}
                     index={port.index}
                     position={port.position}
                     diameter={props.portDiameter}
@@ -206,8 +206,7 @@ export function BoardDisplay(props: {
                 e.stopPropagation()
             }}
             sx={{
-                margin: 1,
-                marginX: 2,
+                marginY: 2,
             }}
         >
             <Typography sx={{ color: theme.vars.palette.common.white }}>{connectionState.preview.active &&
@@ -245,21 +244,48 @@ export function BoardDisplay(props: {
                 >
                     <Typography sx={{
                         color: theme.vars.palette.common.white
-                    }}>Connection {connectionId}</Typography>
+                    }}>Connection #{connectionId}</Typography>
                 </MenuItem>
             })}
         </Menu>
     </>
 
-    return <>
-        {selectConnection}
-        {editConnection}
+    const displayContent = <>
         <svg
             width="100%"
             viewBox={viewBox}
         >
             {contents}
         </svg>
+        {selectConnection}
+        {editConnection}
+    </>
+
+    const hasOutOfBoundsConnections = connectionState.hasOutOfBoundsConnections()
+
+    const updateContent = <>
+    <Typography>
+        A change of parameters caused some connections/ports to be out of bounds. Click update to remove violations.
+    </Typography>
+        <Button
+            color="warning"
+            onClick={_ => connectionState.removeOutOfBoundsConnections()}
+            sx={{
+                marginY: 2
+            }}
+        >
+            Update
+        </Button>
+    </>
+
+    const content = hasOutOfBoundsConnections ? updateContent : displayContent
+
+    return <>
+        <Box
+            marginY={2}
+        >
+            {content}
+        </Box>
     </>
 }
 

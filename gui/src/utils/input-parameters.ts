@@ -4,6 +4,7 @@ export type Value<VALIDTYPE> = ValidValue<VALIDTYPE> | InvalidValue<VALIDTYPE>
 
 export type ValidValue<VALIDTYPE> = {
     error: false
+    warning?: string | undefined 
     value: VALIDTYPE
     fieldValue: string
 }
@@ -11,20 +12,23 @@ export type ValidValue<VALIDTYPE> = {
 export type InvalidValue<VALIDTYPE> = {
     error: true
     errorMessage: string
+    warning?: string | undefined 
     value: VALIDTYPE | undefined
     fieldValue: string
 }
 
 export const defaultInputParameterValues: InputParameterValues = {
-    boardWidth: 10000,
-    boardHeight: 5000,
-    pitch: 500,
-    pitchOffsetX: 500,
-    pitchOffsetY: 500,
-    portDiameter: 200,
-    channelWidth: 100,
-    channelSpacing: 100,
+    boardWidth: 105,
+    boardHeight: 15,
+    pitch: 1.5,
+    pitchOffsetX: 1.5,
+    pitchOffsetY: 1.5,
+    portDiameter: 1,
+    channelWidth: 0.5,
+    channelSpacing: 0.5,
     layout: 'Octilinear',
+    channelCap: 'Square',
+    channelCapCustom: 0.8,
     maxPorts: 5000
 }
 
@@ -44,6 +48,8 @@ export type InputParameterValues = {
     channelWidth: number
     channelSpacing: number
     layout: string
+    channelCap: string
+    channelCapCustom: number
     maxPorts: number
 }
 
@@ -70,14 +76,18 @@ export function validate(parameters: InputParameters) {
     }
 
     try {
+        console.log('val input', rawParams)
         const result = wasm_validate(rawParams)
+        console.log('val output', result)
 
         if ('Err' in result) {
             const vp = Object.fromEntries(Object.entries(parameters).map(([k, v]) => [k, { ...v }])) as InputParameters
-            const errors = result['Err']
+            const errors = result['Err']['errors']
             const pe: string[] = []
             const ge: string[] = []
             const ce: string[] = []
+
+            const warnings = result['Err']['warnings']
 
             for (const error of errors) {
                 if (typeof error === 'string') {
@@ -134,6 +144,154 @@ export function validate(parameters: InputParameters) {
                     if ('MaxPortsExceeded' in error) {
                         const [ports, maxPorts] = error['MaxPortsExceeded']
                         pe.push(`The given configuration produces ${ports} possible port locations. For performance reasons, there is an upper limit of ${maxPorts} ports. Try increasing pitch, pitch offsets, or decreasing board size.`)
+                    } else if ('BoardWidthError' in error) {
+                        const suberror = error['BoardWidthError']
+                        if (suberror === 'Undefined') {
+                            vp.boardWidth = {
+                                ...vp.boardWidth,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'NotPositive') {
+                            vp.boardWidth = {
+                                ...vp.boardWidth,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('BoardHeightError' in error) {
+                        const suberror = error['BoardHeightError']
+                        if (suberror === 'Undefined') {
+                            vp.boardHeight = {
+                                ...vp.boardHeight,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'NotPositive') {
+                            vp.boardHeight = {
+                                ...vp.boardHeight,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('PortDiameterError' in error) {
+                        const suberror = error['PortDiameterError']
+                        if (suberror === 'Undefined') {
+                            vp.portDiameter = {
+                                ...vp.portDiameter,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'NotPositive') {
+                            vp.portDiameter = {
+                                ...vp.portDiameter,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('PitchError' in error) {
+                        const suberror = error['PitchError']
+                        if (suberror === 'Undefined') {
+                            vp.pitch = {
+                                ...vp.pitch,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'NotPositive') {
+                            vp.pitch = {
+                                ...vp.pitch,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('PitchOffsetXError' in error) {
+                        const suberror = error['PitchOffsetXError']
+                        if (suberror === 'Undefined') {
+                            vp.pitchOffsetX = {
+                                ...vp.pitchOffsetX,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'NotPositive') {
+                            vp.pitchOffsetX = {
+                                ...vp.pitchOffsetX,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else if (suberror === 'SmallerThanPitch') {
+                            vp.pitchOffsetX = {
+                                ...vp.pitchOffsetX,
+                                error: true,
+                                errorMessage: 'Must equal or greater than pitch!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('PitchOffsetYError' in error) {
+                        const suberror = error['PitchOffsetYError']
+                        if (suberror === 'Undefined') {
+                            vp.pitchOffsetY = {
+                                ...vp.pitchOffsetY,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'NotPositive') {
+                            vp.pitchOffsetY = {
+                                ...vp.pitchOffsetY,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else if (suberror === 'SmallerThanPitch') {
+                            vp.pitchOffsetY = {
+                                ...vp.pitchOffsetY,
+                                error: true,
+                                errorMessage: 'Must equal or greater than pitch!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('ChannelWidthError' in error) {
+                        const suberror = error['ChannelWidthError']
+                        if (suberror === 'Undefined') {
+                            vp.channelWidth = {
+                                ...vp.channelWidth,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'NotPositive') {
+                            vp.channelWidth = {
+                                ...vp.channelWidth,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('ChannelSpacingError' in error) {
+                        const suberror = error['ChannelSpacingError']
+                        if (suberror === 'Undefined') {
+                            vp.channelSpacing = {
+                                ...vp.channelSpacing,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'NotPositive') {
+                            vp.channelSpacing = {
+                                ...vp.channelSpacing,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
                     } else {
                         ge.push(`Unexpected Error: ${error}`)
                     }
@@ -142,14 +300,50 @@ export function validate(parameters: InputParameters) {
                 }
             }
 
+            parseWarnings(warnings, parameters)
+
             return { parameters: vp, parameter_errors: pe, general_errors: ge, connection_errors: ce }
         } else if ('Ok' in result) {
+            const warnings = result['Ok']['warnings']
+
+            parseWarnings(warnings, parameters)
+
             return { parameters: parameters as InputParameters, parameter_errors: undefined, general_errors: undefined, connection_errors: undefined }
         } else {
             throw 'Invalid Response'
         }
+
+        
     } catch (e) {
         console.error('Validation failed due to an unknown error.', e)
         return { parameters: parameters as InputParameters, parameter_errors: [], general_errors: ['Validation failed due to an unknown error.'], connection_errors: [] }
+    }
+}
+
+function parseWarnings(warnings: any, vp: InputParameters) {
+    for (const warning of warnings) {
+        if (typeof warning === 'string') {
+
+        } else if (typeof warning === 'object') {
+            if ('PitchNotMultiple' in warning) {
+                const nextMultiple = warning['PitchNotMultiple'];
+                vp.pitch = {
+                    ...vp.pitch,
+                    warning: `Should be a multiple of 1.5 mm. Nearest value: ${nextMultiple} mm.`
+                }
+            } else if ('BoardWidthNotMultiple' in warning) {
+                const nextMultiple = warning['BoardWidthNotMultiple'];
+                vp.boardWidth = {
+                    ...vp.boardWidth,
+                    warning: `Should be a multiple of 1.5 mm. Nearest value: ${nextMultiple} mm.`
+                }
+            } else if ('BoardHeightNotMultiple' in warning) {
+                const nextMultiple = warning['BoardHeightNotMultiple'];
+                vp.boardHeight = {
+                    ...vp.boardHeight,
+                    warning: `Should be a multiple of 1.5 mm. Nearest value: ${nextMultiple} mm.`
+                }
+            }
+        }
     }
 }
