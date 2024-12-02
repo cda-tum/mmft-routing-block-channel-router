@@ -16,8 +16,8 @@ export function BoardDisplay(props: {
     pitchOffsetX: number
     pitchOffsetY: number
     portDiameter: number
-    columns: number
-    rows: number
+    columns: number | undefined
+    rows: number | undefined
     onChange?: (connections: ConnectionsState) => void
     outputConnections?: OutputConnections
     closeDropdown: boolean
@@ -26,8 +26,8 @@ export function BoardDisplay(props: {
 
     const connectionState = useConnectionState({
         boundaries: {
-            columns: props.columns,
-            rows: props.rows
+            columns: props.columns ?? 0,
+            rows: props.rows ?? 0
         }
     })
 
@@ -178,7 +178,7 @@ export function BoardDisplay(props: {
             ports.map(port => {
 
                 return <PortDisplay
-                    key={port.index[1] * props.columns + port.index[0]}
+                    key={port.index[1] * (props.columns ?? 0) + port.index[0]}
                     index={port.index}
                     position={port.position}
                     diameter={props.portDiameter}
@@ -250,10 +250,7 @@ export function BoardDisplay(props: {
         </Menu>
     </>
 
-    return <>
-        <Box
-            marginY={2}
-        >
+    const displayContent = <>
         <svg
             width="100%"
             viewBox={viewBox}
@@ -262,6 +259,32 @@ export function BoardDisplay(props: {
         </svg>
         {selectConnection}
         {editConnection}
+    </>
+
+    const hasOutOfBoundsConnections = connectionState.hasOutOfBoundsConnections()
+
+    const updateContent = <>
+    <Typography>
+        A change of parameters caused some connections/ports to be out of bounds. Click update to remove violations.
+    </Typography>
+        <Button
+            color="warning"
+            onClick={_ => connectionState.removeOutOfBoundsConnections()}
+            sx={{
+                marginY: 2
+            }}
+        >
+            Update
+        </Button>
+    </>
+
+    const content = hasOutOfBoundsConnections ? updateContent : displayContent
+
+    return <>
+        <Box
+            marginY={2}
+        >
+            {content}
         </Box>
     </>
 }

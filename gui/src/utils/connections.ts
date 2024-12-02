@@ -52,9 +52,7 @@ export function generateDXF(output: OutputConnectionsRaw, channelWidth: number, 
             channel_width: channelWidth,
             channel_cap: channelCapArg,
         }
-        console.log(args)
         const result = generate_dxf(args)
-        console.log(result)
         return result
     } catch (e) {
         console.error('An unknown error occurred.')

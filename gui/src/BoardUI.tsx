@@ -86,12 +86,16 @@ export function BoardUI() {
     const [output, setOutput] = useState<OutputState>(defaultOutputState)
 
     useEffect(() => {
-        if(output.error === undefined && Object.keys(output.connectionsRaw).length > 0 && input.parameters.channelWidth.value !== undefined && input.parameters.channelCap.value !== undefined && input.parameters.channelCapCustom.value !== undefined)  {
+        if (output.error === undefined && Object.keys(output.connectionsRaw).length > 0 && input.parameters.channelWidth.value !== undefined && input.parameters.channelCap.value !== undefined && input.parameters.channelCapCustom.value !== undefined) {
             setDXFOutput(generateDXF(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value))
         } else {
             setDXFOutput(undefined)
         }
     }, [output, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.channelWidth])
+
+    useEffect(() => {
+        updateInputParameters(input.parameters)
+    }, [])
 
     const updateInputParameter = (parameter: string, fieldValue: string, parsedValue: string | number | undefined) => {
         if (!(parameter in input.parameters)) {
@@ -141,7 +145,6 @@ export function BoardUI() {
             }))
         } else {
             const ports: InputPorts = undefined
-
             setInput(s => ({
                 ...s,
                 ports,
@@ -151,8 +154,6 @@ export function BoardUI() {
                 parameters: parameters
             }))
         }
-
-        //resetBoardEdit()
 
         resetOutput()
     }
@@ -164,7 +165,6 @@ export function BoardUI() {
             connections: {},
             connectionsRaw: []
         })
-        //setDXFDownload(undefined)
     }
 
     const theme = useTheme()
@@ -197,7 +197,7 @@ export function BoardUI() {
         </header>
         <main>
             <Box>
-                <Typography>A short introductionary paragraph and a link to further resources. <Link href="#">Learn more</Link>.</Typography>
+                <Typography>A tool that generates channel connections for microfluidic components. <Link href="#">Learn more</Link>.</Typography>
             </Box>
             <Box sx={{
                 marginY: 4
@@ -307,6 +307,21 @@ export function BoardUI() {
 
             </Box>
 
+            <Box
+                sx={{
+                    marginY: 4,
+                }}
+            >
+                <Typography level="h4">Output Settings</Typography>
+
+                <OutputChannelCapChoice
+                    channelCap={input.parameters.channelCap.value}
+                    channelCapCustom={input.parameters.channelCapCustom}
+                    onChangeChannelCap={channelCap => updateInputParameter('channelCap', channelCap, channelCap)}
+                    onChangeChannelCapCustom={(fv, pv) => updateInputParameter('channelCapCustom', fv, pv)}
+                />
+            </Box>
+
             {input.parameter_errors !== undefined &&
                 input.parameter_errors.map(e => <Typography
                     variant="soft"
@@ -371,28 +386,28 @@ export function BoardUI() {
                             marginY: 1
                         }}
                     >
-                        {input.ports !== undefined &&
-                            <BoardDisplay
-                                boardWidth={input.parameters.boardWidth.value!}
-                                boardHeight={input.parameters.boardHeight.value!}
-                                pitch={input.parameters.pitch.value!}
-                                pitchOffsetX={input.parameters.pitchOffsetX.value!}
-                                pitchOffsetY={input.parameters.pitchOffsetY.value!}
-                                portDiameter={input.parameters.portDiameter.value!}
-                                channelWidth={input.parameters.channelWidth.value!}
-                                columns={input.portsX!}
-                                rows={input.portsY!}
-                                onChange={c => setInput(s => ({
-                                    ...s,
-                                    connections: c
-                                }))}
-                                outputConnections={output.connections}
-                                closeDropdown={closeDropdown}
-                            ></BoardDisplay>
-                        }
+                        <BoardDisplay
+                            boardWidth={input.parameters.boardWidth.value!}
+                            boardHeight={input.parameters.boardHeight.value!}
+                            pitch={input.parameters.pitch.value!}
+                            pitchOffsetX={input.parameters.pitchOffsetX.value!}
+                            pitchOffsetY={input.parameters.pitchOffsetY.value!}
+                            portDiameter={input.parameters.portDiameter.value!}
+                            channelWidth={input.parameters.channelWidth.value!}
+                            columns={input.portsX}
+                            rows={input.portsY}
+                            onChange={c => setInput(s => ({
+                                ...s,
+                                connections: c
+                            }))}
+                            outputConnections={output.connections}
+                            closeDropdown={closeDropdown}
+                        ></BoardDisplay>
+
                     </Box>
                 </Box>
             </Box>
+
 
             <Box
                 sx={{
@@ -412,18 +427,7 @@ export function BoardUI() {
                     <Button
                         disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
                         onClick={_ => {
-                            //resetBoardEdit()
                             const r = route(input)
-                            //TODO: adapt for multi-connection
-                            /*
-                            const outlines = generateOutlines(input.parameters.channelWidth.value!, r.connections)
-                            const dxf = generateDXF({
-                                width: input.parameters.boardWidth.value!,
-                                height: input.parameters.boardHeight.value!,
-                                originX: 0,
-                                originY: 0,
-                            }, outlines)
-                            setDXFDownload(dxf)*/
                             setOutput(r)
                         }}
                         sx={{
@@ -460,20 +464,6 @@ export function BoardUI() {
                         </Typography>
                     }
                 </Box>
-            </Box>
-            <Box
-                sx={{
-                    marginY: 4,
-                }}
-            >
-                <Typography level="h4">Output Settings</Typography>
-
-                <OutputChannelCapChoice
-                    channelCap={input.parameters.channelCap.value}
-                    channelCapCustom={input.parameters.channelCapCustom}
-                    onChangeChannelCap={channelCap => updateInputParameter('channelCap', channelCap, channelCap)}
-                    onChangeChannelCapCustom={(fv, pv) => updateInputParameter('channelCapCustom', fv, pv)}
-                />
             </Box>
         </main>
         <footer

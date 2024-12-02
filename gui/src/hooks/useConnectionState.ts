@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ConnectionID } from "../utils/connections"
 import { portIndexToString, PortKey, portStringToIndex } from "../utils/ports"
 
@@ -71,6 +71,19 @@ export function useConnectionState(props: {
     const [portConnectionMap, setPortConnectionMap] = useState<PortConnectionMap>(props?.portConnectionMap ?? {})
     const [connections, setConnections] = useState<ConnectionsState>(props?.connections ?? [])
     const [connectionPreviewState, setConnectionPreviewState] = useState<ConnectionPreviewState>(connectionPreviewStateDefault)
+
+    useEffect(() => {
+        updatePorts()
+    }, [props.boundaries.columns, props.boundaries.rows])
+
+    const updatePorts = () => {
+        setConnectionPreviewState(s => {
+            return {
+                ...s,
+                ports: updatePortErrors(s.ports)
+            }
+        })
+    }
 
     const removeConnection = (connection: ConnectionID) => {
         connections[connection].ports.forEach(p => setPortConnectionMap(m => ({
@@ -180,6 +193,12 @@ export function useConnectionState(props: {
         removeConnection,
         addOrUpdateConnection,
         newConnectionId,
+        hasOutOfBoundsConnections: () => Object.entries(connections).some(([_, connection]) => connection.ports.some(port => port[0] >= props.boundaries.columns || port[1] >= props.boundaries.rows)),
+        removeOutOfBoundsConnections: () => Object.entries(connections).forEach(([id, connection]) => {
+            if (connection.ports.some(port => port[0] >= props.boundaries.columns || port[1] >= props.boundaries.rows)) {
+                removeConnection(parseInt(id))
+            }
+        }),
         preview: {
             isValid,
             isUsed: (key: PortKey) => connectionPreviewState.ports.some(port => port.index !== undefined && port.index[0] === key[0] && port.index[1] === key[1]),
@@ -199,6 +218,7 @@ export function useConnectionState(props: {
                     ports: updatePortErrors(remainingPorts)
                 }
             }),
+            updatePorts,
             updatePort: (i: number, fieldValue: string) => {
                 const portKey = portStringToIndex(fieldValue)
 
