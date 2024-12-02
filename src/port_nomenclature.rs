@@ -1,5 +1,3 @@
-use std::ops::Index;
-
 use regex::Regex;
 
 const PORT_PATTERN: &str = r"^(?<y>[a-zA-Z]+)(?<x>[1-9][0-9]*)$";

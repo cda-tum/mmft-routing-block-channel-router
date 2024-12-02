@@ -4,7 +4,7 @@ import { Box, Button, Link, Stack, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
 import { defaultInputParameters, InputParameters, validate, validateAble } from "./utils/input-parameters"
 import { defaultInputPorts, generatePorts, InputPorts, PortKey } from "./utils/ports"
-import { ConnectionID, defaultInputConnections, defaultOutputConnections, OutputConnections } from "./utils/connections"
+import { Channel, ConnectionID, defaultInputConnections, defaultOutputConnections, defaultOutputConnectionsRaw, generateDXF, OutputConnections, OutputConnectionsRaw } from "./utils/connections"
 import { route } from "./utils/route"
 import { LayoutChoice } from "./components/LayoutChoice"
 import { nanoid } from "nanoid"
@@ -48,12 +48,14 @@ export type OutputState = {
     error: undefined | string
     is_partial: boolean
     connections: OutputConnections
+    connectionsRaw: OutputConnectionsRaw
 }
 
 const defaultOutputState: OutputState = {
     error: undefined,
     is_partial: false,
-    connections: defaultOutputConnections
+    connections: defaultOutputConnections,
+    connectionsRaw: defaultOutputConnectionsRaw
 }
 
 export type BoardEdit = {
@@ -84,8 +86,12 @@ export function BoardUI() {
     const [output, setOutput] = useState<OutputState>(defaultOutputState)
 
     useEffect(() => {
-        setDXFOutput()
-    }, [output])
+        if(output.error === undefined && Object.keys(output.connectionsRaw).length > 0 && input.parameters.channelWidth.value !== undefined && input.parameters.channelCap.value !== undefined && input.parameters.channelCapCustom.value !== undefined)  {
+            setDXFOutput(generateDXF(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value))
+        } else {
+            setDXFOutput(undefined)
+        }
+    }, [output, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.channelWidth])
 
     const updateInputParameter = (parameter: string, fieldValue: string, parsedValue: string | number | undefined) => {
         if (!(parameter in input.parameters)) {
@@ -155,7 +161,8 @@ export function BoardUI() {
         setOutput({
             error: undefined,
             is_partial: false,
-            connections: {}
+            connections: {},
+            connectionsRaw: []
         })
         //setDXFDownload(undefined)
     }
@@ -465,7 +472,7 @@ export function BoardUI() {
                     channelCap={input.parameters.channelCap.value}
                     channelCapCustom={input.parameters.channelCapCustom}
                     onChangeChannelCap={channelCap => updateInputParameter('channelCap', channelCap, channelCap)}
-                    onChangeChannelCapCustom={channelCapCustom => updateInputParameter('channelCapCustom', channelCapCustom, channelCapCustom)}
+                    onChangeChannelCapCustom={(fv, pv) => updateInputParameter('channelCapCustom', fv, pv)}
                 />
             </Box>
         </main>

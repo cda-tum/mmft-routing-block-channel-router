@@ -5,7 +5,7 @@ export function download(output: string, fileName: string, mime: string) {
     const dataStr = `data:${mime};charset=utf-8,` + encodeURIComponent(output)
     const downloadAnchorNode = document.createElement('a')
     downloadAnchorNode.setAttribute("href", dataStr)
-    downloadAnchorNode.setAttribute("download", fileName + ".dxf")
+    downloadAnchorNode.setAttribute("download", fileName)
     document.body.appendChild(downloadAnchorNode)
     downloadAnchorNode.click()
     downloadAnchorNode.remove()

@@ -13,7 +13,7 @@ export type OutputChannelCapChoiceProps = {
     channelCap: string | undefined
     channelCapCustom: Value<InputParameterValues['channelCapCustom']>
     onChangeChannelCap: (e: string) => void
-    onChangeChannelCapCustom: (e: string) => void
+    onChangeChannelCapCustom: (fieldValue: string, parsedValue: number | undefined) => void
 }
 
 export function OutputChannelCapChoice(props: OutputChannelCapChoiceProps) {
@@ -110,7 +110,7 @@ export function OutputChannelCapChoice(props: OutputChannelCapChoiceProps) {
                     value={props.channelCapCustom.fieldValue}
                     error={props.channelCapCustom.error ? props.channelCapCustom.errorMessage : undefined}
                     warning={props.channelCapCustom.warning}
-                    onChange={v => props.onChangeChannelCapCustom(v)}
+                    onChange={(fv, pv) => props.onChangeChannelCapCustom(fv, pv)}
                     description="Extra length behind port center."
                     sx={{
                         zIndex: 3,

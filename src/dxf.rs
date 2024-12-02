@@ -11,12 +11,10 @@ struct OctilinearOutlineInput {
     channel_cap: ChannelCap,
 }
 
-#[derive(Serialize, Deserialize)]
-#[derive(Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct ExceedBy(f64);
 
-#[derive(Serialize, Deserialize)]
-#[derive(Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub enum ChannelCap {
     Butt,
     Square,
@@ -302,15 +300,17 @@ pub fn octilinear_outline_single_channel(
         let previous_orientation = Orientation::from_vector(point, previous_point).unwrap();
         let next_orientation = Orientation::from_vector(point, next_point).unwrap();
         let join_points_1 =
-            next_cw_join_points(previous_orientation, next_orientation, channel_width);
+            next_cw_join_points(previous_orientation, next_orientation, channel_width)
+                .shift_by(&point);
         match join_points_1 {
-            JoinPoints::None => todo!(),
+            JoinPoints::None => {}
             JoinPoints::One(point) => left_list.push(point),
         }
         let join_points_2 =
-            next_cw_join_points(next_orientation, previous_orientation, channel_width);
+            next_cw_join_points(next_orientation, previous_orientation, channel_width)
+                .shift_by(&point);
         match join_points_2 {
-            JoinPoints::None => todo!(),
+            JoinPoints::None => {}
             JoinPoints::One(point) => right_list.push(point),
         }
     }
@@ -351,7 +351,8 @@ pub fn octilinear_outline_star_shape(
             Orientation::from_vector(base_point, current_anchor_point).unwrap();
 
         let join_points =
-            next_cw_join_points(previous_orientation, current_orientation, channel_width);
+            next_cw_join_points(previous_orientation, current_orientation, channel_width)
+                .shift_by(&base_point);
 
         match join_points {
             JoinPoints::One(point) => outline_points.push(point),
@@ -367,15 +368,17 @@ pub fn octilinear_outline_star_shape(
             let previous_orientation = Orientation::from_vector(point, previous_point).unwrap();
             let next_orientation = Orientation::from_vector(point, next_point).unwrap();
             let join_points_1 =
-                next_cw_join_points(previous_orientation, next_orientation, channel_width);
+                next_cw_join_points(previous_orientation, next_orientation, channel_width)
+                    .shift_by(&point);
             match join_points_1 {
-                JoinPoints::None => todo!(),
+                JoinPoints::None => {}
                 JoinPoints::One(point) => left_list.push(point),
             }
             let join_points_2 =
-                next_cw_join_points(next_orientation, previous_orientation, channel_width);
+                next_cw_join_points(next_orientation, previous_orientation, channel_width)
+                    .shift_by(&point);
             match join_points_2 {
-                JoinPoints::None => todo!(),
+                JoinPoints::None => {}
                 JoinPoints::One(point) => right_list.push(point),
             }
         }
@@ -397,6 +400,7 @@ pub fn octilinear_outline_star_shape(
     return outline_points;
 }
 
+#[derive(PartialEq, Debug)]
 enum JoinPoints {
     None,
     One([f64; 2]),
@@ -407,6 +411,13 @@ impl JoinPoints {
         match self {
             JoinPoints::None => JoinPoints::None,
             JoinPoints::One(point) => JoinPoints::One(rotate_right_by(point, by)),
+        }
+    }
+
+    fn shift_by(&self, by: &[f64; 2]) -> JoinPoints {
+        match self {
+            JoinPoints::None => JoinPoints::None,
+            JoinPoints::One(point) => JoinPoints::One([point[0] + by[0], point[1] + by[1]]),
         }
     }
 }
@@ -437,27 +448,27 @@ fn next_cw_join_points_start_n(next_orientation: Orientation, channel_width: f64
 
     match next_orientation {
         Orientation::N => unreachable!(),
-        Orientation::NE => JoinPoints::One([w / 2., -w * f64::consts::SQRT_2 - w / 2.]),
-        Orientation::E => JoinPoints::One([w, -w]),
-        Orientation::SE => JoinPoints::One([w / 2., -w * f64::consts::SQRT_2 + w / 2.]),
+        Orientation::NE => JoinPoints::One([w / 2., -w / 2. * f64::consts::SQRT_2 - w / 2.]),
+        Orientation::E => JoinPoints::One([w / 2., -w / 2.]),
+        Orientation::SE => JoinPoints::One([w / 2., -w / 2. * f64::consts::SQRT_2 + w / 2.]),
         Orientation::S => JoinPoints::None,
-        Orientation::SW => JoinPoints::One([w / 2., w * f64::consts::SQRT_2 - w / 2.]),
-        Orientation::W => JoinPoints::One([w, w]),
-        Orientation::NW => JoinPoints::One([w / 2., w * f64::consts::SQRT_2 + w / 2.]),
+        Orientation::SW => JoinPoints::One([w / 2., w / 2. * f64::consts::SQRT_2 - w / 2.]),
+        Orientation::W => JoinPoints::One([w / 2., w / 2.]),
+        Orientation::NW => JoinPoints::One([w / 2., w / 2. * f64::consts::SQRT_2 + w / 2.]),
     }
 }
 
 fn next_cw_join_points_start_ne(next_orientation: Orientation, channel_width: f64) -> JoinPoints {
     let w = channel_width;
     match next_orientation {
-        Orientation::N => JoinPoints::One([-w / 2., w * f64::consts::SQRT_2 + w / 2.]),
+        Orientation::N => JoinPoints::One([-w / 2., w / 2. * f64::consts::SQRT_2 + w / 2.]),
         Orientation::NE => unreachable!(),
-        Orientation::E => JoinPoints::One([w * f64::consts::SQRT_2 + w / 2., -w / 2.]),
-        Orientation::SE => JoinPoints::One([w * f64::consts::SQRT_2, 0.]),
-        Orientation::S => JoinPoints::One([w / 2., w * f64::consts::SQRT_2 - w / 2.]),
+        Orientation::E => JoinPoints::One([w / 2. * f64::consts::SQRT_2 + w / 2., -w / 2.]),
+        Orientation::SE => JoinPoints::One([w / 2. * f64::consts::SQRT_2, 0.]),
+        Orientation::S => JoinPoints::One([w / 2., w / 2. * f64::consts::SQRT_2 - w / 2.]),
         Orientation::SW => JoinPoints::None,
-        Orientation::W => JoinPoints::One([w * f64::consts::SQRT_2 - w / 2., w / 2.]),
-        Orientation::NW => JoinPoints::One([0., w * f64::consts::SQRT_2]),
+        Orientation::W => JoinPoints::One([w / 2. * f64::consts::SQRT_2 - w / 2., w / 2.]),
+        Orientation::NW => JoinPoints::One([0., w / 2. * f64::consts::SQRT_2]),
     }
 }
 
@@ -468,7 +479,8 @@ fn end_points(
     channel_cap: &ChannelCap,
 ) -> [[f64; 2]; 2] {
     let w = channel_width;
-    let r = w * f64::consts::SQRT_2;
+    let wh = w / 2.;
+    let r = wh / f64::consts::SQRT_2;
     let [px, py] = end_point;
 
     let la = match channel_cap {
@@ -477,16 +489,16 @@ fn end_points(
         ChannelCap::Custom(ExceedBy(exceed_by)) => *exceed_by,
     };
 
-    let lb = la * f64::consts::SQRT_2;
+    let lb = la / f64::consts::SQRT_2;
 
     match orientation {
-        Orientation::N => [[px + w, py + la], [px - w, py + la]],
+        Orientation::N => [[px + wh, py + la], [px - wh, py + la]],
         Orientation::NE => [[px + r - lb, py + r + lb], [px - r - lb, py - r + lb]],
-        Orientation::E => [[px - la, py + w], [px - la, py - w]],
+        Orientation::E => [[px - la, py + wh], [px - la, py - wh]],
         Orientation::SE => [[px - r - lb, py + r - lb], [px + r - lb, py - r - lb]],
-        Orientation::S => [[px - w, py - la], [px + w, py - la]],
-        Orientation::SW => [[px - r + lb, py - r - lb], [px - r - lb, py + r - lb]],
-        Orientation::W => [[px + la, py - w], [px + la, py + w]],
+        Orientation::S => [[px - wh, py - la], [px + wh, py - la]],
+        Orientation::SW => [[px - r + lb, py - r - lb], [px + r + lb, py + r - lb]],
+        Orientation::W => [[px + la, py - wh], [px + la, py + wh]],
         Orientation::NW => [[px + r + lb, py - r + lb], [px - r + lb, py + r + lb]],
     }
 }
@@ -632,7 +644,7 @@ fn write_dxf_end<W: Write>(out: &mut W) -> Result<()> {
 pub struct GenerateDXFInput {
     connections: BoardRouterOutputBoard,
     channel_width: f64,
-    channel_cap: ChannelCap
+    channel_cap: ChannelCap,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -641,6 +653,341 @@ pub struct GenerateDXFOutput(String);
 pub fn generate_dxf(input: GenerateDXFInput) -> GenerateDXFOutput {
     let mut s = Vec::new();
     let mut buf = Cursor::new(&mut s);
-    let _ = write_dxf(&mut buf, &input.connections.connections.iter().map(|(_, connection)| DXFEntity::Polyline(octilinear_outline(connection, input.channel_width, &input.channel_cap))).collect::<Vec<DXFEntity>>());
+    let _ = write_dxf(
+        &mut buf,
+        &input
+            .connections
+            .connections
+            .iter()
+            .map(|(_, connection)| {
+                DXFEntity::Polyline(octilinear_outline(
+                    connection,
+                    input.channel_width,
+                    &input.channel_cap,
+                ))
+            })
+            .collect::<Vec<DXFEntity>>(),
+    );
     GenerateDXFOutput(String::from_utf8(s).unwrap())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod end_points {
+        use super::*;
+        use std::f64::consts::SQRT_2;
+
+        const W: f64 = 1.;
+        const WH: f64 = W / 2.;
+        const WD: f64 = W / SQRT_2;
+        const WHD: f64 = WH / SQRT_2;
+
+        #[test]
+        fn test_1() {
+            assert_eq!(
+                end_points([0., 0.], Orientation::N, W, &ChannelCap::Square,),
+                [[WH, WH], [-WH, WH]]
+            )
+        }
+
+        #[test]
+        fn test_2() {
+            assert_eq!(
+                end_points([0., 0.], Orientation::E, W, &ChannelCap::Square,),
+                [[-WH, WH], [-WH, -WH]]
+            )
+        }
+
+        #[test]
+        fn test_3() {
+            assert_eq!(
+                end_points([0., 0.], Orientation::S, W, &ChannelCap::Square,),
+                [[-WH, -WH], [WH, -WH]]
+            )
+        }
+
+        #[test]
+        fn test_4() {
+            assert_eq!(
+                end_points([0., 0.], Orientation::W, W, &ChannelCap::Square,),
+                [[WH, -WH], [WH, WH]]
+            )
+        }
+
+        #[test]
+        fn test_5() {
+            assert_eq!(
+                end_points([0., 0.], Orientation::NE, W, &ChannelCap::Square,),
+                [[0., WD], [-WD, 0.]]
+            )
+        }
+
+        #[test]
+        fn test_6() {
+            assert_eq!(
+                end_points([0., 0.], Orientation::SE, W, &ChannelCap::Square,),
+                [[-WD, 0.], [0., -WD]]
+            )
+        }
+
+        #[test]
+        fn test_7() {
+            assert_eq!(
+                end_points([0., 0.], Orientation::SW, W, &ChannelCap::Square,),
+                [[0., -WD], [WD, 0.]]
+            )
+        }
+
+        #[test]
+        fn test_8() {
+            assert_eq!(
+                end_points([0., 0.], Orientation::NW, W, &ChannelCap::Square,),
+                [[WD, 0.], [0., WD]]
+            )
+        }
+
+        const E: f64 = 1.;
+        const ED: f64 = E / SQRT_2;
+
+        #[test]
+        fn test_9() {
+            assert_eq!(
+                end_points(
+                    [0., 0.],
+                    Orientation::N,
+                    W,
+                    &ChannelCap::Custom(ExceedBy(E)),
+                ),
+                [[WH, E], [-WH, E]]
+            )
+        }
+
+        #[test]
+        fn test_10() {
+            assert_eq!(
+                end_points(
+                    [0., 0.],
+                    Orientation::E,
+                    W,
+                    &ChannelCap::Custom(ExceedBy(E)),
+                ),
+                [[-E, WH], [-E, -WH]]
+            )
+        }
+
+        #[test]
+        fn test_11() {
+            assert_eq!(
+                end_points(
+                    [0., 0.],
+                    Orientation::S,
+                    W,
+                    &ChannelCap::Custom(ExceedBy(E)),
+                ),
+                [[-WH, -E], [WH, -E]]
+            )
+        }
+
+        #[test]
+        fn test_12() {
+            assert_eq!(
+                end_points(
+                    [0., 0.],
+                    Orientation::W,
+                    W,
+                    &ChannelCap::Custom(ExceedBy(E)),
+                ),
+                [[E, -WH], [E, WH]]
+            )
+        }
+
+        #[test]
+        fn test_13() {
+            assert_eq!(
+                end_points(
+                    [0., 0.],
+                    Orientation::NE,
+                    W,
+                    &ChannelCap::Custom(ExceedBy(E)),
+                ),
+                [[WHD - ED, WHD + ED], [-ED - WHD, ED - WHD]]
+            )
+        }
+
+        #[test]
+        fn test_14() {
+            assert_eq!(
+                end_points(
+                    [0., 0.],
+                    Orientation::SE,
+                    W,
+                    &ChannelCap::Custom(ExceedBy(E)),
+                ),
+                [[-ED - WHD, -ED + WHD], [WHD - ED, -WHD - ED]]
+            )
+        }
+
+        #[test]
+        fn test_15() {
+            assert_eq!(
+                end_points(
+                    [0., 0.],
+                    Orientation::SW,
+                    W,
+                    &ChannelCap::Custom(ExceedBy(E)),
+                ),
+                [[-WHD + ED, -WHD - ED], [ED + WHD, -ED + WHD]]
+            )
+        }
+
+        #[test]
+        fn test_16() {
+            assert_eq!(
+                end_points(
+                    [0., 0.],
+                    Orientation::NW,
+                    W,
+                    &ChannelCap::Custom(ExceedBy(E)),
+                ),
+                [[ED + WHD, ED - WHD], [-WHD + ED, WHD + ED]]
+            )
+        }
+    }
+
+    mod next_cw_join_points {
+        use std::f64::consts::SQRT_2;
+
+        use super::*;
+
+        const W: f64 = 1.;
+        const WH: f64 = W / 2.;
+        const WD: f64 = WH * SQRT_2;
+
+        #[test]
+        fn test_1() {
+            assert_eq!(
+                next_cw_join_points(Orientation::N, Orientation::NE, W),
+                JoinPoints::One([WH, -WH - WD])
+            )
+        }
+
+        #[test]
+        fn test_2() {
+            assert_eq!(
+                next_cw_join_points(Orientation::N, Orientation::E, W),
+                JoinPoints::One([WH, -WH])
+            )
+        }
+
+        #[test]
+        fn test_3() {
+            assert_eq!(
+                next_cw_join_points(Orientation::N, Orientation::SE, W),
+                JoinPoints::One([WH, WH - WD])
+            )
+        }
+
+        #[test]
+        fn test_4() {
+            assert_eq!(
+                next_cw_join_points(Orientation::N, Orientation::S, W),
+                JoinPoints::None
+            )
+        }
+
+        #[test]
+        fn test_5() {
+            assert_eq!(
+                next_cw_join_points(Orientation::N, Orientation::SW, W),
+                JoinPoints::One([WH, -WH + WD])
+            )
+        }
+
+        #[test]
+        fn test_6() {
+            assert_eq!(
+                next_cw_join_points(Orientation::N, Orientation::W, W),
+                JoinPoints::One([WH, WH])
+            )
+        }
+
+        #[test]
+        fn test_7() {
+            assert_eq!(
+                next_cw_join_points(Orientation::N, Orientation::NW, W),
+                JoinPoints::One([WH, WH + WD])
+            )
+        }
+    }
+
+    mod generate_dxf {
+        use crate::dxf::{generate_dxf, ChannelCap, GenerateDXFInput};
+
+        #[test]
+        fn test_1() {
+            let s = generate_dxf(GenerateDXFInput {
+                connections: crate::board_router::BoardRouterOutputBoard {
+                    connections: Vec::from([(
+                        1,
+                        Vec::from([Vec::from([[0., 0.], [0., 1.], [1., 2.]])]),
+                    )]),
+                },
+                channel_width: 0.2,
+                channel_cap: ChannelCap::Square,
+            });
+            println!("{:?}", s.0)
+        }
+
+        #[test]
+        fn test_2() {
+            let s = generate_dxf(GenerateDXFInput {
+                connections: crate::board_router::BoardRouterOutputBoard {
+                    connections: Vec::from([(
+                        1,
+                        Vec::from([
+                            Vec::from([[10., 5.], [5., 5.]]),
+                            Vec::from([[10., 5.], [10., 10.]]),
+                            Vec::from([[10., 5.], [8., 3.]]),
+                        ]),
+                    )]),
+                },
+                channel_width: 0.2,
+                channel_cap: ChannelCap::Square,
+            });
+            println!("{:?}", s.0)
+        }
+
+        #[test]
+        fn test_3() {
+            let s = generate_dxf(GenerateDXFInput {
+                connections: crate::board_router::BoardRouterOutputBoard {
+                    connections: Vec::from([(
+                        1,
+                        Vec::from([
+                            Vec::from([[24., 7.5], [22.5, 7.5], [21., 7.5], [19.5, 7.5]]),
+                            Vec::from([
+                                [24., 7.5],
+                                [24., 9.],
+                                [24., 10.5],
+                                [24., 12.],
+                                [24., 13.5],
+                            ]),
+                            Vec::from([
+                                [24., 7.5],
+                                [25.5, 6.],
+                                [25.5, 4.5],
+                                [27., 3.],
+                                [28.5, 1.5],
+                            ]),
+                        ]),
+                    )]),
+                },
+                channel_width: 0.2,
+                channel_cap: ChannelCap::Square,
+            });
+            println!("{:?}", s.0)
+        }
+    }
 }
