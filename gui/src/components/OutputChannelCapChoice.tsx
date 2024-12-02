@@ -1,7 +1,5 @@
 import { FormControl, FormLabel, Radio, radioClasses, RadioGroup, Sheet } from "@mui/joy";
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
-import { RectilinearIcon } from "../icons/RectilinearIcon";
-import { OctilinearIcon } from "../icons/OctilinearIcon";
 import { useId } from "react";
 import { MicrometerInput } from "./MicrometerInput";
 import { InputParameterValues, Value } from "../utils/input-parameters";
