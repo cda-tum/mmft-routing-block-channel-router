@@ -22,7 +22,7 @@ type DownloadButtonProps = { label: string } & ({
 })
 
 export function DownloadButton(props: DownloadButtonProps) {
-    const theme = useTheme()// required for firefox
+    const theme = useTheme()
     return <Button
         disabled={props.content === undefined}
         onClick={_ => {

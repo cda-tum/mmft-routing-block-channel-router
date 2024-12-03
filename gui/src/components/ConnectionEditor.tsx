@@ -75,7 +75,7 @@ export function ConnectionEditor(props: {
                         }}
                         variant="outlined"
                     >
-                        <Typography sx={{ color: theme.vars.palette.common.white }}>
+                        <Typography sx={maxPorts !== undefined && props.connectionState.preview.ports.length >= maxPorts ? { color: theme.vars.palette.common.white } : {}}>
                             <AddCircleOutlineIcon sx={{
                                 verticalAlign: 'bottom'
                             }} /> Port</Typography>
@@ -88,7 +88,7 @@ export function ConnectionEditor(props: {
                         props.connectionState.preview.setActive(false)
                     }}
                 >
-                    <Typography sx={{ color: theme.vars.palette.common.white }}>
+                    <Typography>
                         <ClearIcon sx={{
                             verticalAlign: 'bottom'
                         }} /> Discard {isExistingConnection ? 'Changes' : ''}</Typography>
@@ -103,7 +103,7 @@ export function ConnectionEditor(props: {
                             props.connectionState.preview.setActive(false)
                         }}
                     >
-                        <Typography sx={{ color: theme.vars.palette.common.white }}>
+                        <Typography>
                             <DeleteOutlineIcon sx={{
                                 verticalAlign: 'bottom'
                             }} /> Delete</Typography>

@@ -21,6 +21,7 @@ import { ChannelSpacingIcon } from "./icons/ChannelSpacingIcon"
 import { ConnectionsState } from "./hooks/useConnectionState"
 import { OutputChannelCapChoice } from "./components/OutputChannelCapChoice"
 import { DownloadButton } from "./components/DownloadButton"
+import { ContentBox } from "./components/ContentBox"
 
 export type InputState = {
     parameters: InputParameters
@@ -80,10 +81,28 @@ enum BoardEditState {
     FirstPortSet
 }
 
+export type DXFState = undefined | string
+
 export function BoardUI() {
-    const [dxfOutput, setDXFOutput] = useState<(undefined | string)>(undefined)
+    const [dxfOutput, setDXFOutput] = useState<DXFState>(undefined)
     const [input, setInput] = useState<InputState>(defaultInputState)
     const [output, setOutput] = useState<OutputState>(defaultOutputState)
+
+    const getState = () => ({
+        dxfOutput,
+        input,
+        output
+    })
+
+    const setState = (state: {
+        dxfOutput: DXFState
+        input: InputState
+        output: OutputState
+    }) => {
+        setDXFOutput(state.dxfOutput)
+        setInput(state.input)
+        setOutput(state.output)
+    }
 
     useEffect(() => {
         if (output.error === undefined && Object.keys(output.connectionsRaw).length > 0 && input.parameters.channelWidth.value !== undefined && input.parameters.channelCap.value !== undefined && input.parameters.channelCapCustom.value !== undefined) {
@@ -198,6 +217,19 @@ export function BoardUI() {
         <main>
             <Box>
                 <Typography>A tool that generates channel connections for microfluidic components. <Link href="#">Learn more</Link>.</Typography>
+            </Box>
+            <Box sx={{
+                marginY: 4
+            }}>
+                <Typography level="h4">Load & Save</Typography>
+                <ContentBox>
+                    <DownloadButton
+                        fileName={nanoid() + ".json"}
+                        content={JSON.stringify(getState())}
+                        mime="text/json"
+                        label="Save Configuration"
+                    />
+                </ContentBox>
             </Box>
             <Box sx={{
                 marginY: 4
@@ -370,15 +402,7 @@ export function BoardUI() {
                 }}
             >
                 <Typography level="h4">Connections</Typography>
-                <Box
-                    sx={{
-                        backgroundColor: theme.vars.palette.background.surface,
-                        borderRadius: theme.radius.sm,
-                        border: '1px solid',
-                        borderColor: theme.vars.palette.background.level2,
-                        boxShadow: `0px 2px ${theme.vars.palette.background.level1}`,
-                        marginY: 2,
-                    }}>
+                <ContentBox>
 
                     <Box
                         sx={{
@@ -405,7 +429,7 @@ export function BoardUI() {
                         ></BoardDisplay>
 
                     </Box>
-                </Box>
+                </ContentBox>
             </Box>
 
 
@@ -415,15 +439,7 @@ export function BoardUI() {
                 }}
             >
                 <Typography level="h4">Design</Typography>
-                <Box
-                    sx={{
-                        backgroundColor: theme.vars.palette.background.surface,
-                        borderRadius: theme.radius.sm,
-                        border: '1px solid',
-                        borderColor: theme.vars.palette.background.level2,
-                        boxShadow: `0px 2px ${theme.vars.palette.background.level1}`,
-                        marginY: 2
-                    }}>
+                <ContentBox>
                     <Button
                         disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
                         onClick={_ => {
@@ -463,7 +479,7 @@ export function BoardUI() {
                             {output.error}
                         </Typography>
                     }
-                </Box>
+                </ContentBox>
             </Box>
         </main>
         <footer

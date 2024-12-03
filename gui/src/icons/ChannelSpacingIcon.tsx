@@ -3,8 +3,9 @@ import { BaseIcon } from "./BaseIcon"
 import { arrowPath } from "./ArrowPath"
 
 export function ChannelSpacingIcon(props: {
-    width?: number,
-    height?: number
+    width?: number | string,
+    height?: number | string,
+    maxWidth?: number | string
 }) {
 
     const theme = useTheme()

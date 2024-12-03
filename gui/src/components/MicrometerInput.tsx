@@ -14,13 +14,12 @@ export type MicrometerProps = {
     autocompleteValues?: undefined | number[]
     explainIcon?: undefined | ReactNode
     sx?: SxProps
+    marginY?: string | number
     onChange?: (fieldValue: string, parsedValue: number | undefined) => void
 }
 
 export function MicrometerInput(props: MicrometerProps) {
     const id = useId()
-
-    const minWidth = '16em'
 
     const shared = {
         value: props.value,
@@ -32,7 +31,6 @@ export function MicrometerInput(props: MicrometerProps) {
             {
                 textAlign: 'right',
             },
-            minWidth,
             ...props.sx
         },
         startDecorator: props.explainIcon ? <Box sx={{ width: '3em', height: '3em', margin: 1 }}>{props.explainIcon}</Box> : undefined,
@@ -65,8 +63,7 @@ export function MicrometerInput(props: MicrometerProps) {
     return (
         <FormControl {...(props.error !== undefined ? { error: true } : {})}
             sx={{
-                marginTop: '1em',
-                marginBottom: '1em',
+                marginY: props.marginY ?? 2,
                 flexGrow: 1
             }}
             color={props.warning ? 'warning' : undefined}
@@ -78,7 +75,6 @@ export function MicrometerInput(props: MicrometerProps) {
             {props.description && !props.error && !props.warning &&
                 <FormHelperText
                     sx={{
-                        minWidth,
                         marginX: 0
                     }}
                 >{props.description}</FormHelperText>
@@ -86,7 +82,6 @@ export function MicrometerInput(props: MicrometerProps) {
             {props.error &&
                 <FormHelperText
                     sx={{
-                        minWidth,
                         marginX: 0
                     }}
                 >
@@ -97,7 +92,6 @@ export function MicrometerInput(props: MicrometerProps) {
             {props.warning &&
                 <FormHelperText
                     sx={{
-                        minWidth,
                         marginX: 0
                     }}
                 >

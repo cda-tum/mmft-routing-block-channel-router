@@ -2,8 +2,9 @@ import { useTheme } from "@mui/joy"
 import { BaseIcon } from "./BaseIcon"
 
 export function PitchIcon(props: {
-    width?: number,
-    height?: number
+    width?: number | string,
+    height?: number | string,
+    maxWidth?: number | string
 }) {
 
     const theme = useTheme()

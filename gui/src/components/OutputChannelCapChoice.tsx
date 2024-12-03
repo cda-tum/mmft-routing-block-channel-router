@@ -23,8 +23,8 @@ export function OutputChannelCapChoice(props: OutputChannelCapChoiceProps) {
         boxShadow: 'sm',
         display: 'flex',
         flexDirection: 'column',
-        flexGrow: 1,
-        flexShrink: 1,
+        //flexGrow: 1,
+        //flexShrink: 1,
         alignItems: 'center',
         gap: 1.5,
     }
@@ -39,7 +39,7 @@ export function OutputChannelCapChoice(props: OutputChannelCapChoiceProps) {
         sx={{
             marginTop: '1em',
             marginBottom: '1em',
-            flexGrow: 1,
+            //flexGrow: 1,
         }}
     >
         <FormLabel htmlFor={id}>Channel Cap</FormLabel>
@@ -81,7 +81,7 @@ export function OutputChannelCapChoice(props: OutputChannelCapChoiceProps) {
                 sx={sheetShared}
             >
                 <Radio id={'Butt'} value={'Butt'} checkedIcon={<CheckCircleRoundedIcon />} />
-                <ChannelCapButtIcon/>
+                <ChannelCapButtIcon maxWidth={'10em'}/>
                 <FormLabel htmlFor={'Butt'} sx={labelShared}>Butt</FormLabel>
             </Sheet>
 
@@ -91,7 +91,7 @@ export function OutputChannelCapChoice(props: OutputChannelCapChoiceProps) {
                 sx={sheetShared}
             >
                 <Radio id={'Square'} value={'Square'} checkedIcon={<CheckCircleRoundedIcon />} />
-                <ChannelCapSquareIcon/>
+                <ChannelCapSquareIcon maxWidth={'10em'} />
                 <FormLabel htmlFor={'Square'} sx={labelShared}>Square</FormLabel>
             </Sheet>
 
@@ -101,8 +101,8 @@ export function OutputChannelCapChoice(props: OutputChannelCapChoiceProps) {
                 sx={sheetShared}
             >
                 <Radio id={'Custom'} value={'Custom'} checkedIcon={<CheckCircleRoundedIcon />} />
-                <ChannelCapCustomIcon/>
-                <FormLabel htmlFor={'Custom'} sx={{ ...labelShared, ...{ visibility: 'hidden' } }} >Custom</FormLabel>
+                <ChannelCapCustomIcon maxWidth={'10em'}/>
+                <FormLabel htmlFor={'Custom'} sx={{ ...labelShared, ...{ display: 'none' } }} >Custom</FormLabel>
                 <MicrometerInput
                     label="Custom"
                     value={props.channelCapCustom.fieldValue}
@@ -112,7 +112,9 @@ export function OutputChannelCapChoice(props: OutputChannelCapChoiceProps) {
                     description="Extra length behind port center."
                     sx={{
                         zIndex: 3,
+                        maxWidth: '13em'
                     }}
+                    marginY={0}
                 />
             </Sheet>
         </RadioGroup>

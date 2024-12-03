@@ -1,8 +1,9 @@
 import { BaseIcon } from "./BaseIcon"
 
 export function RectilinearIcon(props: {
-    width?: number,
-    height?: number
+    width?: number | string,
+    height?: number | string,
+    maxWidth?: number | string
 }) {
     return <BaseIcon
         {...props}

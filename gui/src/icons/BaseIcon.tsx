@@ -1,4 +1,5 @@
 import { useTheme } from "@mui/joy"
+import { SxProps } from "@mui/joy/styles/types"
 
 export type SVGObject = {
     type: 'object'
@@ -17,14 +18,16 @@ export type PathObject = {
 
 export function BaseIcon(props: {
     objects: (PathObject | SVGObject)[]
-    width?: number
-    height?: number
+    width?: number | string
+    height?: number | string
+    maxWidth?: number | string
 }) {
     const theme = useTheme()
     return <svg
         style={{
-            width: '100%',
-            height: '100%',
+            width: props.width ?? '100%',
+            height: props.height ?? '100%',
+            maxWidth: props.maxWidth,
             backgroundColor: theme.vars.palette.background.surface
         }}
         viewBox="0 0 100 100"

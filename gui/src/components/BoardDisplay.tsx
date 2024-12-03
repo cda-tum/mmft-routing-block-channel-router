@@ -231,7 +231,7 @@ export function BoardDisplay(props: {
                 }}
             >
                 <Typography sx={{
-                    color: theme.vars.palette.common.white
+                    color: theme.vars.palette.text.primary
                 }}>New Connection</Typography>
             </MenuItem>
             {Object.entries(connectionState.connections).map(([id, _]) => {
@@ -243,7 +243,7 @@ export function BoardDisplay(props: {
                     }}
                 >
                     <Typography sx={{
-                        color: theme.vars.palette.common.white
+                        color: theme.vars.palette.text.primary
                     }}>Connection #{connectionId}</Typography>
                 </MenuItem>
             })}
@@ -265,7 +265,7 @@ export function BoardDisplay(props: {
 
     const updateContent = <>
     <Typography>
-        A change of parameters caused some connections/ports to be out of bounds. Click update to remove violations.
+        A change of parameters caused some connections/ports to be out of bounds. Click update to remove violating connections.
     </Typography>
         <Button
             color="warning"
@@ -288,19 +288,4 @@ export function BoardDisplay(props: {
         </Box>
     </>
 }
-
-/*<IconButton
-            variant="solid"
-            color="primary"
-            aria-controls={selectConnectionDropdownOpen ? 'split-button-menu' : undefined}
-            aria-expanded={selectConnectionDropdownOpen ? 'true' : undefined}
-            aria-label="select connection"
-            aria-haspopup="menu"
-            onClick={e => {
-                setSelectConnectionDropdownOpen(!selectConnectionDropdownOpen)
-                e.stopPropagation()
-            }}
-        >
-            <ArrowDropDown />
-        </IconButton>*/
 
