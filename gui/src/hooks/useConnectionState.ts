@@ -155,6 +155,7 @@ export function useConnectionState(props: {
         isUsedByOtherThan,
         connectionOf: (port: PortKey) => portConnectionMap[port[0]]?.[port[1]],
         portsOf,
+        numberOfConnections: () => Object.values(connections).length,
         hasConnection,
         addConnectionPort: (port: PortKey, connection: ConnectionID) => {
             setPortConnectionMap(m => ({

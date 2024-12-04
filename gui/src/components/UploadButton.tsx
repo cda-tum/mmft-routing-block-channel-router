@@ -51,10 +51,6 @@ export function UploadButton(props: UploadButtonProps) {
             onClick={_ => {
                 tempInput.current?.click()
             }}
-            sx={{
-                margin: 1,
-                marginX: 2,
-            }}
         >
             <Typography sx={{ color: theme.vars.palette.common.white }}>
                 <FileUploadIcon sx={{

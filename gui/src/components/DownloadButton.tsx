@@ -35,10 +35,6 @@ export function DownloadButton(props: DownloadButtonProps) {
                 }
             }
         }}
-        sx={{
-            margin: 1,
-            marginX: 2,
-        }}
     >
         <Typography sx={{ color: theme.vars.palette.common.white }}>
             <FileDownloadIcon sx={{
