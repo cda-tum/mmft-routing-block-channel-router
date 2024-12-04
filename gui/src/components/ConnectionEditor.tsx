@@ -1,4 +1,4 @@
-import { Box, Button, FormControl, FormHelperText, FormLabel, Input, Stack, Typography, useTheme } from "@mui/joy";
+import { Box, Button, FormControl, FormHelperText, FormLabel, Input, Stack, Tooltip, Typography, useTheme } from "@mui/joy";
 import { useId } from "react";
 import { PortField, useConnectionState } from "../hooks/useConnectionState";
 import CheckIcon from '@mui/icons-material/Check';
@@ -15,6 +15,8 @@ export function ConnectionEditor(props: {
     const theme = useTheme()
 
     const isExistingConnection = props.connectionState.hasConnection(props.connectionState.preview.connection) !== undefined
+
+    const canAddPorts = !(maxPorts !== undefined && props.connectionState.preview.ports.length >= maxPorts)
 
     return <Box
         padding={2}
@@ -68,8 +70,19 @@ export function ConnectionEditor(props: {
 
                 {
                     minPorts !== maxPorts &&
-                    <Button
-                        disabled={maxPorts !== undefined && props.connectionState.preview.ports.length >= maxPorts}
+                        canAddPorts ? <Button
+                            disabled={!canAddPorts}
+                            onClick={_ => {
+                                props.connectionState.preview.addPort()
+                            }}
+                            variant="outlined"
+                        >
+                        <Typography sx={maxPorts !== undefined && props.connectionState.preview.ports.length >= maxPorts ? { color: theme.vars.palette.common.white } : {}}>
+                            <AddCircleOutlineIcon sx={{
+                                verticalAlign: 'bottom'
+                            }} /> Port</Typography>
+                    </Button> : <Tooltip title="The maximum number of ports is reached." variant="solid"><span><Button
+                        disabled={!canAddPorts}
                         onClick={_ => {
                             props.connectionState.preview.addPort()
                         }}
@@ -79,7 +92,7 @@ export function ConnectionEditor(props: {
                             <AddCircleOutlineIcon sx={{
                                 verticalAlign: 'bottom'
                             }} /> Port</Typography>
-                    </Button>
+                    </Button></span></Tooltip>
                 }
 
                 <Button

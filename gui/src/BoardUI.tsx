@@ -8,7 +8,6 @@ import ImportExportIcon from '@mui/icons-material/ImportExport';
 import { ConnectionID, defaultInputConnections, defaultOutputConnections, defaultOutputConnectionsRaw, generateDXF, OutputConnections, OutputConnectionsRaw } from "./utils/connections"
 import { route } from "./utils/route"
 import { LayoutChoice } from "./components/LayoutChoice"
-import { nanoid } from "nanoid"
 import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
 import { BoardDisplay } from "./components/BoardDisplay"
 import { BoardWidthIcon } from "./icons/BoardWidthIcon"
@@ -92,6 +91,9 @@ export function BoardUI() {
     const [dxfOutput, setDXFOutput] = useState<DXFState>(undefined)
     const [input, setInput] = useState<InputState>(defaultInputState)
     const [output, setOutput] = useState<OutputState>(defaultOutputState)
+
+    const [nonce, setNonce] = useState<number>(1)
+    const [nonce2, setNonce2] = useState<number>(1)
 
     const getState = () => ({
         dxfOutput,
@@ -240,8 +242,11 @@ export function BoardUI() {
 
                             </UploadButton>
                             <DownloadButton
-                                fileName={nanoid() + ".json"}
-                                content={() => JSON.stringify(getState())}
+                                fileName={`configuration_${nonce}.json`}
+                                content={() => {
+                                    setNonce(n => n + 1)
+                                    return JSON.stringify(getState())
+                                }}
                                 mime="text/json"
                                 label="Save Current Configuration"
                             />
@@ -433,7 +438,9 @@ export function BoardUI() {
 
             <Box sx={{ marginY: 2 }}>
                 <Typography level="h4">Design</Typography>
-                <ContentBox>
+                <ContentBox sx={{
+                    padding: 2
+                }}>
 
                     <Button
                         disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
@@ -454,10 +461,13 @@ export function BoardUI() {
 
                     <DownloadButton
                         label="Download DXF"
-                        fileName={`${nanoid()}.dxf`}
+                        fileName={`chip_${nonce2}.dxf`}
                         mime={'image/x-dxf'}
-                        content={dxfOutput}
-                        noContentMessage={"There is no valid routing. Click 'Route' to generate a routing for download."}
+                        content={dxfOutput !== undefined ? () => {
+                            setNonce2(n => n + 1)
+                            return dxfOutput
+                        } : undefined}
+                        noContentMessage={"There is no valid routing. Click 'Generate Design' to generate a routing."}
                     />
 
                     {output.error !== undefined &&
