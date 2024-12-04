@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
-import { Accordion, AccordionDetails, AccordionGroup, AccordionSummary, Box, Button, Link, Snackbar, Stack, Typography, useTheme } from "@mui/joy"
+import { Accordion, AccordionDetails, AccordionGroup, AccordionSummary, Box, Button, Link, Stack, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
 import { defaultInputParameters, InputParameters, validate, validateAble } from "./utils/input-parameters"
 import { generatePorts, PortKey } from "./utils/ports"
