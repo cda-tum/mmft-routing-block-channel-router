@@ -8,7 +8,6 @@ import ImportExportIcon from '@mui/icons-material/ImportExport';
 import { ConnectionID, defaultInputConnections, defaultOutputConnections, defaultOutputConnectionsRaw, generateDXF, OutputConnections, OutputConnectionsRaw } from "./utils/connections"
 import { route } from "./utils/route"
 import { LayoutChoice } from "./components/LayoutChoice"
-import { nanoid } from "nanoid"
 import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
 import { BoardDisplay } from "./components/BoardDisplay"
 import { BoardWidthIcon } from "./icons/BoardWidthIcon"
