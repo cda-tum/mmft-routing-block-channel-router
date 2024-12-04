@@ -3,7 +3,7 @@ import { SxProps } from "@mui/joy/styles/types";
 
 export function ContentBox(props: {
     children?: React.ReactNode
-    sx: SxProps
+    sx?: SxProps
 }) {
     const theme = useTheme()
     return <Box
