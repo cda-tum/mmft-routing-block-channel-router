@@ -9,6 +9,7 @@ import { ConnectionDisplay } from "./ConnectionDisplay"
 import { ArrowDropDown } from "@mui/icons-material"
 
 export function BoardDisplay(props: {
+    show: boolean
     boardWidth: number
     boardHeight: number
     channelWidth: number
@@ -250,6 +251,8 @@ export function BoardDisplay(props: {
         </Menu>
     </>
 
+    const isBlank = connectionState.numberOfConnections() === 0
+
     const displayContent = <>
         <svg
             width="100%"
@@ -257,6 +260,7 @@ export function BoardDisplay(props: {
         >
             {contents}
         </svg>
+        {isBlank && <Typography>Click on ports to define connection ends, then generate the channel design in the section below.</Typography>}
         {selectConnection}
         {editConnection}
     </>
@@ -264,9 +268,9 @@ export function BoardDisplay(props: {
     const hasOutOfBoundsConnections = connectionState.hasOutOfBoundsConnections()
 
     const updateContent = <>
-    <Typography>
-        A change of parameters caused some connections/ports to be out of bounds. Click update to remove violating connections.
-    </Typography>
+        <Typography>
+            A change of parameters caused some connections/ports to be out of bounds. Click update to remove violating connections.
+        </Typography>
         <Button
             color="warning"
             onClick={_ => connectionState.removeOutOfBoundsConnections()}
@@ -284,7 +288,7 @@ export function BoardDisplay(props: {
         <Box
             marginY={2}
         >
-            {content}
+            {props.show && content}
         </Box>
     </>
 }

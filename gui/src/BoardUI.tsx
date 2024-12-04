@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
-import { Box, Button, Link, Stack, Typography, useTheme } from "@mui/joy"
+import { Accordion, AccordionDetails, AccordionGroup, AccordionSummary, Box, Button, Link, Stack, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
 import { defaultInputParameters, InputParameters, validate, validateAble } from "./utils/input-parameters"
-import { defaultInputPorts, generatePorts, InputPorts, PortKey } from "./utils/ports"
+import { generatePorts, PortKey } from "./utils/ports"
+import ImportExportIcon from '@mui/icons-material/ImportExport';
 import { ConnectionID, defaultInputConnections, defaultOutputConnections, defaultOutputConnectionsRaw, generateDXF, OutputConnections, OutputConnectionsRaw } from "./utils/connections"
 import { route } from "./utils/route"
 import { LayoutChoice } from "./components/LayoutChoice"
@@ -22,13 +23,17 @@ import { ConnectionsState } from "./hooks/useConnectionState"
 import { OutputChannelCapChoice } from "./components/OutputChannelCapChoice"
 import { DownloadButton } from "./components/DownloadButton"
 import { ContentBox } from "./components/ContentBox"
+import { UploadButton } from "./components/UploadButton"
+import Crop75Icon from '@mui/icons-material/Crop75';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import OutputIcon from '@mui/icons-material/Output';
+import { ChannelIcon } from "./icons/ChannelIcon"
 
 export type InputState = {
     parameters: InputParameters
     parameter_errors: string[] | undefined
     connection_errors: string[] | undefined
     general_errors: string[] | undefined
-    ports: InputPorts
     portsX: number | undefined
     portsY: number | undefined
     connections: ConnectionsState
@@ -39,7 +44,6 @@ const defaultInputState: InputState = {
     parameter_errors: undefined,
     connection_errors: undefined,
     general_errors: undefined,
-    ports: defaultInputPorts,
     connections: defaultInputConnections,
     portsX: undefined,
     portsY: undefined
@@ -142,19 +146,16 @@ export function BoardUI() {
                 gPorts = generatePorts(validated_parameters)
             }
 
-            let ports: InputPorts = undefined
             let portsX = undefined
             let portsY = undefined
 
             if (gPorts !== undefined) {
-                ports = gPorts.ports
                 portsX = gPorts.portsX
                 portsY = gPorts.portsY
             }
 
             setInput(s => ({
                 ...s,
-                ports,
                 portsX,
                 portsY,
                 parameter_errors: parameter_errors,
@@ -163,10 +164,8 @@ export function BoardUI() {
                 parameters: validated_parameters
             }))
         } else {
-            const ports: InputPorts = undefined
             setInput(s => ({
                 ...s,
-                ports,
                 parameter_errors: undefined,
                 general_errors: ["Some fields have invalid input!"],
                 connection_errors: undefined,
@@ -188,6 +187,8 @@ export function BoardUI() {
 
     const theme = useTheme()
     const [closeDropdown, setCloseDropdown] = useState(false)
+
+    const hasErrors = (input.parameter_errors !== undefined && input.parameter_errors.length > 0) || (input.general_errors !== undefined && input.general_errors.length > 0) || (input.connection_errors !== undefined && input.connection_errors.length > 0) || Object.values(input.parameters).some(p => p.error)
 
     return <div
         style={{
@@ -218,189 +219,169 @@ export function BoardUI() {
             <Box>
                 <Typography>A tool that generates channel connections for microfluidic components. <Link href="#">Learn more</Link>.</Typography>
             </Box>
-            <Box sx={{
-                marginY: 4
-            }}>
-                <Typography level="h4">Load & Save</Typography>
-                <ContentBox>
-                    <DownloadButton
-                        fileName={nanoid() + ".json"}
-                        content={JSON.stringify(getState())}
-                        mime="text/json"
-                        label="Save Configuration"
-                    />
-                </ContentBox>
-            </Box>
-            <Box sx={{
-                marginY: 4
-            }}>
-                <Typography level="h4">Board Settings</Typography>
-                <Stack direction="row" spacing={4} flexWrap='wrap' useFlexGap>
-                    <MicrometerInput
-                        label="Board Width"
-                        explainIcon={<BoardWidthIcon width={50} height={50} />}
-                        value={input.parameters.boardWidth.fieldValue}
-                        error={input.parameters.boardWidth.error ? input.parameters.boardWidth.errorMessage : undefined}
-                        warning={input.parameters.boardWidth.warning}
-                        onChange={(fv, pv) => updateInputParameter('boardWidth', fv, pv)}
-                        description="Absolute width of the routing board."
-                    />
-                    <MicrometerInput
-                        label="Board Height"
-                        explainIcon={<BoardHeightIcon width={50} height={50} />}
-                        value={input.parameters.boardHeight.fieldValue}
-                        error={input.parameters.boardHeight.error ? input.parameters.boardHeight.errorMessage : undefined}
-                        warning={input.parameters.boardHeight.warning}
-                        onChange={(fv, pv) => updateInputParameter('boardHeight', fv, pv)}
-                        description="Absolute height of the routing board."
-                    />
+            <AccordionGroup>
+                <Accordion>
+                    <AccordionSummary>
+                        <Typography level="h4"><ImportExportIcon sx={{
+                            verticalAlign: 'bottom'
+                        }} /> Load & Save</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <Stack direction="row" spacing={4} flexWrap='wrap' useFlexGap>
+                            <UploadButton
+                                label="Load Configuration"
+                                onSuccess={content => setState(JSON.parse(content))}
+                            >
 
-                </Stack>
-            </Box>
-            <Box sx={{
-                marginY: 4
-            }}>
-                <Typography level="h4">Port Settings</Typography>
-                <Stack direction="row" flexWrap='wrap' useFlexGap>
-                    <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
-                        <MicrometerInput
-                            label="Port Diameter"
-                            explainIcon={<PortDiameterIcon width={50} height={50} />}
-                            value={input.parameters.portDiameter.fieldValue}
-                            error={input.parameters.portDiameter.error ? input.parameters.portDiameter.errorMessage : undefined}
-                            warning={input.parameters.portDiameter.warning}
-                            onChange={(fv, pv) => updateInputParameter('portDiameter', fv, pv)}
-                            description="Diameter of ports."
+                            </UploadButton>
+                            <DownloadButton
+                                fileName={nanoid() + ".json"}
+                                content={() => JSON.stringify(getState())}
+                                mime="text/json"
+                                label="Save Current Configuration"
+                            />
+                        </Stack>
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion>
+                    <AccordionSummary>
+                        <Typography level="h4"><Crop75Icon sx={{
+                            verticalAlign: 'bottom'
+                        }} /> Board Settings</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <Stack direction="row" spacing={4} flexWrap='wrap' useFlexGap>
+                            <MicrometerInput
+                                label="Board Width"
+                                explainIcon={<BoardWidthIcon width={50} height={50} />}
+                                value={input.parameters.boardWidth.fieldValue}
+                                error={input.parameters.boardWidth.error ? input.parameters.boardWidth.errorMessage : undefined}
+                                warning={input.parameters.boardWidth.warning}
+                                onChange={(fv, pv) => updateInputParameter('boardWidth', fv, pv)}
+                                description="Absolute width of the routing board."
+                            />
+                            <MicrometerInput
+                                label="Board Height"
+                                explainIcon={<BoardHeightIcon width={50} height={50} />}
+                                value={input.parameters.boardHeight.fieldValue}
+                                error={input.parameters.boardHeight.error ? input.parameters.boardHeight.errorMessage : undefined}
+                                warning={input.parameters.boardHeight.warning}
+                                onChange={(fv, pv) => updateInputParameter('boardHeight', fv, pv)}
+                                description="Absolute height of the routing board."
+                            />
+
+                        </Stack>
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion>
+                    <AccordionSummary>
+                        <Typography level="h4"><RadioButtonUncheckedIcon sx={{
+                            verticalAlign: 'bottom'
+                        }} /> Port Settings</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <Stack direction="row" flexWrap='wrap' useFlexGap>
+                            <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
+                                <MicrometerInput
+                                    label="Port Diameter"
+                                    explainIcon={<PortDiameterIcon width={50} height={50} />}
+                                    value={input.parameters.portDiameter.fieldValue}
+                                    error={input.parameters.portDiameter.error ? input.parameters.portDiameter.errorMessage : undefined}
+                                    warning={input.parameters.portDiameter.warning}
+                                    onChange={(fv, pv) => updateInputParameter('portDiameter', fv, pv)}
+                                    description="Diameter of ports."
+                                />
+                                <MicrometerInput
+                                    label="Pitch"
+                                    explainIcon={<PitchIcon width={50} height={50} />}
+                                    value={input.parameters.pitch.fieldValue}
+                                    error={input.parameters.pitch.error ? input.parameters.pitch.errorMessage : undefined}
+                                    warning={input.parameters.pitch.warning}
+                                    onChange={(fv, pv) => updateInputParameter('pitch', fv, pv)}
+                                    description="Distance between ports on the port grid."
+                                    autocompleteValues={[1.5, 3.0, 4.5, 6.0, 7.5, 9.0, 10.5, 12.0, 13.5, 15.0]}
+                                />
+                            </Stack>
+                            <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
+                                <MicrometerInput
+                                    label="Pitch Offset X"
+                                    explainIcon={<PitchOffsetXIcon width={50} height={50} />}
+                                    value={input.parameters.pitchOffsetX.fieldValue}
+                                    error={input.parameters.pitchOffsetX.error ? input.parameters.pitchOffsetX.errorMessage : undefined}
+                                    warning={input.parameters.pitchOffsetX.warning}
+                                    onChange={(fv, pv) => updateInputParameter('pitchOffsetX', fv, pv)}
+                                    description="Offset of the top left port in X direction."
+                                />
+                                <MicrometerInput
+                                    label="Pitch Offset Y"
+                                    explainIcon={<PitchOffsetYIcon width={50} height={50} />}
+                                    value={input.parameters.pitchOffsetY.fieldValue}
+                                    error={input.parameters.pitchOffsetY.error ? input.parameters.pitchOffsetY.errorMessage : undefined}
+                                    warning={input.parameters.pitchOffsetY.warning}
+                                    onChange={(fv, pv) => updateInputParameter('pitchOffsetY', fv, pv)}
+                                    description="Offset of the top left port in Y direction."
+                                />
+                            </Stack>
+                        </Stack>
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion>
+                    <AccordionSummary>
+                        <Typography level="h4"><ChannelIcon sx={{
+                            verticalAlign: 'bottom'
+                        }} /> Channel Settings</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <Stack direction="row" spacing={4} flexWrap='wrap' useFlexGap>
+                            <MicrometerInput
+                                label="Channel Width"
+                                explainIcon={<ChannelWidthIcon width={50} height={50} />}
+                                value={input.parameters.channelWidth.fieldValue}
+                                error={input.parameters.channelWidth.error ? input.parameters.channelWidth.errorMessage : undefined}
+                                warning={input.parameters.channelWidth.warning}
+                                onChange={(fv, pv) => updateInputParameter('channelWidth', fv, pv)}
+                                description="Width of channels' cross section."
+                            />
+                            <MicrometerInput
+                                label="Channel Spacing"
+                                explainIcon={<ChannelSpacingIcon width={50} height={50} />}
+                                value={input.parameters.channelSpacing.fieldValue}
+                                error={input.parameters.channelSpacing.error ? input.parameters.channelSpacing.errorMessage : undefined}
+                                warning={input.parameters.channelSpacing.warning}
+                                onChange={(fv, pv) => updateInputParameter('channelSpacing', fv, pv)}
+                                description="Minimal required spacing between channels."
+                            />
+                        </Stack>
+
+                        <LayoutChoice
+                            layout={input.parameters.layout.value}
+                            onChange={layout => updateInputParameter('layout', layout, layout)}
                         />
-                        <MicrometerInput
-                            label="Pitch"
-                            explainIcon={<PitchIcon width={50} height={50} />}
-                            value={input.parameters.pitch.fieldValue}
-                            error={input.parameters.pitch.error ? input.parameters.pitch.errorMessage : undefined}
-                            warning={input.parameters.pitch.warning}
-                            onChange={(fv, pv) => updateInputParameter('pitch', fv, pv)}
-                            description="Distance between ports on the port grid."
-                            autocompleteValues={[1.5, 3.0, 4.5, 6.0, 7.5, 9.0, 10.5, 12.0, 13.5, 15.0]}
+
+                    </AccordionDetails>
+
+                </Accordion>
+
+                <Accordion>
+                    <AccordionSummary>
+                        <Typography level="h4"><OutputIcon sx={{
+                            verticalAlign: 'bottom'
+                        }}/> Output Settings</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <OutputChannelCapChoice
+                            channelCap={input.parameters.channelCap.value}
+                            channelCapCustom={input.parameters.channelCapCustom}
+                            onChangeChannelCap={channelCap => updateInputParameter('channelCap', channelCap, channelCap)}
+                            onChangeChannelCapCustom={(fv, pv) => updateInputParameter('channelCapCustom', fv, pv)}
                         />
-                    </Stack>
-                    <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
-                        <MicrometerInput
-                            label="Pitch Offset X"
-                            explainIcon={<PitchOffsetXIcon width={50} height={50} />}
-                            value={input.parameters.pitchOffsetX.fieldValue}
-                            error={input.parameters.pitchOffsetX.error ? input.parameters.pitchOffsetX.errorMessage : undefined}
-                            warning={input.parameters.pitchOffsetX.warning}
-                            onChange={(fv, pv) => updateInputParameter('pitchOffsetX', fv, pv)}
-                            description="Offset of the top left port in X direction."
-                        />
-                        <MicrometerInput
-                            label="Pitch Offset Y"
-                            explainIcon={<PitchOffsetYIcon width={50} height={50} />}
-                            value={input.parameters.pitchOffsetY.fieldValue}
-                            error={input.parameters.pitchOffsetY.error ? input.parameters.pitchOffsetY.errorMessage : undefined}
-                            warning={input.parameters.pitchOffsetY.warning}
-                            onChange={(fv, pv) => updateInputParameter('pitchOffsetY', fv, pv)}
-                            description="Offset of the top left port in Y direction."
-                        />
-                    </Stack>
-                </Stack>
-            </Box>
-            <Box
-                sx={{
-                    marginY: 4,
-                }}
-            >
-                <Typography level="h4">Channel Settings</Typography>
-                <Stack direction="row" spacing={4} flexWrap='wrap' useFlexGap>
-                    <MicrometerInput
-                        label="Channel Width"
-                        explainIcon={<ChannelWidthIcon width={50} height={50} />}
-                        value={input.parameters.channelWidth.fieldValue}
-                        error={input.parameters.channelWidth.error ? input.parameters.channelWidth.errorMessage : undefined}
-                        warning={input.parameters.channelWidth.warning}
-                        onChange={(fv, pv) => updateInputParameter('channelWidth', fv, pv)}
-                        description="Width of channels' cross section."
-                    />
-                    <MicrometerInput
-                        label="Channel Spacing"
-                        explainIcon={<ChannelSpacingIcon width={50} height={50} />}
-                        value={input.parameters.channelSpacing.fieldValue}
-                        error={input.parameters.channelSpacing.error ? input.parameters.channelSpacing.errorMessage : undefined}
-                        warning={input.parameters.channelSpacing.warning}
-                        onChange={(fv, pv) => updateInputParameter('channelSpacing', fv, pv)}
-                        description="Minimal required spacing between channels."
-                    />
-                </Stack>
-
-                <LayoutChoice
-                    layout={input.parameters.layout.value}
-                    onChange={layout => updateInputParameter('layout', layout, layout)}
-                />
-
-            </Box>
-
-            <Box
-                sx={{
-                    marginY: 4,
-                }}
-            >
-                <Typography level="h4">Output Settings</Typography>
-
-                <OutputChannelCapChoice
-                    channelCap={input.parameters.channelCap.value}
-                    channelCapCustom={input.parameters.channelCapCustom}
-                    onChangeChannelCap={channelCap => updateInputParameter('channelCap', channelCap, channelCap)}
-                    onChangeChannelCapCustom={(fv, pv) => updateInputParameter('channelCapCustom', fv, pv)}
-                />
-            </Box>
-
-            {input.parameter_errors !== undefined &&
-                input.parameter_errors.map(e => <Typography
-                    variant="soft"
-                    color="danger"
-                    startDecorator={<InfoOutlined />}
-                    sx={{
-                        padding: '1em'
-                    }}
-                >
-                    {e}
-                </Typography>
-                )
-            }
-            {input.connection_errors !== undefined &&
-                input.connection_errors.map(e => <Typography
-                    variant="soft"
-                    color="danger"
-                    startDecorator={<InfoOutlined />}
-                    sx={{
-                        padding: '1em'
-                    }}
-                >
-                    {e}
-                </Typography>
-                )
-            }
-
-            {input.general_errors !== undefined &&
-                input.general_errors.map(e => <Typography
-                    variant="soft"
-                    color="danger"
-                    startDecorator={<InfoOutlined />}
-                    sx={{
-                        padding: '1em'
-                    }}
-                >
-                    {e}
-                </Typography>
-                )
-            }
+                    </AccordionDetails>
+                </Accordion>
+            </AccordionGroup>
 
 
-            <Box
-                sx={{
-                    marginY: 4,
-                }}
-            >
+
+            <Box sx={{ marginY: 2 }}>
                 <Typography level="h4">Connections</Typography>
                 <ContentBox>
 
@@ -411,6 +392,7 @@ export function BoardUI() {
                         }}
                     >
                         <BoardDisplay
+                            show={!hasErrors}
                             boardWidth={input.parameters.boardWidth.value!}
                             boardHeight={input.parameters.boardHeight.value!}
                             pitch={input.parameters.pitch.value!}
@@ -426,18 +408,23 @@ export function BoardUI() {
                             }))}
                             outputConnections={output.connections}
                             closeDropdown={closeDropdown}
-                        ></BoardDisplay>
+                        />
 
+                        {hasErrors && <Typography
+                            variant="soft"
+                            color="danger"
+                            startDecorator={<InfoOutlined />}
+                            sx={{
+                                padding: '1em'
+                            }}
+                        >
+                            There are errors in the configuration.
+                        </Typography>}
                     </Box>
                 </ContentBox>
             </Box>
 
-
-            <Box
-                sx={{
-                    marginY: 4,
-                }}
-            >
+            <Box sx={{ marginY: 2 }}>
                 <Typography level="h4">Design</Typography>
                 <ContentBox>
                     <Button
@@ -454,7 +441,7 @@ export function BoardUI() {
                         <Typography sx={{ color: theme.vars.palette.common.white }}>
                             <PlayCircleFilledWhiteIcon sx={{
                                 verticalAlign: 'bottom'
-                            }} /> Route</Typography>
+                            }} /> Generate Design</Typography>
                     </Button>
 
                     <DownloadButton
@@ -462,7 +449,49 @@ export function BoardUI() {
                         fileName={`${nanoid()}.dxf`}
                         mime={'image/x-dxf'}
                         content={dxfOutput}
+                        noContentMessage={"There is no valid routing. Click 'Route' to generate a routing for download."}
                     />
+
+                    {input.parameter_errors !== undefined &&
+                        input.parameter_errors.map(e => <Typography
+                            variant="soft"
+                            color="danger"
+                            startDecorator={<InfoOutlined />}
+                            sx={{
+                                padding: '1em'
+                            }}
+                        >
+                            {e}
+                        </Typography>
+                        )
+                    }
+                    {input.connection_errors !== undefined &&
+                        input.connection_errors.map(e => <Typography
+                            variant="soft"
+                            color="danger"
+                            startDecorator={<InfoOutlined />}
+                            sx={{
+                                padding: '1em'
+                            }}
+                        >
+                            {e}
+                        </Typography>
+                        )
+                    }
+
+                    {input.general_errors !== undefined &&
+                        input.general_errors.map(e => <Typography
+                            variant="soft"
+                            color="danger"
+                            startDecorator={<InfoOutlined />}
+                            sx={{
+                                padding: '1em'
+                            }}
+                        >
+                            {e}
+                        </Typography>
+                        )
+                    }
 
                     {output.error !== undefined &&
                         <Typography
@@ -480,6 +509,7 @@ export function BoardUI() {
                         </Typography>
                     }
                 </ContentBox>
+
             </Box>
         </main>
         <footer
@@ -496,5 +526,5 @@ export function BoardUI() {
                 }}
             >Chair for Design Automation<br />Technical University of Munich</Typography></a>
         </footer>
-    </div >
+    </div>
 }

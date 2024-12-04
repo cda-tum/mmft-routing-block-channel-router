@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::board_router::{ConnectionID, Layout, Port, RouteInputConnections};
+use crate::board_router::{
+    compute_ports, ComputePortsInput, ComputePortsOutput, ConnectionID, Layout, Port, RouteInputConnections
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ValidateInput {
@@ -29,6 +31,9 @@ pub struct ValidationErr {
     errors: Vec<ValidationError>,
 }
 
+type MaxPorts = usize;
+type ActualPorts = usize;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ValidationError {
     BoardWidthError(BoardWidthError),
@@ -40,7 +45,7 @@ pub enum ValidationError {
     ChannelWidthError(ChannelWidthError),
     ChannelSpacingError(ChannelSpacingError),
     ChannelDimensionsTooLarge,
-    MaxPortsExceeded(usize, usize),
+    MaxPortsExceeded(ActualPorts, MaxPorts),
     InvalidConnectionPortX(ConnectionID, Port),
     InvalidConnectionPortY(ConnectionID, Port),
 }
@@ -73,14 +78,14 @@ pub enum PitchError {
 pub enum PitchOffsetXError {
     Undefined,
     NotPositive,
-    SmallerThanPitch
+    SmallerThanPitch,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum PitchOffsetYError {
     Undefined,
     NotPositive,
-    SmallerThanPitch
+    SmallerThanPitch,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -99,7 +104,7 @@ pub enum ChannelSpacingError {
 pub enum ValidationWarning {
     PitchNotMultiple(f64),
     BoardWidthNotMultiple(f64),
-    BoardHeightNotMultiple(f64)
+    BoardHeightNotMultiple(f64),
 }
 
 macro_rules! some {
@@ -123,7 +128,9 @@ pub fn validate(input: ValidateInput) -> Result<ValidationOk, ValidationErr> {
                 BoardWidthError::NotPositive,
             ));
         } else if !is_integer(board_width / 1.5) {
-            warnings.push(ValidationWarning::BoardWidthNotMultiple(1.5 * (board_width / 1.5).round()));
+            warnings.push(ValidationWarning::BoardWidthNotMultiple(
+                1.5 * (board_width / 1.5).round(),
+            ));
         }
     } else {
         errors.push(ValidationError::BoardWidthError(BoardWidthError::Undefined));
@@ -135,7 +142,9 @@ pub fn validate(input: ValidateInput) -> Result<ValidationOk, ValidationErr> {
                 BoardHeightError::NotPositive,
             ));
         } else if !is_integer(board_height / 1.5) {
-            warnings.push(ValidationWarning::BoardHeightNotMultiple(1.5 * (board_height / 1.5).round()));
+            warnings.push(ValidationWarning::BoardHeightNotMultiple(
+                1.5 * (board_height / 1.5).round(),
+            ));
         }
     } else {
         errors.push(ValidationError::BoardHeightError(
@@ -157,16 +166,14 @@ pub fn validate(input: ValidateInput) -> Result<ValidationOk, ValidationErr> {
 
     if let Some(pitch) = input.pitch {
         if pitch <= 0. {
-            errors.push(ValidationError::PitchError(
-                PitchError::NotPositive,
-            ));
+            errors.push(ValidationError::PitchError(PitchError::NotPositive));
         } else if !is_integer(pitch / 1.5) {
-            warnings.push(ValidationWarning::PitchNotMultiple(1.5 * (pitch / 1.5).round()));
+            warnings.push(ValidationWarning::PitchNotMultiple(
+                1.5 * (pitch / 1.5).round(),
+            ));
         }
     } else {
-        errors.push(ValidationError::PitchError(
-            PitchError::Undefined,
-        ));
+        errors.push(ValidationError::PitchError(PitchError::Undefined));
     }
 
     if let Some(pitch_offset_x) = input.pitch_offset_x {
@@ -219,15 +226,39 @@ pub fn validate(input: ValidateInput) -> Result<ValidationOk, ValidationErr> {
 
     some!(input, pitch, pitch_offset_x, {
         if pitch_offset_x < pitch {
-            errors.push(ValidationError::PitchOffsetXError(PitchOffsetXError::SmallerThanPitch))
+            errors.push(ValidationError::PitchOffsetXError(
+                PitchOffsetXError::SmallerThanPitch,
+            ))
         }
     });
 
     some!(input, pitch, pitch_offset_y, {
         if pitch_offset_y < pitch {
-            errors.push(ValidationError::PitchOffsetYError(PitchOffsetYError::SmallerThanPitch))
+            errors.push(ValidationError::PitchOffsetYError(
+                PitchOffsetYError::SmallerThanPitch,
+            ))
         }
     });
+
+    if input.board_width.is_some()
+        && input.board_height.is_some()
+        && input.pitch.is_some()
+        && input.pitch_offset_x.is_some()
+        && input.pitch_offset_y.is_some()
+        && input.max_ports.is_some()
+    {
+        let ComputePortsOutput { ports_x, ports_y } = compute_ports(ComputePortsInput {
+            board_width: input.board_width.unwrap(),
+            board_height: input.board_height.unwrap(),
+            pitch: input.pitch.unwrap(),
+            pitch_offset_x: input.pitch_offset_x.unwrap(),
+            pitch_offset_y: input.pitch_offset_y.unwrap()
+        });
+        let total_ports = ports_x * ports_y;
+        if total_ports > input.max_ports.unwrap() {
+            errors.push(ValidationError::MaxPortsExceeded(total_ports, input.max_ports.unwrap()))
+        }
+    }
 
     if errors.len() > 0 {
         Err(ValidationErr { warnings, errors })

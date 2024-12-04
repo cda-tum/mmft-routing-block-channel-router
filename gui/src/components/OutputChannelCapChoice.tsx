@@ -109,10 +109,10 @@ export function OutputChannelCapChoice(props: OutputChannelCapChoiceProps) {
                     error={props.channelCapCustom.error ? props.channelCapCustom.errorMessage : undefined}
                     warning={props.channelCapCustom.warning}
                     onChange={(fv, pv) => props.onChangeChannelCapCustom(fv, pv)}
-                    description="Extra length behind port center."
+                    description="Extra length after end."
                     sx={{
                         zIndex: 3,
-                        maxWidth: '13em'
+                        maxWidth: '10em'
                     }}
                     marginY={0}
                 />
