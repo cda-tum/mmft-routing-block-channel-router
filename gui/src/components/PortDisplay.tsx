@@ -17,7 +17,7 @@ export function PortDisplay(props: {
     const baseStyle: React.CSSProperties = {
         strokeLinejoin: 'round',
         strokeLinecap: 'round',
-        transition: 'all 0.25s ease'
+        transition: 'fill 0.25s ease'
     }
 
     // Style when port can be clicked

@@ -15,17 +15,17 @@ export function ChannelIcon(props: {
             <path
                 stroke="none"
                 fill="rgb(from currentColor r g b / calc(alpha / 2))"
-                d="M 0 8 L 14 8 L 14 14 L 24 14 L 24 20 L 8 20 L 8 14 L 0 14 z"
+                d="M 0 4 L 14 4 L 14 14 L 24 14 L 24 20 L 8 20 L 8 10 L 0 10 z"
             />
             <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M 0 8 L 14 8 L 14 14 L 24 14"
+                d="M 0 4 L 14 4 L 14 14 L 24 14"
             />
             <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M 0 14 L 8 14 L 8 20 L 24 20"
+                d="M 0 10 L 8 10 L 8 20 L 24 20"
             />
         </svg>
     </SvgIcon>
