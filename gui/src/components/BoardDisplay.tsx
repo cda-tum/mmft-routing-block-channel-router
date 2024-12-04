@@ -9,6 +9,7 @@ import { ConnectionDisplay } from "./ConnectionDisplay"
 import { ArrowDropDown } from "@mui/icons-material"
 
 export function BoardDisplay(props: {
+    show: boolean
     boardWidth: number
     boardHeight: number
     channelWidth: number
@@ -284,7 +285,7 @@ export function BoardDisplay(props: {
         <Box
             marginY={2}
         >
-            {content}
+            {props.show && content}
         </Box>
     </>
 }

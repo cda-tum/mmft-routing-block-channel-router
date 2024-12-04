@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
-import { Box, Button, Link, Stack, Typography, useTheme } from "@mui/joy"
+import { Accordion, AccordionGroup, Box, Button, Link, Stack, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
 import { defaultInputParameters, InputParameters, validate, validateAble } from "./utils/input-parameters"
 import { defaultInputPorts, generatePorts, InputPorts, PortKey } from "./utils/ports"
@@ -22,13 +22,13 @@ import { ConnectionsState } from "./hooks/useConnectionState"
 import { OutputChannelCapChoice } from "./components/OutputChannelCapChoice"
 import { DownloadButton } from "./components/DownloadButton"
 import { ContentBox } from "./components/ContentBox"
+import { UploadButton } from "./components/UploadButton"
 
 export type InputState = {
     parameters: InputParameters
     parameter_errors: string[] | undefined
     connection_errors: string[] | undefined
     general_errors: string[] | undefined
-    ports: InputPorts
     portsX: number | undefined
     portsY: number | undefined
     connections: ConnectionsState
@@ -39,7 +39,6 @@ const defaultInputState: InputState = {
     parameter_errors: undefined,
     connection_errors: undefined,
     general_errors: undefined,
-    ports: defaultInputPorts,
     connections: defaultInputConnections,
     portsX: undefined,
     portsY: undefined
@@ -142,19 +141,16 @@ export function BoardUI() {
                 gPorts = generatePorts(validated_parameters)
             }
 
-            let ports: InputPorts = undefined
             let portsX = undefined
             let portsY = undefined
 
             if (gPorts !== undefined) {
-                ports = gPorts.ports
                 portsX = gPorts.portsX
                 portsY = gPorts.portsY
             }
 
             setInput(s => ({
                 ...s,
-                ports,
                 portsX,
                 portsY,
                 parameter_errors: parameter_errors,
@@ -163,10 +159,8 @@ export function BoardUI() {
                 parameters: validated_parameters
             }))
         } else {
-            const ports: InputPorts = undefined
             setInput(s => ({
                 ...s,
-                ports,
                 parameter_errors: undefined,
                 general_errors: ["Some fields have invalid input!"],
                 connection_errors: undefined,
@@ -188,6 +182,8 @@ export function BoardUI() {
 
     const theme = useTheme()
     const [closeDropdown, setCloseDropdown] = useState(false)
+
+    const hasErrors = (input.parameter_errors !== undefined && input.parameter_errors.length > 0) || (input.general_errors !== undefined && input.general_errors.length > 0) || (input.connection_errors !== undefined && input.connection_errors.length > 0) || Object.values(input.parameters).some(p => p.error)
 
     return <div
         style={{
@@ -218,19 +214,25 @@ export function BoardUI() {
             <Box>
                 <Typography>A tool that generates channel connections for microfluidic components. <Link href="#">Learn more</Link>.</Typography>
             </Box>
-            <Box sx={{
-                marginY: 4
-            }}>
-                <Typography level="h4">Load & Save</Typography>
-                <ContentBox>
-                    <DownloadButton
-                        fileName={nanoid() + ".json"}
-                        content={JSON.stringify(getState())}
-                        mime="text/json"
-                        label="Save Configuration"
-                    />
-                </ContentBox>
-            </Box>
+                    <Box sx={{
+                        marginY: 4
+                    }}>
+                        <Typography level="h4">Load & Save</Typography>
+                        <ContentBox>
+                            <UploadButton
+                                label="Load Configuration"
+                                onSuccess={content => setState(JSON.parse(content))}
+                            >
+
+                            </UploadButton>
+                            <DownloadButton
+                                fileName={nanoid() + ".json"}
+                                content={() => JSON.stringify(getState())}
+                                mime="text/json"
+                                label="Save Configuration"
+                            />
+                        </ContentBox>
+                    </Box>
             <Box sx={{
                 marginY: 4
             }}>
@@ -411,6 +413,7 @@ export function BoardUI() {
                         }}
                     >
                         <BoardDisplay
+                            show={!hasErrors}
                             boardWidth={input.parameters.boardWidth.value!}
                             boardHeight={input.parameters.boardHeight.value!}
                             pitch={input.parameters.pitch.value!}
@@ -426,8 +429,18 @@ export function BoardUI() {
                             }))}
                             outputConnections={output.connections}
                             closeDropdown={closeDropdown}
-                        ></BoardDisplay>
+                        />
 
+                        {hasErrors && <Typography
+                            variant="soft"
+                            color="danger"
+                            startDecorator={<InfoOutlined />}
+                            sx={{
+                                padding: '1em'
+                            }}
+                        >
+                            There are errors in the configuration.
+                        </Typography>}
                     </Box>
                 </ContentBox>
             </Box>
@@ -462,6 +475,7 @@ export function BoardUI() {
                         fileName={`${nanoid()}.dxf`}
                         mime={'image/x-dxf'}
                         content={dxfOutput}
+                        noContentMessage={"There is no valid routing. Click 'Route' to generate a routing for download."}
                     />
 
                     {output.error !== undefined &&
@@ -496,5 +510,5 @@ export function BoardUI() {
                 }}
             >Chair for Design Automation<br />Technical University of Munich</Typography></a>
         </footer>
-    </div >
+    </div>
 }

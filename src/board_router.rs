@@ -224,11 +224,11 @@ fn compute_extra_node(
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ComputePortsInput {
-    board_width: f64,
-    board_height: f64,
-    pitch: f64,
-    pitch_offset_x: f64,
-    pitch_offset_y: f64,
+    pub board_width: f64,
+    pub board_height: f64,
+    pub pitch: f64,
+    pub pitch_offset_x: f64,
+    pub pitch_offset_y: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -12,13 +12,14 @@ export function download(output: string, fileName: string, mime: string) {
 }
 
 type DownloadButtonProps = { label: string } & ({
-    content: string
+    content: string | (() => string)
     mime: string
     fileName: string
 } | {
     content: undefined
     mime: undefined | string
     fileName: undefined | string
+    noContentMessage: string
 })
 
 export function DownloadButton(props: DownloadButtonProps) {
@@ -27,7 +28,11 @@ export function DownloadButton(props: DownloadButtonProps) {
         disabled={props.content === undefined}
         onClick={_ => {
             if (props.content !== undefined) {
-                download(props.content, props.fileName, props.mime)
+                if(typeof props.content === 'function') {
+                    download(props.content(), props.fileName, props.mime)
+                } else {
+                    download(props.content, props.fileName, props.mime)
+                }
             }
         }}
         sx={{

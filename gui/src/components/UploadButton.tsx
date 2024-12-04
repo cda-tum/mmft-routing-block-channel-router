@@ -2,15 +2,11 @@ import { Button, Typography, useTheme } from "@mui/joy"
 import { useRef } from "react";
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 
-type UploadButtonProps = { label: string, onError: () => void, onSuccess: (input: string) => void } & ({
-    content: string
-    mime: string
-    fileName: string
-} | {
-    content: undefined
-    mime: undefined | string
-    fileName: undefined | string
-})
+type UploadButtonProps = {
+    label: string,
+    onError?: () => void,
+    onSuccess: (content: string) => void
+}
 
 export function UploadButton(props: UploadButtonProps) {
     const theme = useTheme()
@@ -42,7 +38,7 @@ export function UploadButton(props: UploadButtonProps) {
                     try {
                         props.onSuccess(content)
                     } catch (e) {
-                        props.onError()
+                        props.onError?.()
                     }
                 }
 
@@ -52,7 +48,6 @@ export function UploadButton(props: UploadButtonProps) {
             }}
         />
         <Button
-            disabled={props.content === undefined}
             onClick={_ => {
                 tempInput.current?.click()
             }}

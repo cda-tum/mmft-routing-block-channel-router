@@ -143,7 +143,7 @@ export function validate(parameters: InputParameters) {
                 } else if (typeof error === 'object') {
                     if ('MaxPortsExceeded' in error) {
                         const [ports, maxPorts] = error['MaxPortsExceeded']
-                        pe.push(`The given configuration produces ${ports} possible port locations. For performance reasons, there is an upper limit of ${maxPorts} ports. Try increasing pitch, pitch offsets, or decreasing board size.`)
+                        pe.push(`The given configuration produces ${ports} possible port locations. For performance reasons, there is an upper limit of ${maxPorts} ports. Try to increase pitch, pitch offsets, or decrease board size.`)
                     } else if ('BoardWidthError' in error) {
                         const suberror = error['BoardWidthError']
                         if (suberror === 'Undefined') {
