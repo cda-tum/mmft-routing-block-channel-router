@@ -1,4 +1,4 @@
-import { Button, Typography, useTheme } from "@mui/joy"
+import { Button, Tooltip, Typography, useTheme } from "@mui/joy"
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 export function download(output: string, fileName: string, mime: string) {
@@ -24,11 +24,14 @@ type DownloadButtonProps = { label: string } & ({
 
 export function DownloadButton(props: DownloadButtonProps) {
     const theme = useTheme()
-    return <Button
-        disabled={props.content === undefined}
+
+    const disabled = props.content === undefined
+
+    const button = <span><Button
+        disabled={disabled}
         onClick={_ => {
-            if (props.content !== undefined) {
-                if(typeof props.content === 'function') {
+            if (!disabled) {
+                if (typeof props.content === 'function') {
                     download(props.content(), props.fileName, props.mime)
                 } else {
                     download(props.content, props.fileName, props.mime)
@@ -40,5 +43,10 @@ export function DownloadButton(props: DownloadButtonProps) {
             <FileDownloadIcon sx={{
                 verticalAlign: 'bottom'
             }} /> {props.label}</Typography>
-    </Button>
+    </Button></span>
+
+    const wrapWithTooltip = 'noContentMessage' in props && props.noContentMessage !== undefined && disabled && props.content === undefined
+    const maybeWrapped = wrapWithTooltip ? <Tooltip title={props.noContentMessage} variant="solid">{button}</Tooltip> : button
+
+    return maybeWrapped
 }
