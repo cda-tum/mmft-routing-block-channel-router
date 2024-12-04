@@ -17,6 +17,7 @@ export function ConnectionEditor(props: {
     const isExistingConnection = props.connectionState.hasConnection(props.connectionState.preview.connection) !== undefined
 
     const canAddPorts = !(maxPorts !== undefined && props.connectionState.preview.ports.length >= maxPorts)
+    const canSave = props.connectionState.preview.isValid()
 
     return <Box
         padding={2}
@@ -55,18 +56,29 @@ export function ConnectionEditor(props: {
                 flexWrap='wrap'
                 useFlexGap
             >
-
-                <Button
-                    disabled={!props.connectionState.preview.isValid()}
-                    onClick={_ => {
-                        props.connectionState.preview.acceptPreview()
-                    }}
-                >
-                    <Typography sx={{ color: theme.vars.palette.common.white }}>
-                        <CheckIcon sx={{
-                            verticalAlign: 'bottom'
-                        }} /> Save {isExistingConnection ? 'Changes' : ''}</Typography>
-                </Button>
+                {canSave ?
+                    <Button
+                        disabled={!canSave}
+                        onClick={_ => {
+                            props.connectionState.preview.acceptPreview()
+                        }}
+                    >
+                        <Typography sx={{ color: theme.vars.palette.common.white }}>
+                            <CheckIcon sx={{
+                                verticalAlign: 'bottom'
+                            }} /> Save {isExistingConnection ? 'Changes' : ''}</Typography>
+                    </Button> : <Tooltip title="Errors must be fixed before saving is possible." variant="solid"><span><Button
+                        disabled={!canSave}
+                        onClick={_ => {
+                            props.connectionState.preview.acceptPreview()
+                        }}
+                    >
+                        <Typography sx={{ color: theme.vars.palette.common.white }}>
+                            <CheckIcon sx={{
+                                verticalAlign: 'bottom'
+                            }} /> Save {isExistingConnection ? 'Changes' : ''}</Typography>
+                    </Button></span></Tooltip>
+                }
 
                 {
                     minPorts !== maxPorts &&
