@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
-import { Accordion, AccordionDetails, AccordionGroup, AccordionSummary, Box, Button, Link, Stack, Typography, useTheme } from "@mui/joy"
+import { Accordion, AccordionDetails, AccordionGroup, AccordionSummary, Box, Button, Link, Snackbar, Stack, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
 import { defaultInputParameters, InputParameters, validate, validateAble } from "./utils/input-parameters"
 import { generatePorts, PortKey } from "./utils/ports"
@@ -28,6 +28,7 @@ import Crop75Icon from '@mui/icons-material/Crop75';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import OutputIcon from '@mui/icons-material/Output';
 import { ChannelIcon } from "./icons/ChannelIcon"
+import { SxProps } from "@mui/joy/styles/types"
 
 export type InputState = {
     parameters: InputParameters
@@ -190,6 +191,8 @@ export function BoardUI() {
 
     const hasErrors = (input.parameter_errors !== undefined && input.parameter_errors.length > 0) || (input.general_errors !== undefined && input.general_errors.length > 0) || (input.connection_errors !== undefined && input.connection_errors.length > 0) || Object.values(input.parameters).some(p => p.error)
 
+    const accordionErrorSx: SxProps = { backgroundColor: `rgb(from ${theme.vars.palette.danger[500]} r g b / calc(alpha / 2))` }
+
     return <div
         style={{
             backgroundColor: theme.vars.palette.background.level1,
@@ -216,8 +219,10 @@ export function BoardUI() {
             </Typography></a>
         </header>
         <main>
-            <Box>
-                <Typography>A tool that generates channel connections for microfluidic components. <Link href="#">Learn more</Link>.</Typography>
+            <Box sx={{
+                marginBottom: 2
+            }}>
+                <Typography>A tool that generates channel connections for ISO-22916-compliant microfluidic routing components. <Link href="#">Learn more</Link>.</Typography>
             </Box>
             <AccordionGroup>
                 <Accordion>
@@ -227,7 +232,7 @@ export function BoardUI() {
                         }} /> Load & Save</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                        <Stack direction="row" spacing={4} flexWrap='wrap' useFlexGap>
+                        <Stack direction="row" spacing={4} flexWrap='wrap' useFlexGap paddingY={2}>
                             <UploadButton
                                 label="Load Configuration"
                                 onSuccess={content => setState(JSON.parse(content))}
@@ -244,7 +249,7 @@ export function BoardUI() {
                     </AccordionDetails>
                 </Accordion>
                 <Accordion>
-                    <AccordionSummary>
+                    <AccordionSummary sx={input.parameters.boardWidth.error || input.parameters.boardHeight.error ? accordionErrorSx : {}}>
                         <Typography level="h4"><Crop75Icon sx={{
                             verticalAlign: 'bottom'
                         }} /> Board Settings</Typography>
@@ -274,7 +279,7 @@ export function BoardUI() {
                     </AccordionDetails>
                 </Accordion>
                 <Accordion>
-                    <AccordionSummary>
+                    <AccordionSummary sx={input.parameters.portDiameter.error || input.parameters.pitch.error || input.parameters.pitchOffsetX.error || input.parameters.pitchOffsetY.error ? accordionErrorSx : {}}>
                         <Typography level="h4"><RadioButtonUncheckedIcon sx={{
                             verticalAlign: 'bottom'
                         }} /> Port Settings</Typography>
@@ -326,7 +331,7 @@ export function BoardUI() {
                     </AccordionDetails>
                 </Accordion>
                 <Accordion>
-                    <AccordionSummary>
+                    <AccordionSummary sx={input.parameters.channelWidth.error || input.parameters.channelSpacing.error || input.parameters.layout.error ? accordionErrorSx : {}}>
                         <Typography level="h4"><ChannelIcon sx={{
                             verticalAlign: 'bottom'
                         }} /> Channel Settings</Typography>
@@ -363,10 +368,10 @@ export function BoardUI() {
                 </Accordion>
 
                 <Accordion>
-                    <AccordionSummary>
+                    <AccordionSummary sx={input.parameters.channelCap.error || input.parameters.channelCapCustom.error ? accordionErrorSx : {}}>
                         <Typography level="h4"><OutputIcon sx={{
                             verticalAlign: 'bottom'
-                        }}/> Output Settings</Typography>
+                        }} /> DXF Output Settings</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <OutputChannelCapChoice
@@ -413,12 +418,14 @@ export function BoardUI() {
                         {hasErrors && <Typography
                             variant="soft"
                             color="danger"
-                            startDecorator={<InfoOutlined />}
                             sx={{
                                 padding: '1em'
                             }}
                         >
-                            There are errors in the configuration.
+                            {input.parameter_errors !== undefined && input.parameter_errors.length > 0 && input.parameter_errors.map(e => <>{e}<br/></>
+                            )}
+                            {input.general_errors !== undefined && input.general_errors.length > 0 && input.general_errors.map(e => <>{e}<br/></>
+                            )}
                         </Typography>}
                     </Box>
                 </ContentBox>
@@ -427,6 +434,7 @@ export function BoardUI() {
             <Box sx={{ marginY: 2 }}>
                 <Typography level="h4">Design</Typography>
                 <ContentBox>
+
                     <Button
                         disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
                         onClick={_ => {
@@ -451,47 +459,6 @@ export function BoardUI() {
                         content={dxfOutput}
                         noContentMessage={"There is no valid routing. Click 'Route' to generate a routing for download."}
                     />
-
-                    {input.parameter_errors !== undefined &&
-                        input.parameter_errors.map(e => <Typography
-                            variant="soft"
-                            color="danger"
-                            startDecorator={<InfoOutlined />}
-                            sx={{
-                                padding: '1em'
-                            }}
-                        >
-                            {e}
-                        </Typography>
-                        )
-                    }
-                    {input.connection_errors !== undefined &&
-                        input.connection_errors.map(e => <Typography
-                            variant="soft"
-                            color="danger"
-                            startDecorator={<InfoOutlined />}
-                            sx={{
-                                padding: '1em'
-                            }}
-                        >
-                            {e}
-                        </Typography>
-                        )
-                    }
-
-                    {input.general_errors !== undefined &&
-                        input.general_errors.map(e => <Typography
-                            variant="soft"
-                            color="danger"
-                            startDecorator={<InfoOutlined />}
-                            sx={{
-                                padding: '1em'
-                            }}
-                        >
-                            {e}
-                        </Typography>
-                        )
-                    }
 
                     {output.error !== undefined &&
                         <Typography
