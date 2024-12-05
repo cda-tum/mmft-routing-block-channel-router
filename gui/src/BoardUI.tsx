@@ -28,6 +28,7 @@ import OutputIcon from '@mui/icons-material/Output';
 import { ChannelIcon } from "./icons/ChannelIcon"
 import { SxProps } from "@mui/joy/styles/types"
 import { BoardIcon } from "./icons/BoardIcon"
+import { MMFTIcon } from "./icons/MMFTIcon"
 
 export type InputState = {
     parameters: InputParameters
@@ -210,15 +211,27 @@ export function BoardUI() {
                 backgroundColor: theme.vars.palette.primary[500],
             }}
         >
-            <a><Typography
-                level='h1'
-                sx={{
-                    color: theme.vars.palette.common.white,
-                    paddingY: 1,
-                }}
-            >
-                MMFT Board Router
-            </Typography></a>
+            <Box>
+                <MMFTIcon
+                    primaryColor={theme.vars.palette.common.white}
+                    secondaryColor={'#333'}
+                    height='8em'
+                    style={{
+                        verticalAlign: 'middle'
+                    }}
+                />
+                <Typography
+                    level='h1'
+                    sx={{
+                        color: theme.vars.palette.common.white,
+                        paddingY: 1,
+                        display: 'inline-block',
+                        verticalAlign: 'middle'
+                    }}
+                >
+                    Board Router
+                </Typography>
+            </Box>
         </header>
         <main>
             <Box sx={{
@@ -427,9 +440,9 @@ export function BoardUI() {
                                 padding: '1em'
                             }}
                         >
-                            {input.parameter_errors !== undefined && input.parameter_errors.length > 0 && input.parameter_errors.map(e => <>{e}<br/></>
+                            {input.parameter_errors !== undefined && input.parameter_errors.length > 0 && input.parameter_errors.map(e => <>{e}<br /></>
                             )}
-                            {input.general_errors !== undefined && input.general_errors.length > 0 && input.general_errors.map(e => <>{e}<br/></>
+                            {input.general_errors !== undefined && input.general_errors.length > 0 && input.general_errors.map(e => <>{e}<br /></>
                             )}
                         </Typography>}
                     </Box>
