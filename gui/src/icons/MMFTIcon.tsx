@@ -1,5 +1,3 @@
-import { SxProps } from "@mui/joy/styles/types"
-
 export function MMFTIcon(props: {
     primaryColor?: string
     secondaryColor?: string
