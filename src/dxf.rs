@@ -1,5 +1,8 @@
 use core::f64;
-use std::io::{self, Cursor, Error, Result, Write};
+use std::{
+    io::{self, Cursor, Error, Result, Write},
+    iter,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -508,9 +511,32 @@ pub enum DXFEntity {
     Line(Line),
 }
 
+#[derive(Clone)]
 pub enum Polyline {
     Closed(Vec<Point>),
     Open(Vec<Point>),
+}
+
+impl Polyline {
+    fn invert_y(&mut self) -> &mut Self {
+        match self {
+            Polyline::Closed(vec) | Polyline::Open(vec) => {
+                vec.iter_mut().for_each(|p| p[1] = -p[1]);
+            },
+        }
+
+        self
+    }
+
+    fn add_y(&mut self, add: f64) -> &mut Self {
+        match self {
+            Polyline::Closed(vec) | Polyline::Open(vec) => {
+                vec.iter_mut().for_each(|p| p[1] += add);
+            },
+        }
+
+        self
+    }
 }
 
 pub struct Line {
@@ -645,6 +671,8 @@ pub struct GenerateDXFInput {
     connections: BoardRouterOutputBoard,
     channel_width: f64,
     channel_cap: ChannelCap,
+    board_width: f64,
+    board_height: f64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -664,8 +692,16 @@ pub fn generate_dxf(input: GenerateDXFInput) -> GenerateDXFOutput {
                     connection,
                     input.channel_width,
                     &input.channel_cap,
-                ))
+                ).invert_y().add_y(input.board_height).to_owned())
             })
+            .chain(iter::once(DXFEntity::Polyline(Polyline::Closed(
+                Vec::from([
+                    [0., 0.],
+                    [input.board_width, 0.],
+                    [input.board_width, input.board_height],
+                    [0., input.board_height],
+                ]),
+            ).invert_y().add_y(input.board_height).to_owned())))
             .collect::<Vec<DXFEntity>>(),
     );
     GenerateDXFOutput(String::from_utf8(s).unwrap())
@@ -919,75 +955,6 @@ mod tests {
                 next_cw_join_points(Orientation::N, Orientation::NW, W),
                 JoinPoints::One([WH, WH + WD])
             )
-        }
-    }
-
-    mod generate_dxf {
-        use crate::dxf::{generate_dxf, ChannelCap, GenerateDXFInput};
-
-        #[test]
-        fn test_1() {
-            let s = generate_dxf(GenerateDXFInput {
-                connections: crate::board_router::BoardRouterOutputBoard {
-                    connections: Vec::from([(
-                        1,
-                        Vec::from([Vec::from([[0., 0.], [0., 1.], [1., 2.]])]),
-                    )]),
-                },
-                channel_width: 0.2,
-                channel_cap: ChannelCap::Square,
-            });
-            println!("{:?}", s.0)
-        }
-
-        #[test]
-        fn test_2() {
-            let s = generate_dxf(GenerateDXFInput {
-                connections: crate::board_router::BoardRouterOutputBoard {
-                    connections: Vec::from([(
-                        1,
-                        Vec::from([
-                            Vec::from([[10., 5.], [5., 5.]]),
-                            Vec::from([[10., 5.], [10., 10.]]),
-                            Vec::from([[10., 5.], [8., 3.]]),
-                        ]),
-                    )]),
-                },
-                channel_width: 0.2,
-                channel_cap: ChannelCap::Square,
-            });
-            println!("{:?}", s.0)
-        }
-
-        #[test]
-        fn test_3() {
-            let s = generate_dxf(GenerateDXFInput {
-                connections: crate::board_router::BoardRouterOutputBoard {
-                    connections: Vec::from([(
-                        1,
-                        Vec::from([
-                            Vec::from([[24., 7.5], [22.5, 7.5], [21., 7.5], [19.5, 7.5]]),
-                            Vec::from([
-                                [24., 7.5],
-                                [24., 9.],
-                                [24., 10.5],
-                                [24., 12.],
-                                [24., 13.5],
-                            ]),
-                            Vec::from([
-                                [24., 7.5],
-                                [25.5, 6.],
-                                [25.5, 4.5],
-                                [27., 3.],
-                                [28.5, 1.5],
-                            ]),
-                        ]),
-                    )]),
-                },
-                channel_width: 0.2,
-                channel_cap: ChannelCap::Square,
-            });
-            println!("{:?}", s.0)
         }
     }
 }

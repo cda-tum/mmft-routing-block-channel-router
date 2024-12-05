@@ -23,11 +23,11 @@ import { OutputChannelCapChoice } from "./components/OutputChannelCapChoice"
 import { DownloadButton } from "./components/DownloadButton"
 import { ContentBox } from "./components/ContentBox"
 import { UploadButton } from "./components/UploadButton"
-import Crop75Icon from '@mui/icons-material/Crop75';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import OutputIcon from '@mui/icons-material/Output';
 import { ChannelIcon } from "./icons/ChannelIcon"
 import { SxProps } from "@mui/joy/styles/types"
+import { BoardIcon } from "./icons/BoardIcon"
 
 export type InputState = {
     parameters: InputParameters
@@ -112,12 +112,12 @@ export function BoardUI() {
     }
 
     useEffect(() => {
-        if (output.error === undefined && Object.keys(output.connectionsRaw).length > 0 && input.parameters.channelWidth.value !== undefined && input.parameters.channelCap.value !== undefined && input.parameters.channelCapCustom.value !== undefined) {
-            setDXFOutput(generateDXF(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value))
+        if (output.error === undefined && Object.keys(output.connectionsRaw).length > 0 && input.parameters.channelWidth.value !== undefined && input.parameters.channelCap.value !== undefined && input.parameters.channelCapCustom.value !== undefined && input.parameters.boardWidth.value !== undefined && input.parameters.boardHeight.value !== undefined) {
+            setDXFOutput(generateDXF(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.boardWidth.value, input.parameters.boardHeight.value))
         } else {
             setDXFOutput(undefined)
         }
-    }, [output, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.channelWidth])
+    }, [output, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.channelWidth, input.parameters.boardWidth, input.parameters.boardHeight])
 
     useEffect(() => {
         updateInputParameters(input.parameters)
@@ -255,7 +255,7 @@ export function BoardUI() {
                 </Accordion>
                 <Accordion>
                     <AccordionSummary sx={input.parameters.boardWidth.error || input.parameters.boardHeight.error ? accordionErrorSx : {}}>
-                        <Typography level="h4"><Crop75Icon sx={{
+                        <Typography level="h4"><BoardIcon sx={{
                             verticalAlign: 'bottom'
                         }} /> Board Settings</Typography>
                     </AccordionSummary>
