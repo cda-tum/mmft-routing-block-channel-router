@@ -214,7 +214,7 @@ export function BoardUI() {
             <Box>
                 <MMFTIcon
                     primaryColor={theme.vars.palette.common.white}
-                    secondaryColor={'#333'}
+                    secondaryColor={'#ccc'}
                     height='8em'
                     style={{
                         verticalAlign: 'middle'
@@ -229,7 +229,7 @@ export function BoardUI() {
                         verticalAlign: 'middle'
                     }}
                 >
-                    Board Router
+                    Routing Block Channel Router
                 </Typography>
             </Box>
         </header>

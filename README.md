@@ -1,19 +1,27 @@
-# MMFT Board Router
+# MMFT Routing Block Channel Router
 
-## Internal
+<p align="center">
+<img src="https://www.cda.cit.tum.de/research/microfluidics/logo-microfluidics-toolkit.png" style="margin:auto;width:60%"/>
+</p>
 
-To build the backend for Webassembly:
-```
-wasm-pack build
-```
-When the backend is updated, you need to manually refresh (cache reset) the page in the browser.
+The MMFT Routing Block Channel Router is a tool that creates channel connections for routing block components. 
+The tool is available on our website: [https://www.cda.cit.tum.de/app/mmft-routing-block-channel-router/](https://www.cda.cit.tum.de/app/mmft-routing-block-channel-router/).
+It is part of the [Munich Microfluidics Toolkit (MMFT)](https://www.cda.cit.tum.de/research/microfluidics/munich-microfluidics-toolkit/) by the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the Technical University of Munich.
 
-To run the GUI in dev move (inside the gui folder):
-```
-npm run dev
-```
+## Usage
 
-To build the GUI (already done in the Github CI):
-```
-npm run build
-```
+The application is available on the [CDA webseite](https://www.cda.cit.tum.de/app/mmft-routing-block-channel-router/).
+
+### Development Usage
+
+#### `wasm-pack build`
+
+Builds the backend.
+
+#### `npm run dev`
+
+Runs the app locally in development mode.
+
+#### `npm run build`
+
+Builds the (optimized) app for production to the `build` folder.
