@@ -237,7 +237,7 @@ export function BoardUI() {
             <Box sx={{
                 marginBottom: 2
             }}>
-                <Typography>A tool that generates channel connections for ISO-22916-compliant microfluidic routing components. <Link href="#">Learn more</Link>.</Typography>
+                <Typography>A tool that generates channel connections for ISO-22916-compliant microfluidic routing components. <Link href="https://github.com/cda-tum/mmft-routing-block-channel-router">Learn more</Link>.</Typography>
             </Box>
             <AccordionGroup>
                 <Accordion>

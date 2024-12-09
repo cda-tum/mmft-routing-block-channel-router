@@ -8,7 +8,7 @@ env:
   CARGO_TERM_COLOR: always
   CDA_HOST_NAME: tueicda-cda.srv.mwn.de
   CDA_USER_NAME: web-user
-  CDA_TARGET_DIR: /var/www/cda/app/mmft-routing-block-channel-router/
+  CDA_TARGET_DIR: /var/www/cda/app/board-router/
 
 jobs:
   build:
