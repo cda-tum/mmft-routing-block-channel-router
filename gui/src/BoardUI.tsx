@@ -214,7 +214,7 @@ export function BoardUI() {
             <Box>
                 <MMFTIcon
                     primaryColor={theme.vars.palette.common.white}
-                    secondaryColor={`hsl(from ${theme.vars.palette.primary[500]} h s calc(l * 2.2))`}
+                    secondaryColor={`hsl(from ${theme.vars.palette.primary[500]} h s calc(l * 2.3))`}
                     height='8em'
                     style={{
                         verticalAlign: 'middle'
