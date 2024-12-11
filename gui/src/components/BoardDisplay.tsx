@@ -7,6 +7,8 @@ import { ConnectionEditor } from "./ConnectionEditor"
 import { OutputConnections } from "../utils/connections"
 import { ConnectionDisplay } from "./ConnectionDisplay"
 import { ArrowDropDown } from "@mui/icons-material"
+import { UploadButton } from "./UploadButton"
+import { readCSV } from "../utils/readCSV"
 
 export function BoardDisplay(props: {
     show: boolean
@@ -253,6 +255,22 @@ export function BoardDisplay(props: {
 
     const isBlank = connectionState.numberOfConnections() === 0
 
+    const uploadCSV = <>
+        <UploadButton
+            sx={{
+                marginX: 2
+            }}
+            label={"Load CSV"}
+            onSuccess={(content) => {
+                const connections = readCSV(content)
+                connectionState.clear()
+                connections.forEach((c, i) => {
+                    connectionState.addOrUpdateConnection(i, c)
+                })
+            }}
+        />
+    </>
+
     const displayContent = <>
         <svg
             width="100%"
@@ -262,6 +280,7 @@ export function BoardDisplay(props: {
         </svg>
         {isBlank && <Typography>Click on ports to define connection ends, then generate the channel design in the section below.</Typography>}
         {selectConnection}
+        {uploadCSV}
         {editConnection}
     </>
 

@@ -1,11 +1,13 @@
 import { Button, Typography, useTheme } from "@mui/joy"
 import { useRef } from "react";
 import FileUploadIcon from '@mui/icons-material/FileUpload';
+import { SxProps } from "@mui/joy/styles/types";
 
 type UploadButtonProps = {
     label: string,
     onError?: () => void,
     onSuccess: (content: string) => void
+    sx?: SxProps
 }
 
 export function UploadButton(props: UploadButtonProps) {
@@ -51,6 +53,7 @@ export function UploadButton(props: UploadButtonProps) {
             onClick={_ => {
                 tempInput.current?.click()
             }}
+            sx={props.sx}
         >
             <Typography sx={{ color: theme.vars.palette.common.white }}>
                 <FileUploadIcon sx={{

@@ -149,8 +149,18 @@ export function useConnectionState(props: {
 
     const hasConnection = (connection: ConnectionID) => connections[connection]
 
+    const clear = () => {
+        setConnectionPreviewState(s => ({
+            ...s,
+            active: false
+        }))
+        setPortConnectionMap(_ => ({}))
+        setConnections(_ => ({}))
+    }
+
     return {
         connections,
+        clear,
         isUsed: (port: PortKey) => portConnectionMap[port[0]]?.[port[1]] !== undefined,
         isUsedByOtherThan,
         connectionOf: (port: PortKey) => portConnectionMap[port[0]]?.[port[1]],

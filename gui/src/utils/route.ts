@@ -27,9 +27,7 @@ export function route(input: InputState) {
             min_grid_size: 0,
             layout: input.parameters.layout.value,
         }
-        console.log('Input:', args)
         const result = wasm_route(args)
-        console.log('Result:', result)
 
         if ('Ok' in result) {
             return { connections: connections(result['Ok']['connections']), connectionsRaw: result['Ok']['connections'], error: undefined, is_partial: false }

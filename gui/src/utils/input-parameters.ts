@@ -76,9 +76,7 @@ export function validate(parameters: InputParameters) {
     }
 
     try {
-        console.log('val input', rawParams)
         const result = wasm_validate(rawParams)
-        console.log('val output', result)
 
         if ('Err' in result) {
             const vp = Object.fromEntries(Object.entries(parameters).map(([k, v]) => [k, { ...v }])) as InputParameters
