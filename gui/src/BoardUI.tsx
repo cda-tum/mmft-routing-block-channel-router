@@ -431,6 +431,14 @@ export function BoardUI() {
                             }))}
                             outputConnections={output.connections}
                             closeDropdown={closeDropdown}
+                            clearOutputConnections={() => {
+                                setOutput({
+                                    error: undefined,
+                                    is_partial: false,
+                                    connections: {},
+                                    connectionsRaw: []
+                                })
+                            }}
                         />
 
                         {hasErrors && <Typography

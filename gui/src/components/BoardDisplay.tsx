@@ -1,4 +1,4 @@
-import { Box, Button, Menu, MenuItem, Typography, useTheme } from "@mui/joy"
+import { Box, Button, Menu, MenuItem, Modal, ModalClose, ModalDialog, Typography, useTheme } from "@mui/joy"
 import { PortDisplay } from "./PortDisplay"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { portIndexToString, PortKey } from "../utils/ports"
@@ -23,6 +23,7 @@ export function BoardDisplay(props: {
     rows: number | undefined
     onChange?: (connections: ConnectionsState) => void
     outputConnections?: OutputConnections
+    clearOutputConnections?: () => void
     closeDropdown: boolean
 }) {
     const theme = useTheme()
@@ -255,6 +256,8 @@ export function BoardDisplay(props: {
 
     const isBlank = connectionState.numberOfConnections() === 0
 
+    const [csvMessage, setCSVMessage] = useState<string | undefined>(undefined)
+
     const uploadCSV = <>
         <UploadButton
             sx={{
@@ -263,12 +266,29 @@ export function BoardDisplay(props: {
             label={"Load CSV"}
             onSuccess={(content) => {
                 const connections = readCSV(content)
-                connectionState.clear()
-                connections.forEach((c, i) => {
-                    connectionState.addOrUpdateConnection(i, c)
-                })
+                if (typeof connections === 'string') {
+                    setCSVMessage(`Error: ${connections}`)
+                } else {
+                    props.clearOutputConnections?.()
+                    connectionState.clear()
+                    connections.forEach((c, i) => {
+                        connectionState.addOrUpdateConnection(i, c)
+                    })
+                    setCSVMessage(`Imported ${connections.length} connections with a total of ${connections.reduce((acc, c) => acc + c.length, 0)} ports successfully.`)
+                }
             }}
         />
+        {csvMessage !== undefined &&
+            <Modal
+                open={csvMessage !== undefined}
+                onClose={() => setCSVMessage(undefined)}
+            >
+                <ModalDialog>
+                    <ModalClose />
+                    <Typography>{csvMessage}</Typography>
+                </ModalDialog>
+            </Modal>
+        }
     </>
 
     const displayContent = <>
