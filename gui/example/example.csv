@@ -1,5 +1,6 @@
 This file demonstrates how a possible CSV input may look like,,,,,,
-"Connections are defined per line, every cell that is a port identifier is read, everything else is ignored/treated as a comment",,,,,,
+"Connections are defined per line, every cell that is (just) a port identifier is read, everything else is ignored/treated as a comment",,,,,,
+Min ports: 2; Max ports: 4;,,,,,,
 ,,,,,,
 ,B4,H6,,,,
 Connection 1,B12,E8,,,,
