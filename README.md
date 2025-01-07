@@ -10,7 +10,7 @@ It is part of the [Munich Microfluidics Toolkit (MMFT)](https://www.cda.cit.tum.
 
 ## Usage
 
-The application is available on the [CDA webseite](https://www.cda.cit.tum.de/app/mmft-routing-block-channel-router/).
+The application is available on the [CDA website](https://www.cda.cit.tum.de/app/mmft-routing-block-channel-router/).
 
 ### Development Usage
 
