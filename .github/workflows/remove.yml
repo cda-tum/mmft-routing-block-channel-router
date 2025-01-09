@@ -16,6 +16,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Setup SSH via the stored Action Secrets
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+        echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/my_rsync_key
+        echo "IdentityFile ~/.ssh/my_rsync_key" >> ~/.ssh/config
+        chmod -R 700 ~/.ssh
     - name: Deploy webpage from ref ${{ github.ref }}
       working-directory: ./gui
       run: rsync --rsync-path="mkdir -p ${CDA_TARGET_DIR} && rsync" -rvz --update --delete -e ssh redirect/ ${CDA_USER_NAME}@${CDA_HOST_NAME}:${CDA_TARGET_DIR}
