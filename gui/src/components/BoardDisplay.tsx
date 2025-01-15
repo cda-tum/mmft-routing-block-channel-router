@@ -3,7 +3,7 @@ import { PortDisplay } from "./PortDisplay"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { portIndexToString, PortKey } from "../utils/ports"
 import { ConnectionsState, useConnectionState } from "../hooks/useConnectionState"
-import { ConnectionEditor } from "./ConnectionEditor"
+import { ConnectionEditor, minPorts } from "./ConnectionEditor"
 import { OutputConnections } from "../utils/connections"
 import { ConnectionDisplay } from "./ConnectionDisplay"
 import { ArrowDropDown } from "@mui/icons-material"
@@ -271,10 +271,11 @@ export function BoardDisplay(props: {
                 } else {
                     props.clearOutputConnections?.()
                     connectionState.clear()
-                    connections.forEach((c, i) => {
-                        connectionState.addOrUpdateConnection(i, c)
+                    const cleanedConnections = connections.map(ports => ports.filter(([column, row]) => props.columns !== undefined && column < props.columns && props.rows !== undefined && row < props.rows)).filter(c => c !== undefined && c.length >= minPorts)
+                    cleanedConnections.forEach((ports, i) => {
+                        connectionState.addOrUpdateConnection(i, ports)
                     })
-                    setCSVMessage(`Imported ${connections.length} connections with a total of ${connections.reduce((acc, c) => acc + c.length, 0)} ports successfully.`)
+                    setCSVMessage(`Imported ${cleanedConnections.length} connections with a total of ${cleanedConnections.reduce((acc, c) => acc + c.length, 0)} ports successfully.`)
                 }
             }}
         />

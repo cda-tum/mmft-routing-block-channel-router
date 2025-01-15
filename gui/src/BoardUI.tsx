@@ -237,7 +237,9 @@ export function BoardUI() {
             <Box sx={{
                 marginBottom: 2
             }}>
-                <Typography>A tool that generates channel connections for ISO-22916-compliant microfluidic routing components. <Link href="https://github.com/cda-tum/mmft-routing-block-channel-router">Learn more</Link>.</Typography>
+                <Typography>A tool that generates channel connections for ISO-22916-compliant microfluidic routing components. <Link href="https://github.com/cda-tum/mmft-routing-block-channel-router" sx={{
+                    color: theme.vars.palette.primary[500]
+                }}>Learn more</Link>.</Typography>
             </Box>
             <AccordionGroup>
                 <Accordion>
@@ -432,12 +434,12 @@ export function BoardUI() {
                             outputConnections={output.connections}
                             closeDropdown={closeDropdown}
                             clearOutputConnections={() => {
-                                setOutput({
+                                setOutput(_ => ({
                                     error: undefined,
                                     is_partial: false,
                                     connections: {},
                                     connectionsRaw: []
-                                })
+                                }))
                             }}
                         />
 
