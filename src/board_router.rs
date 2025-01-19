@@ -11,6 +11,7 @@ use crate::graph_search::{a_star, AStarNode};
 pub struct RouteInput {
     pub channel_width: f64,
     pub channel_spacing: f64,
+    pub channel_boundary_distance: f64,
     pub layout: Layout,
     pub board_width: f64,
     pub board_height: f64,
@@ -252,7 +253,6 @@ pub fn compute_ports(
 }
 
 pub fn route(input: RouteInput) -> BoardRouterOutput {
-    // this is the main function I want to adapt
     let channel_distance = input.channel_width + input.channel_spacing;
     let cells_per_pitch = (input.pitch / channel_distance).floor() as usize;
     let cell_size = input.pitch / (cells_per_pitch as f64);
@@ -264,24 +264,33 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         pitch_offset_x: input.pitch_offset_x,
         pitch_offset_y: input.pitch_offset_y,
     });
-    let cells_x = ports_x * cells_per_pitch - (1 - cells_per_pitch % 2);
-    let cells_y = ports_y * cells_per_pitch - (1 - cells_per_pitch % 2);
-    let cell_offset_x = input.pitch_offset_x - ((cells_per_pitch as f64 - 1.) / 2.) * cell_size
-        + if cells_per_pitch % 2 == 0 {
-            half_cell_size
-        } else {
-            0.
-        };
-    let cell_offset_y = input.pitch_offset_y - ((cells_per_pitch as f64 - 1.) / 2.) * cell_size
-        + if cells_per_pitch % 2 == 0 {
-            half_cell_size
-        } else {
-            0.
-        };
+    let main_grid_cells_x = ports_x * cells_per_pitch + (1 - cells_per_pitch % 2);
+    let main_grid_cells_y = ports_y * cells_per_pitch + (1 - cells_per_pitch % 2);
+    let cell_offset_x = input.pitch_offset_x - ((cells_per_pitch / 2) as f64) * cell_size;
+    let cell_offset_y = input.pitch_offset_y - ((cells_per_pitch / 2) as f64) * cell_size;
+
+    let pre_remaining_x = input.pitch_offset_x - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size - input.channel_boundary_distance;
+    let pre_offset_cells_x = ((pre_remaining_x / cell_size).max(0.)).floor() as usize;
+
+    let pre_remaining_y = input.pitch_offset_y - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size - input.channel_boundary_distance;
+    let pre_offset_cells_y = ((pre_remaining_y / cell_size).max(0.)).floor() as usize;
+
+    let cells_x = main_grid_cells_x + pre_offset_cells_x;
+    let cells_y = main_grid_cells_y + pre_offset_cells_y;
+
+    //TODO: change port offsetting, include (possible) post cells
+
+    dbg!(
+        cells_per_pitch,
+        cell_size,
+        cells_x,
+        cells_y,
+        cell_offset_x,
+        cell_offset_y
+    );
 
     let port_radius = input.port_diameter / 2.;
     let port_influence_radius = port_radius + input.channel_spacing + input.channel_width / 2.;
-    //TODO: ceil or round?
     let box_size = (port_influence_radius / cell_size).ceil();
 
     let mut nodes = Vec::<GridNode>::new();
@@ -312,8 +321,8 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     for (c_id, ports) in input_connections.iter() {
         for port in ports {
             let (x, y) = port;
-            let cell_x = ((cells_per_pitch - 1) / 2) + cells_per_pitch * x;
-            let cell_y = ((cells_per_pitch - 1) / 2) + cells_per_pitch * y;
+            let cell_x = (cells_per_pitch / 2) + cells_per_pitch * x;
+            let cell_y = (cells_per_pitch / 2) + cells_per_pitch * y;
 
             let node_position = (
                 nodes[cell_x * cells_y + cell_y].x,
@@ -386,12 +395,12 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             routing_connections.push(RoutingConnection::PortToPort(PortToPort {
                 connection: *c_id,
                 from_cell: (
-                    ((cells_per_pitch - 1) / 2) + cells_per_pitch * ports[0].0,
-                    ((cells_per_pitch - 1) / 2) + cells_per_pitch * ports[0].1,
+                    (cells_per_pitch / 2) + cells_per_pitch * ports[0].0,
+                    (cells_per_pitch / 2) + cells_per_pitch * ports[0].1,
                 ),
                 to_cell: (
-                    ((cells_per_pitch - 1) / 2) + cells_per_pitch * ports[1].0,
-                    ((cells_per_pitch - 1) / 2) + cells_per_pitch * ports[1].1,
+                    (cells_per_pitch / 2) + cells_per_pitch * ports[1].0,
+                    (cells_per_pitch / 2) + cells_per_pitch * ports[1].1,
                 ),
             }));
         } else if ports.len() > 2 {
@@ -400,8 +409,8 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                     connection: *c_id,
                     from_cell: join_nodes.get(&c_id).copied(),
                     to_cell: (
-                        ((cells_per_pitch - 1) / 2) + cells_per_pitch * port.0,
-                        ((cells_per_pitch - 1) / 2) + cells_per_pitch * port.1,
+                        (cells_per_pitch / 2) + cells_per_pitch * port.0,
+                        (cells_per_pitch / 2) + cells_per_pitch * port.1,
                     ),
                     num_branches: ports.len(),
                 }));
