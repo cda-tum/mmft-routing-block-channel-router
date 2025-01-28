@@ -1,8 +1,7 @@
 use core::f64;
 use serde::{Deserialize, Serialize};
 use std::{
-    cmp::Ordering,
-    collections::{HashMap, HashSet, VecDeque},
+    cell, cmp::Ordering, collections::{HashMap, HashSet, VecDeque}
 };
 
 use crate::graph_search::{a_star, AStarNode};
@@ -11,7 +10,6 @@ use crate::graph_search::{a_star, AStarNode};
 pub struct RouteInput {
     pub channel_width: f64,
     pub channel_spacing: f64,
-    pub channel_boundary_distance: f64,
     pub layout: Layout,
     pub board_width: f64,
     pub board_height: f64,
@@ -266,19 +264,26 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     });
     let main_grid_cells_x = ports_x * cells_per_pitch + (1 - cells_per_pitch % 2);
     let main_grid_cells_y = ports_y * cells_per_pitch + (1 - cells_per_pitch % 2);
-    let cell_offset_x = input.pitch_offset_x - ((cells_per_pitch / 2) as f64) * cell_size;
-    let cell_offset_y = input.pitch_offset_y - ((cells_per_pitch / 2) as f64) * cell_size;
 
-    let pre_remaining_x = input.pitch_offset_x - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size - input.channel_boundary_distance;
+
+    let pre_remaining_x = input.pitch_offset_x - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size;
     let pre_offset_cells_x = ((pre_remaining_x / cell_size).max(0.)).floor() as usize;
 
-    let pre_remaining_y = input.pitch_offset_y - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size - input.channel_boundary_distance;
+    let pre_remaining_y = input.pitch_offset_y - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size;
     let pre_offset_cells_y = ((pre_remaining_y / cell_size).max(0.)).floor() as usize;
+
 
     let cells_x = main_grid_cells_x + pre_offset_cells_x;
     let cells_y = main_grid_cells_y + pre_offset_cells_y;
 
-    //TODO: change port offsetting, include (possible) post cells
+    let cell_offset_x = input.pitch_offset_x - ((cells_per_pitch / 2) as f64) * cell_size - pre_offset_cells_x as f64 * cell_size;
+    let cell_offset_y = input.pitch_offset_y - ((cells_per_pitch / 2) as f64) * cell_size - pre_offset_cells_y as f64 * cell_size;
+
+    let port_cell = |port: &Port| {
+        let cell_x = (cells_per_pitch / 2) + cells_per_pitch * port.0 + pre_offset_cells_x;
+        let cell_y = (cells_per_pitch / 2) + cells_per_pitch * port.1 + pre_offset_cells_y;
+        (cell_x, cell_y)
+    };
 
     dbg!(
         cells_per_pitch,
@@ -320,9 +325,8 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     // Reserve cells at and around used ports for the corresponding connection only (prevent other connections from crossing foreign ports)
     for (c_id, ports) in input_connections.iter() {
         for port in ports {
-            let (x, y) = port;
-            let cell_x = (cells_per_pitch / 2) + cells_per_pitch * x;
-            let cell_y = (cells_per_pitch / 2) + cells_per_pitch * y;
+
+            let (cell_x, cell_y) = port_cell(port);
 
             let node_position = (
                 nodes[cell_x * cells_y + cell_y].x,
@@ -394,24 +398,15 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         if ports.len() == 2 {
             routing_connections.push(RoutingConnection::PortToPort(PortToPort {
                 connection: *c_id,
-                from_cell: (
-                    (cells_per_pitch / 2) + cells_per_pitch * ports[0].0,
-                    (cells_per_pitch / 2) + cells_per_pitch * ports[0].1,
-                ),
-                to_cell: (
-                    (cells_per_pitch / 2) + cells_per_pitch * ports[1].0,
-                    (cells_per_pitch / 2) + cells_per_pitch * ports[1].1,
-                ),
+                from_cell: port_cell(&ports[0]),
+                to_cell: port_cell(&ports[1]),
             }));
         } else if ports.len() > 2 {
             for port in ports.iter() {
                 routing_connections.push(RoutingConnection::StarBranch(StarBranch {
                     connection: *c_id,
                     from_cell: join_nodes.get(&c_id).copied(),
-                    to_cell: (
-                        (cells_per_pitch / 2) + cells_per_pitch * port.0,
-                        (cells_per_pitch / 2) + cells_per_pitch * port.1,
-                    ),
+                    to_cell: port_cell(port),
                     num_branches: ports.len(),
                 }));
             }
