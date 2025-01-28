@@ -45,7 +45,7 @@ export function route(input: InputState) {
                 }
             } else if (typeof error === 'object') {
                 if ('PartialResult' in error) {
-                    return { connections: connections(result['Err']['PartialResult']['connections']), connectionsRaw: [], error: 'A partial solution has been found.', is_partial: true }
+                    return { connections: connections(result['Err']['PartialResult']['connections']), connectionsRaw: result['Err']['PartialResult']['connections'], error: 'A partial solution has been found.', is_partial: true }
                 } else {
                     error_message = 'Unexpected error'
                     console.error('Unexpected error')
