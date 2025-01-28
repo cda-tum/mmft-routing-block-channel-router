@@ -45,18 +45,16 @@ export function MicrometerInput(props: MicrometerProps) {
         {...shared}
         onInputChange={(_, value) => {
             if (value !== null) {
-                const isNumber = parseFloat(value).toString() === value
                 const i = parseFloat(value)
-                props.onChange?.(value, isNumber ? i : undefined)
+                props.onChange?.(value, i)
             }
         }}
     /> : <Input
         {...shared}
         onChange={e => {
             const value = e.target.value
-            const isNumber = parseFloat(value).toString() === value
             const i = parseFloat(value)
-            props.onChange?.(value, isNumber ? i : undefined)
+            props.onChange?.(value, i)
         }}
         style={{ flexGrow: 1 }}
     />
