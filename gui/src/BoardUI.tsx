@@ -113,8 +113,9 @@ export function BoardUI() {
     }
 
     useEffect(() => {
-        if (output.error === undefined && Object.keys(output.connectionsRaw).length > 0 && input.parameters.channelWidth.value !== undefined && input.parameters.channelCap.value !== undefined && input.parameters.channelCapCustom.value !== undefined && input.parameters.boardWidth.value !== undefined && input.parameters.boardHeight.value !== undefined) {
-            setDXFOutput(generateDXF(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.boardWidth.value, input.parameters.boardHeight.value))
+        if ((output.error === undefined || output.is_partial) && Object.keys(output.connectionsRaw).length > 0 && input.parameters.channelWidth.value !== undefined && input.parameters.channelCap.value !== undefined && input.parameters.channelCapCustom.value !== undefined && input.parameters.boardWidth.value !== undefined && input.parameters.boardHeight.value !== undefined) {
+            const dxf = generateDXF(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.boardWidth.value, input.parameters.boardHeight.value)
+            setDXFOutput(dxf)
         } else {
             setDXFOutput(undefined)
         }
