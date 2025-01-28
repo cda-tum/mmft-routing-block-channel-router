@@ -142,8 +142,8 @@ mod tests {
     #[test]
     fn longer_board_connection() {
         let result = route(RouteInput {
-            channel_width: 0.5,
-            channel_spacing: 0.5,
+            channel_width: 0.375,
+            channel_spacing: 0.375,
             board_width: 105.,
             board_height: 15.,
             pitch: 1.5,
