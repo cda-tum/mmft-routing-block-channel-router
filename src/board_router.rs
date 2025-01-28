@@ -353,7 +353,6 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                         if node.connection.is_none() || (node.connection.is_some() && node.connection.unwrap() == *c_id) {
                             node.connection = Some(*c_id);
                         } else {
-                            //TODO: bug when same connection
                             nodes[box_x * cells_y + box_y].blocked = true;
                         }
                     }
