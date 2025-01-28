@@ -348,9 +348,10 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                         box_node_position.1 - node_position.1,
                     );
                     if distance < port_influence_radius {
+                        let node = &mut nodes[box_x * cells_y + box_y];
                         // If the cell is already reserved for another connection (e.g., ports close to each other), no connection can be routed through this cell
-                        if nodes[box_x * cells_y + box_y].connection.is_none() {
-                            nodes[box_x * cells_y + box_y].connection = Some(*c_id);
+                        if node.connection.is_none() || (node.connection.is_some() && node.connection.unwrap() == *c_id) {
+                            node.connection = Some(*c_id);
                         } else {
                             nodes[box_x * cells_y + box_y].blocked = true;
                         }
