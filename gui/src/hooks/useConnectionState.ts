@@ -116,6 +116,7 @@ export function useConnectionState(props: {
     }
 
     const addOrUpdateConnection = (connection: ConnectionID, ports?: PortKey[]) => {
+        console.log(connections, connection, ports)
         if (connections[connection] !== undefined) {
             removeConnection(connection)
         }
@@ -137,6 +138,22 @@ export function useConnectionState(props: {
             }
         }))
     }
+
+    const replaceWith = (connections: [number, number][][]) => {
+        setConnectionPreviewState(connectionPreviewStateDefault)
+        setConnections(Object.fromEntries(connections.map((ports, i) => [i.toString(), { ports}])))
+        const map: PortConnectionMap = {}
+        connections.forEach((ports, connection) => ports.forEach(port => {
+            if(!(port[0] in map)) {
+                map[port[0]] = {}
+            }
+
+            map[port[0]]![port[1]] = connection
+
+        }))
+        setPortConnectionMap(map)
+    }
+
     const newConnectionId = () => {
         let i = 0
         while (connections[i] !== undefined) {
@@ -160,6 +177,8 @@ export function useConnectionState(props: {
 
     return {
         connections,
+        portConnectionMap,
+        replaceWith,
         clear,
         isUsed: (port: PortKey) => portConnectionMap[port[0]]?.[port[1]] !== undefined,
         isUsedByOtherThan,

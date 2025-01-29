@@ -270,11 +270,8 @@ export function BoardDisplay(props: {
                     setCSVMessage(`Error: ${connections}`)
                 } else {
                     props.clearOutputConnections?.()
-                    connectionState.clear()
                     const cleanedConnections = connections.map(ports => ports.filter(([column, row]) => props.columns !== undefined && column < props.columns && props.rows !== undefined && row < props.rows)).filter(c => c !== undefined && c.length >= minPorts)
-                    cleanedConnections.forEach((ports, i) => {
-                        connectionState.addOrUpdateConnection(i, ports)
-                    })
+                    connectionState.replaceWith(cleanedConnections)
                     setCSVMessage(`Imported ${cleanedConnections.length} connections with a total of ${cleanedConnections.reduce((acc, c) => acc + c.length, 0)} ports successfully.`)
                 }
             }}
@@ -285,8 +282,10 @@ export function BoardDisplay(props: {
                 onClose={() => setCSVMessage(undefined)}
             >
                 <ModalDialog>
-                    <ModalClose />
-                    <Typography>{csvMessage}</Typography>
+                    <Typography sx={{
+                        marginRight: '2em'
+                    }}>{csvMessage}</Typography>
+                    <ModalClose/>
                 </ModalDialog>
             </Modal>
         }
