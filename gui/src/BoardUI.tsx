@@ -89,6 +89,7 @@ enum BoardEditState {
 export type DXFState = undefined | string
 
 export function BoardUI() {
+    const [initialInputConnections, setInitialInputConnections] = useState<ConnectionsState>({});
     const [dxfOutput, setDXFOutput] = useState<DXFState>(undefined)
     const [input, setInput] = useState<InputState>(defaultInputState)
     const [output, setOutput] = useState<OutputState>(defaultOutputState)
@@ -107,6 +108,7 @@ export function BoardUI() {
         input: InputState
         output: OutputState
     }) => {
+        setInitialInputConnections(state.input.connections)
         setDXFOutput(state.dxfOutput)
         setInput(state.input)
         setOutput(state.output)
@@ -442,6 +444,7 @@ export function BoardUI() {
                                     connectionsRaw: []
                                 }))
                             }}
+                            initialInputConnections={initialInputConnections}
                         />
 
                         {hasErrors && <Typography

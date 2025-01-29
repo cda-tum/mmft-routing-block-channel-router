@@ -22,6 +22,7 @@ export function BoardDisplay(props: {
     columns: number | undefined
     rows: number | undefined
     onChange?: (connections: ConnectionsState) => void
+    initialInputConnections: ConnectionsState
     outputConnections?: OutputConnections
     clearOutputConnections?: () => void
     closeDropdown: boolean
@@ -42,6 +43,10 @@ export function BoardDisplay(props: {
     useEffect(() => {
         props.onChange?.(connectionState.connections)
     }, [connectionState.connections])
+
+    useEffect(() => {
+        connectionState.replaceWith(props.initialInputConnections)
+    }, [props.initialInputConnections])
 
 
     const strokeWidth = useMemo(() => props.portDiameter / 10, [props.portDiameter])
@@ -270,11 +275,8 @@ export function BoardDisplay(props: {
                     setCSVMessage(`Error: ${connections}`)
                 } else {
                     props.clearOutputConnections?.()
-                    connectionState.clear()
                     const cleanedConnections = connections.map(ports => ports.filter(([column, row]) => props.columns !== undefined && column < props.columns && props.rows !== undefined && row < props.rows)).filter(c => c !== undefined && c.length >= minPorts)
-                    cleanedConnections.forEach((ports, i) => {
-                        connectionState.addOrUpdateConnection(i, ports)
-                    })
+                    connectionState.replaceWith(Object.fromEntries(cleanedConnections.map((ports, i) => [i.toString(), { ports }])))
                     setCSVMessage(`Imported ${cleanedConnections.length} connections with a total of ${cleanedConnections.reduce((acc, c) => acc + c.length, 0)} ports successfully.`)
                 }
             }}
@@ -285,8 +287,10 @@ export function BoardDisplay(props: {
                 onClose={() => setCSVMessage(undefined)}
             >
                 <ModalDialog>
+                    <Typography sx={{
+                        marginRight: '2em'
+                    }}>{csvMessage}</Typography>
                     <ModalClose />
-                    <Typography>{csvMessage}</Typography>
                 </ModalDialog>
             </Modal>
         }
