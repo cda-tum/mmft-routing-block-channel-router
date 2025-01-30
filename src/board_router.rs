@@ -265,17 +265,17 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     let main_grid_cells_x = ports_x * cells_per_pitch + (1 - cells_per_pitch % 2);
     let main_grid_cells_y = ports_y * cells_per_pitch + (1 - cells_per_pitch % 2);
 
-
-    let pre_remaining_x = input.pitch_offset_x - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size;
+    let half_spacing = input.channel_spacing / 2.;
+    let pre_remaining_x = input.pitch_offset_x - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size - half_spacing;
     let pre_offset_cells_x = ((pre_remaining_x / cell_size).max(0.)).floor() as usize;
 
-    let pre_remaining_y = input.pitch_offset_y - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size;
+    let pre_remaining_y = input.pitch_offset_y - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size - half_spacing;
     let pre_offset_cells_y = ((pre_remaining_y / cell_size).max(0.)).floor() as usize;
 
-    let post_remaining_x = input.pitch_offset_x - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size;
+    let post_remaining_x = input.pitch_offset_x - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size - half_spacing;
     let post_offset_cells_x = ((post_remaining_x / cell_size).max(0.)).floor() as usize;
 
-    let post_remaining_y = input.pitch_offset_y - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size;
+    let post_remaining_y = input.pitch_offset_y - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size - half_spacing;
     let post_offset_cells_y = ((post_remaining_y / cell_size).max(0.)).floor() as usize;
 
 
