@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
+use std::collections::{BinaryHeap, HashMap, VecDeque};
 use core::fmt::Debug;
 use std::hash::Hash;
 
@@ -151,7 +151,7 @@ mod tests {
 
             type N = char;
 
-            fn heuristic(n: &N) -> f64 {
+            fn heuristic(_: &N) -> f64 {
                 0.
             }
 
@@ -213,7 +213,7 @@ mod tests {
 
             type N = char;
 
-            fn heuristic(n: &N) -> f64 {
+            fn heuristic(_: &N) -> f64 {
                 0.
             }
 
