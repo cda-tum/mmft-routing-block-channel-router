@@ -1,7 +1,8 @@
 use core::f64;
 use serde::{Deserialize, Serialize};
 use std::{
-    cell, cmp::Ordering, collections::{HashMap, HashSet, VecDeque}
+    cmp::Ordering,
+    collections::{HashMap, HashSet, VecDeque},
 };
 
 use crate::graph_search::{a_star, AStarNode};
@@ -266,24 +267,39 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     let main_grid_cells_y = ports_y * cells_per_pitch + (1 - cells_per_pitch % 2);
 
     let half_spacing = input.channel_spacing / 2.;
-    let pre_remaining_x = input.pitch_offset_x - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size - half_spacing;
+    let pre_remaining_x = input.pitch_offset_x
+        - ((cells_per_pitch / 2) as f64) * cell_size
+        - half_cell_size
+        - half_spacing;
     let pre_offset_cells_x = ((pre_remaining_x / cell_size).max(0.)).floor() as usize;
 
-    let pre_remaining_y = input.pitch_offset_y - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size - half_spacing;
+    let pre_remaining_y = input.pitch_offset_y
+        - ((cells_per_pitch / 2) as f64) * cell_size
+        - half_cell_size
+        - half_spacing;
     let pre_offset_cells_y = ((pre_remaining_y / cell_size).max(0.)).floor() as usize;
 
-    let post_remaining_x = input.pitch_offset_x - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size - half_spacing;
+    let post_remaining_x = input.pitch_offset_x
+        - ((cells_per_pitch / 2) as f64) * cell_size
+        - half_cell_size
+        - half_spacing;
     let post_offset_cells_x = ((post_remaining_x / cell_size).max(0.)).floor() as usize;
 
-    let post_remaining_y = input.pitch_offset_y - ((cells_per_pitch / 2) as f64) * cell_size - half_cell_size - half_spacing;
+    let post_remaining_y = input.pitch_offset_y
+        - ((cells_per_pitch / 2) as f64) * cell_size
+        - half_cell_size
+        - half_spacing;
     let post_offset_cells_y = ((post_remaining_y / cell_size).max(0.)).floor() as usize;
-
 
     let cells_x = main_grid_cells_x + pre_offset_cells_x + post_offset_cells_x;
     let cells_y = main_grid_cells_y + pre_offset_cells_y + post_offset_cells_y;
 
-    let cell_offset_x = input.pitch_offset_x - ((cells_per_pitch / 2) as f64) * cell_size - pre_offset_cells_x as f64 * cell_size;
-    let cell_offset_y = input.pitch_offset_y - ((cells_per_pitch / 2) as f64) * cell_size - pre_offset_cells_y as f64 * cell_size;
+    let cell_offset_x = input.pitch_offset_x
+        - ((cells_per_pitch / 2) as f64) * cell_size
+        - pre_offset_cells_x as f64 * cell_size;
+    let cell_offset_y = input.pitch_offset_y
+        - ((cells_per_pitch / 2) as f64) * cell_size
+        - pre_offset_cells_y as f64 * cell_size;
 
     let port_cell = |port: &Port| {
         let cell_x = (cells_per_pitch / 2) + cells_per_pitch * port.0 + pre_offset_cells_x;
@@ -331,7 +347,6 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     // Reserve cells at and around used ports for the corresponding connection only (prevent other connections from crossing foreign ports)
     for (c_id, ports) in input_connections.iter() {
         for port in ports {
-
             let (cell_x, cell_y) = port_cell(port);
 
             let node_position = (
@@ -356,7 +371,9 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                     if distance < port_influence_radius {
                         let node = &mut nodes[box_x * cells_y + box_y];
                         // If the cell is already reserved for another connection (e.g., ports close to each other), no connection can be routed through this cell
-                        if node.connection.is_none() || (node.connection.is_some() && node.connection.unwrap() == *c_id) {
+                        if node.connection.is_none()
+                            || (node.connection.is_some() && node.connection.unwrap() == *c_id)
+                        {
                             node.connection = Some(*c_id);
                         } else {
                             nodes[box_x * cells_y + box_y].blocked = true;

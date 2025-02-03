@@ -1,6 +1,6 @@
 use core::f64;
 use std::{
-    io::{self, Cursor, Error, Result, Write},
+    io::{Cursor, Result, Write},
     iter,
 };
 
