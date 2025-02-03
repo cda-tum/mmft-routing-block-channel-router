@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, VecDeque};
+use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use core::fmt::Debug;
+use std::hash::Hash;
 
 const INITIAL_PATH_CAPACITY: usize = 8;
 const DEFAULT_HEURISTIC_BIAS: f64 = 1.0;
@@ -34,9 +35,15 @@ pub struct AStarNode<N: Eq + Copy + Debug> {
     prev_id: Option<usize>,
 }
 
+impl<N: Eq + Copy + Debug + Hash> Hash for AStarNode<N> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.node.hash(state);
+    }
+}
+
 impl<'a, N: Eq + Copy + Debug> PartialEq for AStarNode<N> {
     fn eq(&self, other: &Self) -> bool {
-        self.node == other.node && self.previous == other.previous
+        self.node == other.node
     }
 }
 
@@ -58,7 +65,7 @@ impl<'a, N: Eq + Copy + Debug> Ord for AStarNode<N> {
     }
 }
 
-pub fn a_star<N: Eq + Copy + Debug>(
+pub fn a_star<N: Eq + Copy + Debug + Hash>(
     start: Vec<N>,
     heuristic: &dyn Fn(&N) -> f64,
     successors: &dyn Fn(&AStarNode<N>) -> Vec<(N, f64)>,
@@ -67,7 +74,7 @@ pub fn a_star<N: Eq + Copy + Debug>(
 ) -> Option<VecDeque<N>> {
     let mut open = BinaryHeap::<AStarNode<N>>::new();
     let bias = heuristic_bias.unwrap_or(DEFAULT_HEURISTIC_BIAS);
-    let mut closed = Vec::new(); // todo: replace with hashset if large enough
+    let mut closed = HashMap::new(); // todo: replace with hashset if large enough
     start.into_iter().for_each(|n| {
         let h = heuristic(&n);
         open.push(AStarNode::<N> {
@@ -90,7 +97,7 @@ pub fn a_star<N: Eq + Copy + Debug>(
         if is_target(&candidate.node) {
             target = Some(candidate);
             break;
-        } else if closed.contains(&candidate) {
+        } else if closed.contains_key(&candidate.node) {
             continue;
         }
 
@@ -110,7 +117,7 @@ pub fn a_star<N: Eq + Copy + Debug>(
                 prev_id: Some(i),
             })
         });
-        closed.push(candidate);
+        closed.insert(candidate.node, candidate);
     }
 
     match target {
@@ -119,7 +126,7 @@ pub fn a_star<N: Eq + Copy + Debug>(
             path.push_front(t.node);
             let mut node = &t;
             while node.previous.is_some() {
-                node = &closed[node.prev_id.unwrap()];
+                node = &closed.get(&node.previous.unwrap()).unwrap();
                 path.push_front(node.node);
             }
             Some(path)
