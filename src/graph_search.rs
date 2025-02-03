@@ -74,7 +74,7 @@ pub fn a_star<N: Eq + Copy + Debug + Hash>(
 ) -> Option<VecDeque<N>> {
     let mut open = BinaryHeap::<AStarNode<N>>::new();
     let bias = heuristic_bias.unwrap_or(DEFAULT_HEURISTIC_BIAS);
-    let mut closed = HashMap::new(); // todo: replace with hashset if large enough
+    let mut closed = HashMap::new();
     start.into_iter().for_each(|n| {
         let h = heuristic(&n);
         open.push(AStarNode::<N> {
