@@ -307,15 +307,6 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         (cell_x, cell_y)
     };
 
-    dbg!(
-        cells_per_pitch,
-        cell_size,
-        cells_x,
-        cells_y,
-        cell_offset_x,
-        cell_offset_y
-    );
-
     let port_radius = input.port_diameter / 2.;
     let port_influence_radius = port_radius + input.channel_spacing + input.channel_width / 2.;
     let box_size = (port_influence_radius / cell_size).ceil();
