@@ -25,3 +25,7 @@ Runs the app locally in development mode.
 #### `npm run build`
 
 Builds the (optimized) app for production to the `build` folder.
+
+#### `cargo bench`
+
+Runs the benchmarks.

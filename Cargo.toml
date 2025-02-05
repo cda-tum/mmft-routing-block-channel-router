@@ -12,6 +12,13 @@ serde-wasm-bindgen = "0.6.5"
 wasm-bindgen = "0.2"
 web-sys = { version="0.3.70", features=["console"] }
 
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["html_reports"] }
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 path = "src/lib.rs"
+
+[[bench]]
+name = "benchmarks"
+harness = false
