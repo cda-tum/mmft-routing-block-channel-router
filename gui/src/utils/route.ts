@@ -28,11 +28,9 @@ export function route(input: InputState) {
             layout: input.parameters.layout.value,
         }
 
-        const start = performance.now()
+        console.time('timing')
         const result = wasm_route(args)
-        const end = performance.now()
-
-        console.log(`Timing: ${end - start} ms`)
+        console.timeEnd('timing')
 
         if ('Ok' in result) {
             return { connections: connections(result['Ok']['connections']), connectionsRaw: result['Ok']['connections'], error: undefined, is_partial: false }
