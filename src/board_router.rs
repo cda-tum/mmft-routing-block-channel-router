@@ -535,9 +535,10 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         let target_node = &nodes[target_node_id];
 
         // Setup successor cell functions for rectilinear, octilinear, etc; Since they capture some variables (e.g., cells_x/y), they need to be defined here.
-        let rectilinear = |a: &AStarNode<usize>| -> Vec<(usize, f64)> {
-            let n = &nodes[a.node];
-            let options = match a.previous {
+        let rectilinear = |a: &AStarNode<(usize, Option<usize>)>| -> Vec<((usize, Option<usize>), f64)> {
+            let current = a.node.0;
+            let n = &nodes[current];
+            let options = match a.node.1 {
                 Some(previous) => {
                     let p = &nodes[previous];
                     if p.ix < n.ix {
@@ -579,7 +580,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             // Check whether the cell can be reached (is unblocked)
             options
                 .into_iter()
-                .filter_map(|o| -> Option<(usize, f64)> {
+                .filter_map(|o| -> Option<((usize, Option<usize>), f64)> {
                     match o {
                         Some(((x, y), c)) => {
                             let cell_id = x * cells_y + y;
@@ -597,7 +598,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                             if node.blocked {
                                 return None;
                             }
-                            Some((cell_id, c))
+                            Some(((cell_id, Some(current)), c))
                         }
                         _ => None,
                     }
@@ -605,9 +606,10 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                 .collect()
         };
 
-        let octilinear = |a: &AStarNode<usize>| -> Vec<(usize, f64)> {
-            let n = &nodes[a.node];
-            let options = match a.previous {
+        let octilinear = |a: &AStarNode<(usize, Option<usize>)>| -> Vec<((usize, Option<usize>), f64)> {
+            let current = a.node.0;
+            let n = &nodes[current];
+            let options = match a.node.1 {
                 Some(previous) => {
                     let p = &nodes[previous];
                     if p.ix < n.ix {
@@ -681,7 +683,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             // Check whether the cell can be reached (is unblocked, and for diagonal connections, diagonal neighbors are unblocked)
             options
                 .into_iter()
-                .filter_map(|o| -> Option<(usize, f64)> {
+                .filter_map(|o| -> Option<((usize, Option<usize>), f64)> {
                     match o {
                         Some(((x, y), c)) => {
                             let cell_id = x * cells_y + y;
@@ -722,7 +724,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                                     return None;
                                 }
                             }
-                            Some((cell_id, c))
+                            Some(((cell_id, Some(current)), c))
                         }
                         _ => None,
                     }
@@ -731,9 +733,10 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         };
 
         // Not used currently, not up to date
-        let mixed = |a: &AStarNode<usize>| -> Vec<(usize, f64)> {
-            let n = &nodes[a.node];
-            let options = match a.previous {
+        let mixed = |a: &AStarNode<(usize, Option<usize>)>| -> Vec<((usize, Option<usize>), f64)> {
+            let current = a.node.0;
+            let n = &nodes[current];
+            let options = match a.node.1 {
                 Some(previous) => {
                     let p = &nodes[previous];
                     if p.ix < n.ix {
@@ -823,7 +826,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             // Check whether the cell can be reached (is unblocked, and for diagonal connections, diagonal neighbors are unblocked)
             options
                 .into_iter()
-                .filter_map(|o| -> Option<(usize, f64)> {
+                .filter_map(|o| -> Option<((usize, Option<usize>), f64)> {
                     match o {
                         Some(((x, y), c)) => {
                             let cell_id = x * cells_y + y;
@@ -859,7 +862,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                                     return None;
                                 }
                             }
-                            Some((cell_id, c))
+                            Some(((cell_id, Some(current)), c))
                         }
                         _ => None,
                     }
@@ -868,24 +871,24 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         };
 
         // Set successor function depending on input layout
-        let successors: &dyn Fn(&AStarNode<usize>) -> Vec<(usize, f64)> = match input.layout {
+        let successors: &dyn Fn(&AStarNode<(usize, Option<usize>)>) -> Vec<((usize, Option<usize>), f64)> = match input.layout {
             Layout::Rectilinear => &rectilinear,
             Layout::Octilinear => &octilinear,
             Layout::Mixed => &mixed,
         };
 
-        let is_target = |n: &usize| -> bool { *n == target_node_id };
+        let is_target = |n: &(usize, Option<usize>)| -> bool { n.0 == target_node_id };
 
         // Set euclidean distance as heuristic
-        let heuristic = |i: &usize| -> f64 {
-            let n = &nodes[*i];
+        let heuristic = |i: &(usize, Option<usize>)| -> f64 {
+            let n = &nodes[i.0];
             let dx = n.ix.abs_diff(target_node.ix);
             let dy = n.iy.abs_diff(target_node.iy);
             f64::hypot(dx as f64, dy as f64)
         };
 
         let result = a_star(
-            Vec::from([start_node_id]),
+            Vec::from([(start_node_id, None)]),
             &heuristic,
             &successors,
             &is_target,
@@ -899,7 +902,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                 let channel = path
                     .into_iter()
                     .map(|n| {
-                        let node = &mut nodes[n];
+                        let node = &mut nodes[n.0];
                         node.blocked = true;
                         [node.x, node.y]
                     })

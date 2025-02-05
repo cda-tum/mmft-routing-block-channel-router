@@ -1,7 +1,9 @@
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap, VecDeque};
+use std::collections::{BinaryHeap, VecDeque};
 use core::fmt::Debug;
 use std::hash::Hash;
+
+use indexmap::IndexMap;
 
 const INITIAL_PATH_CAPACITY: usize = 8;
 const DEFAULT_HEURISTIC_BIAS: f64 = 1.0;
@@ -38,12 +40,13 @@ pub struct AStarNode<N: Eq + Copy + Debug> {
 impl<N: Eq + Copy + Debug + Hash> Hash for AStarNode<N> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.node.hash(state);
+        self.previous.hash(state);
     }
 }
 
 impl<'a, N: Eq + Copy + Debug> PartialEq for AStarNode<N> {
     fn eq(&self, other: &Self) -> bool {
-        self.node == other.node
+        self.node == other.node && self.previous == other.previous
     }
 }
 
@@ -74,7 +77,7 @@ pub fn a_star<N: Eq + Copy + Debug + Hash>(
 ) -> Option<VecDeque<N>> {
     let mut open = BinaryHeap::<AStarNode<N>>::new();
     let bias = heuristic_bias.unwrap_or(DEFAULT_HEURISTIC_BIAS);
-    let mut closed = HashMap::new();
+    let mut closed = IndexMap::new();
     start.into_iter().for_each(|n| {
         let h = heuristic(&n);
         open.push(AStarNode::<N> {
