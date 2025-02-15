@@ -4,6 +4,7 @@ mod graph_search;
 mod validation;
 mod dxf;
 mod port_nomenclature;
+pub mod utils;
 
 
 #[cfg(test)]
@@ -28,7 +29,6 @@ mod tests {
             pitch_offset_x: Some(500.0),
             pitch_offset_y: Some(500.0),
             port_diameter: Some(200.0),
-            min_grid_size: None,
             max_ports: Some(20000),
             layout: Some(Layout::Rectilinear),
             connections: Some(Vec::new()),
@@ -49,7 +49,6 @@ mod tests {
             pitch_offset_x: 500.,
             pitch_offset_y: 500.,
             port_diameter: 200.,
-            min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
             connections: Vec::from([(0, vec![(5, 5), (5, 7)]), (1, vec![(6, 5), (6, 7)]), (2, vec![(7, 5), (7, 7)]), (3, vec![(8, 5), (8, 7)]), (4, vec![(9, 5), (9, 7)]), (0, vec![(4, 6), (10, 6)])]),
@@ -78,7 +77,6 @@ mod tests {
             pitch_offset_x: 500.,
             pitch_offset_y: 500.,
             port_diameter: 200.,
-            min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
             connections: Vec::from([(0, vec![(2, 0), (1, 1)]), (1, vec![(0, 0), (2, 2)])]),
@@ -107,7 +105,6 @@ mod tests {
             pitch_offset_x: 500.,
             pitch_offset_y: 500.,
             port_diameter: 200.,
-            min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
             connections: Vec::from([
@@ -127,7 +124,6 @@ mod tests {
             pitch_offset_x: 500.,
             pitch_offset_y: 500.,
             port_diameter: 200.,
-            min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
             connections: Vec::from([
@@ -147,7 +143,6 @@ mod tests {
             pitch_offset_x: 1.5,
             pitch_offset_y: 1.5,
             port_diameter: 0.4,
-            min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
             connections: Vec::from([

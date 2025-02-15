@@ -707,6 +707,158 @@ pub fn generate_dxf(input: GenerateDXFInput) -> GenerateDXFOutput {
     GenerateDXFOutput(String::from_utf8(s).unwrap())
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct GenerateSVGOutput(String);
+
+pub fn generate_svg(input: GenerateDXFInput) -> GenerateSVGOutput {
+    let mut s = Vec::new();
+    let mut buf = Cursor::new(&mut s);
+    let _ = write_svg(
+        &mut buf,
+        &input
+            .connections
+            .connections
+            .iter()
+            .map(|(_, connection)| {
+                DXFEntity::Polyline(octilinear_outline(
+                    connection,
+                    input.channel_width,
+                    &input.channel_cap,
+                ).invert_y().add_y(input.board_height).to_owned())
+            })
+            .chain(iter::once(DXFEntity::Polyline(Polyline::Closed(
+                Vec::from([
+                    [0., 0.],
+                    [input.board_width, 0.],
+                    [input.board_width, input.board_height],
+                    [0., input.board_height],
+                ]),
+            ).invert_y().add_y(input.board_height).to_owned())))
+            .collect::<Vec<DXFEntity>>(),
+    );
+    GenerateSVGOutput(String::from_utf8(s).unwrap())
+}
+
+fn write_svg<W: Write>(out: &mut W, entities: &[DXFEntity]) -> Result<()> {
+    write_svg_head(out)?;
+    write_svg_entities(out, entities)?;
+    write_svg_end(out)?;
+    Ok(())
+}
+
+fn write_svg_entities<W: Write>(out: &mut W, entities: &[DXFEntity]) -> Result<()> {
+    for entity in entities {
+        match entity {
+            DXFEntity::Polyline(polyline) => write_dxf_polyline(out, polyline)?,
+            DXFEntity::Line(line) => write_dxf_line(out, line)?,
+        }
+    }
+
+    Ok(())
+}
+
+fn write_svg_polyline<W: Write>(out: &mut W, polyline: &Polyline) -> Result<()> {
+    let points = match polyline {
+        Polyline::Closed(points) => {
+            let n_points = points.len();
+            if n_points > 0 {
+                write_dxf_line(
+                    out,
+                    &Line {
+                        from: points[0],
+                        to: points[n_points - 1],
+                    },
+                )?
+            }
+
+            points
+        }
+        Polyline::Open(points) => points,
+    };
+    for w in points.windows(2) {
+        write_dxf_line(
+            out,
+            &Line {
+                from: w[0],
+                to: w[1],
+            },
+        )?
+    }
+    Ok(())
+}
+
+fn write_svg_line<W: Write>(out: &mut W, line: &Line) -> Result<()> {
+    out.write_all(b"LINE\n")?;
+    out.write_all(b"8\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"10\n")?;
+    out.write_all(format!("{}\n", line.from[0]).as_bytes())?;
+    out.write_all(b"20\n")?;
+    out.write_all(format!("{}\n", line.from[1]).as_bytes())?;
+    out.write_all(b"11\n")?;
+    out.write_all(format!("{}\n", line.to[0]).as_bytes())?;
+    out.write_all(b"21\n")?;
+    out.write_all(format!("{}\n", line.to[1]).as_bytes())?;
+    out.write_all(b"0\n")?;
+    Ok(())
+}
+
+fn write_svg_head<W: Write>(out: &mut W) -> Result<()> {
+    out.write_all(b"0\n")?;
+    out.write_all(b"SECTION\n")?;
+    out.write_all(b"2\n")?;
+    out.write_all(b"HEADER\n")?;
+    out.write_all(b"9\n")?;
+    out.write_all(b"$INSUNITS\n")?;
+    out.write_all(b"70\n")?;
+    out.write_all(b"4\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"ENDSEC\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"SECTION\n")?;
+    out.write_all(b"2\n")?;
+    out.write_all(b"TABLES\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"TABLE\n")?;
+    out.write_all(b"2\n")?;
+    out.write_all(b"LTYPE\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"LTYPE\n")?;
+    out.write_all(b"72\n")?;
+    out.write_all(b"65\n")?;
+    out.write_all(b"70\n")?;
+    out.write_all(b"64\n")?;
+    out.write_all(b"2\n")?;
+    out.write_all(b"CONTINUOUS\n")?;
+    out.write_all(b"3\n")?;
+    out.write_all(b"______\n")?;
+    out.write_all(b"73\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"40\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"ENDTAB\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"TABLE\n")?;
+    out.write_all(b"2\n")?;
+    out.write_all(b"LAYER\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"ENDTAB\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"ENDSEC\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"SECTION\n")?;
+    out.write_all(b"2\n")?;
+    out.write_all(b"ENTITIES\n")?;
+    out.write_all(b"0\n")?;
+    Ok(())
+}
+
+fn write_svg_end<W: Write>(out: &mut W) -> Result<()> {
+    out.write_all(b"</svg>")?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -24,7 +24,6 @@ export function route(input: InputState) {
             port_diameter: input.parameters.portDiameter.value,
             max_ports: input.parameters.maxPorts.value,
             connections: Object.entries(input.connections).filter(([_, connection]) => connection.ports.length > 1).map(([c_id, connection]) => [parseInt(c_id), connection.ports]),
-            min_grid_size: 0,
             layout: input.parameters.layout.value,
         }
 

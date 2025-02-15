@@ -18,7 +18,6 @@ pub struct RouteInput {
     pub pitch_offset_x: f64,
     pub pitch_offset_y: f64,
     pub port_diameter: f64,
-    pub min_grid_size: f64,
     pub max_ports: usize,
     pub connections: RouteInputConnections,
 }
