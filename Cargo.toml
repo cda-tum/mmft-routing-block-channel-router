@@ -33,6 +33,10 @@ path = "benches/generate_benchmark.rs"
 name = "print_benchmark"
 path = "benches/print_benchmark.rs"
 
+[[bin]]
+name = "compute_group_aggregates"
+path = "benches/compute_group_aggregates.rs"
+
 [[bench]]
 name = "benchmarks"
 harness = false

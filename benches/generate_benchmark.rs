@@ -141,8 +141,8 @@ fn random_1() -> Vec<(String, RouteInput)> {
 
     let board_width = 105.;
     let board_height = 15.;
-    let channel_width = 0.2;
-    let channel_spacing = 0.2;
+    let channel_width = 0.25;
+    let channel_spacing = 0.1;
     let pitch = 1.5;
     let pitch_offset_x = 3.;
     let pitch_offset_y = 3.;
@@ -164,7 +164,7 @@ fn random_1() -> Vec<(String, RouteInput)> {
         four_port_frequency_share: 0.1,
         ports_x,
         ports_y,
-        max_relative_distance_x: 0.4,
+        max_relative_distance_x: 0.5,
         max_relative_distance_y: 0.5,
     };
 
@@ -231,6 +231,8 @@ fn random_1() -> Vec<(String, RouteInput)> {
             cases.push((nanoid!(), input));
         }
     }
+
+    println!("\n");
 
     if cases.len() < n_cases {
         panic!(
