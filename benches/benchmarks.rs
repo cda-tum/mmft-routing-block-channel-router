@@ -6,7 +6,7 @@ const DIR: &str = "./benches/cases";
 
 fn criterion_benchmark(c: &mut Criterion) {
     for entry in WalkDir::new(DIR).into_iter().filter_map(|e| e.ok()) {
-        if entry.path().is_file() {
+        if entry.path().is_file() && entry.path().extension().unwrap().eq_ignore_ascii_case("json") {
             let input = read_input_from_file(entry.path()).expect("Error reading configuration");
 
             c.bench_function(entry.path().to_str().unwrap(), |b| {

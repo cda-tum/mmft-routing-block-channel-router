@@ -2,7 +2,7 @@ pub mod board_router;
 mod board_router_wasm;
 mod graph_search;
 mod validation;
-mod dxf;
+pub mod dxf;
 mod port_nomenclature;
 pub mod utils;
 
