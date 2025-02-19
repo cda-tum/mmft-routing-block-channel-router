@@ -5,16 +5,43 @@ use walkdir::WalkDir;
 const DIR: &str = "./benches/cases";
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("my_group");
-    for entry in WalkDir::new(DIR).into_iter().filter_map(|e| e.ok()) {
-        if entry.path().is_file() && entry.path().extension().unwrap().eq_ignore_ascii_case("json") {
-            let input = read_input_from_file(entry.path()).expect("Error reading configuration");
+    for group in WalkDir::new(DIR)
+        .min_depth(1)
+        .max_depth(1)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
+        if !group.path().is_dir() {
+            continue;
+        }
 
-            group.bench_function(entry.path().to_str().unwrap(), |b| {
-                b.iter(|| {
-                    route(black_box(&input)).expect("No solution found");
-                })
-            });
+        let group_name = match group.path().components().last().unwrap() {
+            std::path::Component::Normal(os_str) => os_str.to_str().unwrap().to_owned(),
+            _ => panic!(),
+        };
+
+        let mut benchmark_group = c.benchmark_group(group_name);
+        for case in WalkDir::new(group.path())
+            .min_depth(1)
+            .max_depth(1)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            if case.path().is_file()
+                && case
+                    .path()
+                    .extension()
+                    .unwrap()
+                    .eq_ignore_ascii_case("json")
+            {
+                let input = read_input_from_file(case.path()).expect("Error reading configuration");
+
+                benchmark_group.bench_function(case.path().to_str().unwrap(), |b| {
+                    b.iter(|| {
+                        route(black_box(&input)).expect("No solution found");
+                    })
+                });
+            }
         }
     }
 }

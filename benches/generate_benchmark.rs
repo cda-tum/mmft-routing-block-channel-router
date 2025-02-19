@@ -1,13 +1,12 @@
 use std::{
-    fs::{self, File},
+    fs::File,
     io::{BufWriter, Write},
-    ops::Range,
     path::Path,
 };
 
 use mmft_board_router::board_router::{
-    compute_ports, route, BoardRouterOutputConnection, ComputePortsInput, ComputePortsOutput,
-    Layout, RouteInput, RouteInputConnection,
+    compute_ports, route, ComputePortsInput, ComputePortsOutput, Layout, RouteInput,
+    RouteInputConnection,
 };
 use nanoid::nanoid;
 use rand::Rng;
@@ -17,7 +16,7 @@ const DIR: &str = "./benches/cases";
 fn main() {
     let cases_path = Path::new(DIR);
     let test_batch = random_1();
-    let test_batch_path = cases_path.join("test");
+    let test_batch_path = cases_path.join("test2");
     write_to_files(&test_batch_path, &test_batch);
 }
 
@@ -36,9 +35,9 @@ fn write_to_files(path: &Path, cases: &Vec<(String, RouteInput)>) {
 }
 
 struct RandomPortConnectionsOptions {
-    two_port_frequency_share: f64,
-    three_port_frequency_share: f64,
-    four_port_frequency_share: f64,
+    n_connections_2: usize,
+    n_connections_3: usize,
+    n_connections_4: usize,
     ports_x: usize,
     ports_y: usize,
     max_relative_distance_x: f64,
@@ -46,18 +45,11 @@ struct RandomPortConnectionsOptions {
 }
 
 fn random_port_connection(
+    ports: usize,
     options: &RandomPortConnectionsOptions,
     occupied_ports: &Vec<(usize, usize)>,
 ) -> Vec<(usize, usize)> {
     let mut rng = rand::rng();
-    let total_frequencies = options.two_port_frequency_share
-        + options.three_port_frequency_share
-        + options.four_port_frequency_share;
-    let ports = match rng.random_range(0. ..total_frequencies) {
-        v if v < options.two_port_frequency_share => 2,
-        v if v < options.two_port_frequency_share + options.three_port_frequency_share => 3,
-        _ => 4,
-    };
 
     let mut candidates = Vec::new();
 
@@ -92,13 +84,20 @@ fn random_port_connection(
 }
 
 fn random_port_connections(
-    n_connections: usize,
     options: &RandomPortConnectionsOptions,
 ) -> Vec<(usize, Vec<(usize, usize)>)> {
+    let total_connections = options.n_connections_2 + options.n_connections_3 + options.n_connections_4;
     let mut occupied = Vec::new();
-    (0..n_connections)
+    (0..total_connections)
         .map(|i| {
-            let connection = random_port_connection(&options, &occupied);
+            let ports = if i < options.n_connections_4 {
+                4
+            } else if i < options.n_connections_3 + options.n_connections_4 {
+                3
+            } else {
+                2
+            };
+            let connection = random_port_connection(ports, &options, &occupied);
             connection.iter().for_each(|c| occupied.push(*c));
             (i, connection)
         })
@@ -106,16 +105,23 @@ fn random_port_connections(
 }
 
 fn random_port_connections_incremental(
-    n_connections: usize,
     options: &RandomPortConnectionsOptions,
     is_valid: impl Fn(&Vec<RouteInputConnection>) -> bool,
     tries_per_connection: usize,
 ) -> Result<Vec<(usize, Vec<(usize, usize)>)>, ()> {
+    let total_connections = options.n_connections_2 + options.n_connections_3 + options.n_connections_4;
     let mut occupied = Vec::new();
     let mut connections = Vec::new();
-    for i in 0..n_connections {
+    for i in 0..total_connections {
+        let ports = if i < options.n_connections_4 {
+            4
+        } else if i < options.n_connections_3 + options.n_connections_4 {
+            3
+        } else {
+            2
+        };
         for j in 0..tries_per_connection {
-            let connection = random_port_connection(&options, &mut occupied);
+            let connection = random_port_connection(ports, &options, &mut occupied);
             connections.push((i, connection.clone()));
             let is_valid = is_valid(&connections);
             if !is_valid {
@@ -133,16 +139,23 @@ fn random_port_connections_incremental(
 }
 
 fn random_1() -> Vec<(String, RouteInput)> {
-    let n_cases = 5;
-    let n_tries = 10 * n_cases;
-    let use_incremental = true;
     let n_connections = 50;
-    let incremental_tries_per_connection = n_connections / 2;
+    let n_cases = 5;
+    let n_tries = n_connections * n_cases;
+    let use_incremental = true;
+    let incremental_tries_per_connection = n_connections;
+
+    let connections_4_share = 0.1;
+    let connections_3_share = 0.1;
+
+    let n_connections_4 = f64::floor(connections_4_share * n_connections as f64) as usize;
+    let n_connections_3 = f64::floor(connections_3_share * n_connections as f64) as usize;
+    let n_connections_2 = n_connections - n_connections_3 - n_connections_4;
 
     let board_width = 105.;
     let board_height = 15.;
-    let channel_width = 0.25;
-    let channel_spacing = 0.1;
+    let channel_width = 0.2;
+    let channel_spacing = 0.2;
     let pitch = 1.5;
     let pitch_offset_x = 3.;
     let pitch_offset_y = 3.;
@@ -159,9 +172,9 @@ fn random_1() -> Vec<(String, RouteInput)> {
     });
 
     let options = RandomPortConnectionsOptions {
-        two_port_frequency_share: 0.8,
-        three_port_frequency_share: 0.1,
-        four_port_frequency_share: 0.1,
+        n_connections_2,
+        n_connections_3,
+        n_connections_4,
         ports_x,
         ports_y,
         max_relative_distance_x: 0.5,
@@ -183,7 +196,6 @@ fn random_1() -> Vec<(String, RouteInput)> {
 
         let connections = if use_incremental {
             let r = random_port_connections_incremental(
-                n_connections,
                 &options,
                 |connections| {
                     has_successful_result(&RouteInput {
@@ -200,17 +212,14 @@ fn random_1() -> Vec<(String, RouteInput)> {
                         connections: connections.clone(),
                     })
                 },
-                incremental_tries_per_connection
+                incremental_tries_per_connection,
             );
             match r {
                 Ok(v) => v,
                 Err(_) => continue,
             }
         } else {
-            random_port_connections(
-                n_connections,
-                &options
-            )
+            random_port_connections(&options)
         };
 
         let input = RouteInput {

@@ -36,7 +36,10 @@ fn main() {
 
     fn print_benchmark_for_file(file_name: &str) {
         let file = Path::new(&file_name);
-        let input = read_input_from_file(file).expect("Not a valid configuration");
+        let input = match read_input_from_file(file) {
+            Ok(r) => r,
+            Err(_) => return
+        };
         let result = route(&input);
         let connections = match result {
             Ok(r) => r,
