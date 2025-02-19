@@ -27,12 +27,12 @@ crate-type = ["cdylib", "rlib"]
 path = "src/lib.rs"
 
 [[bin]]
-name = "generate_benchmark"
-path = "benches/generate_benchmark.rs"
+name = "generate_benchmarks"
+path = "benches/generate_benchmarks.rs"
 
 [[bin]]
-name = "print_benchmark"
-path = "benches/print_benchmark.rs"
+name = "print_benchmarks"
+path = "benches/print_benchmarks.rs"
 
 [[bin]]
 name = "compute_group_aggregates"

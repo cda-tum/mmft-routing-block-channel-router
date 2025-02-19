@@ -1,5 +1,5 @@
 use std::{
-    fs::File,
+    fs::{self, File},
     io::{BufWriter, Write},
     path::Path,
 };
@@ -12,12 +12,37 @@ use nanoid::nanoid;
 use rand::Rng;
 
 const DIR: &str = "./benches/cases";
+const MAX_PORTS: usize = 100000000;
 
 fn main() {
+    let n_cases_per_group = 5;
+    generate_case_group("test2", &RandomGenerationOptions {
+        n_cases: n_cases_per_group,
+        n_connections: 50,
+        connections_3_share: 0.1,
+        connections_4_share: 0.1,
+        max_relative_distance_x: 0.5,
+        max_relative_distance_y: 0.5,
+        use_incremental: true,
+    
+        board_width: 105.0,
+        board_height: 15.0,
+        channel_width: 0.1,
+        channel_spacing: 0.1,
+        pitch: 1.5,
+        pitch_offset_x: 3.,
+        pitch_offset_y: 3.,
+        port_diameter: 0.5,
+        layout: Layout::Octilinear,
+    });
+}
+
+fn generate_case_group(group_name: &str, options: &RandomGenerationOptions) {
     let cases_path = Path::new(DIR);
-    let test_batch = random_1();
-    let test_batch_path = cases_path.join("test2");
-    write_to_files(&test_batch_path, &test_batch);
+    let case_batch = random_cases(options);
+    let case_batch_path = cases_path.join(group_name);
+    fs::create_dir_all(&case_batch_path);
+    write_to_files(&case_batch_path, &case_batch);
 }
 
 fn write_to_files(path: &Path, cases: &Vec<(String, RouteInput)>) {
@@ -86,7 +111,8 @@ fn random_port_connection(
 fn random_port_connections(
     options: &RandomPortConnectionsOptions,
 ) -> Vec<(usize, Vec<(usize, usize)>)> {
-    let total_connections = options.n_connections_2 + options.n_connections_3 + options.n_connections_4;
+    let total_connections =
+        options.n_connections_2 + options.n_connections_3 + options.n_connections_4;
     let mut occupied = Vec::new();
     (0..total_connections)
         .map(|i| {
@@ -109,7 +135,8 @@ fn random_port_connections_incremental(
     is_valid: impl Fn(&Vec<RouteInputConnection>) -> bool,
     tries_per_connection: usize,
 ) -> Result<Vec<(usize, Vec<(usize, usize)>)>, ()> {
-    let total_connections = options.n_connections_2 + options.n_connections_3 + options.n_connections_4;
+    let total_connections =
+        options.n_connections_2 + options.n_connections_3 + options.n_connections_4;
     let mut occupied = Vec::new();
     let mut connections = Vec::new();
     for i in 0..total_connections {
@@ -138,30 +165,47 @@ fn random_port_connections_incremental(
     Ok(connections)
 }
 
-fn random_1() -> Vec<(String, RouteInput)> {
-    let n_connections = 50;
-    let n_cases = 5;
-    let n_tries = n_connections * n_cases;
-    let use_incremental = true;
-    let incremental_tries_per_connection = n_connections;
+struct RandomGenerationOptions {
+    n_cases: usize,
+    n_connections: usize,
+    connections_3_share: f64,
+    connections_4_share: f64,
+    max_relative_distance_x: f64,
+    max_relative_distance_y: f64,
+    use_incremental: bool,
 
-    let connections_4_share = 0.1;
-    let connections_3_share = 0.1;
+    board_width: f64,
+    board_height: f64,
+    channel_width: f64,
+    channel_spacing: f64,
+    pitch: f64,
+    pitch_offset_x: f64,
+    pitch_offset_y: f64,
+    port_diameter: f64,
+    layout: Layout,
+}
 
-    let n_connections_4 = f64::floor(connections_4_share * n_connections as f64) as usize;
-    let n_connections_3 = f64::floor(connections_3_share * n_connections as f64) as usize;
+fn random_cases(options: &RandomGenerationOptions) -> Vec<(String, RouteInput)> {
+    let &RandomGenerationOptions {
+        n_connections,
+        n_cases,
+        board_width,
+        board_height,
+        pitch,
+        pitch_offset_x,
+        pitch_offset_y,
+        port_diameter,
+        channel_width,
+        channel_spacing,
+        layout,
+        use_incremental,
+        ..
+    } = options;
+    let incremental_tries_per_connection = 4 * f64::ceil(f64::sqrt(n_connections as f64)) as usize;
+
+    let n_connections_4 = f64::floor(options.connections_4_share * n_connections as f64) as usize;
+    let n_connections_3 = f64::floor(options.connections_3_share * n_connections as f64) as usize;
     let n_connections_2 = n_connections - n_connections_3 - n_connections_4;
-
-    let board_width = 105.;
-    let board_height = 15.;
-    let channel_width = 0.2;
-    let channel_spacing = 0.2;
-    let pitch = 1.5;
-    let pitch_offset_x = 3.;
-    let pitch_offset_y = 3.;
-    let port_diameter = 0.5;
-    let layout = Layout::Octilinear;
-    let max_ports = 5000;
 
     let ComputePortsOutput { ports_x, ports_y } = compute_ports(ComputePortsInput {
         board_width,
@@ -177,17 +221,17 @@ fn random_1() -> Vec<(String, RouteInput)> {
         n_connections_4,
         ports_x,
         ports_y,
-        max_relative_distance_x: 0.5,
-        max_relative_distance_y: 0.5,
+        max_relative_distance_x: options.max_relative_distance_x,
+        max_relative_distance_y: options.max_relative_distance_y,
     };
 
     let mut cases = Vec::new();
 
-    for i in 0..n_tries {
+    for i in 0..usize::MAX {
         if i > 0 {
             print!("\r");
         }
-        print!("Round {} of {}. Found: {}.", i, n_tries, cases.len());
+        print!("Round {}. Found: {}.", i, cases.len());
         std::io::stdout().flush().unwrap();
         if cases.len() >= n_cases {
             println!("{} cases generated in {} tries.", n_cases, i);
@@ -208,7 +252,7 @@ fn random_1() -> Vec<(String, RouteInput)> {
                         channel_width,
                         channel_spacing,
                         layout,
-                        max_ports,
+                        max_ports: MAX_PORTS,
                         connections: connections.clone(),
                     })
                 },
@@ -232,25 +276,21 @@ fn random_1() -> Vec<(String, RouteInput)> {
             channel_width,
             channel_spacing,
             layout,
-            max_ports,
+            max_ports: MAX_PORTS,
             connections,
         };
 
         if has_successful_result(&input) {
             cases.push((nanoid!(), input));
         }
+
+        if cases.len() == n_cases {
+            break;
+        }
     }
 
     println!("\n");
-
-    if cases.len() < n_cases {
-        panic!(
-            "Could not find {} cases in {} tries. Found: {}.",
-            n_cases,
-            n_tries,
-            cases.len()
-        )
-    }
+    println!("Generated {} cases.", n_cases);
     cases
 }
 

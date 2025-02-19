@@ -1,10 +1,14 @@
+use std::{fs, path::Path};
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use mmft_board_router::{board_router::route, utils::read_input_from_file};
 use walkdir::WalkDir;
 
 const DIR: &str = "./benches/cases";
+const TARGET_DIR: &str = "./target/criterion/";
 
 fn criterion_benchmark(c: &mut Criterion) {
+    let _ = fs::remove_dir_all(Path::new(TARGET_DIR));
     for group in WalkDir::new(DIR)
         .min_depth(1)
         .max_depth(1)
