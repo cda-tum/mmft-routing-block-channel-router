@@ -23,12 +23,21 @@ struct Aggregate {
 
 #[derive(Serialize, Deserialize)]
 struct GroupAggregate {
+    ms: GroupAggregatesMs,
     n: usize,
     mean: f64,
     std: f64,
     min: f64,
     max: f64,
-    values: Vec<f64>
+    values: Vec<f64>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct GroupAggregatesMs {
+    mean: f64,
+    std: f64,
+    min: f64,
+    max: f64,
 }
 
 fn get_mean(obj: Value) -> Option<f64> {
@@ -93,13 +102,24 @@ fn main() {
             continue;
         }
 
+        let mean = mean(&entries);
+        let std = standard_deviation(&entries, None);
+        let min = entries.iter().fold(f64::INFINITY, |a, &b| a.min(b));
+        let max = entries.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+
         let group_aggregate = GroupAggregate {
             n: entries.len(),
-            mean: mean(&entries),
-            std: standard_deviation(&entries, None),
-            min: entries.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
-            max: entries.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b)),
-            values: entries
+            mean,
+            std,
+            min,
+            max,
+            ms: GroupAggregatesMs {
+                mean: mean / 1000000.,
+                std: std / 1000000.,
+                min: min / 1000000.,
+                max: max / 1000000.,
+            },
+            values: entries,
         };
 
         aggregate.groups.insert(

@@ -10,38 +10,628 @@ use mmft_board_router::board_router::{
 };
 use nanoid::nanoid;
 use rand::Rng;
+use threadpool::ThreadPool;
 
 const DIR: &str = "./benches/cases";
 const MAX_PORTS: usize = 100000000;
 
 fn main() {
-    let n_cases_per_group = 5;
-    generate_case_group("test2", &RandomGenerationOptions {
-        n_cases: n_cases_per_group,
-        n_connections: 50,
-        connections_3_share: 0.1,
-        connections_4_share: 0.1,
-        max_relative_distance_x: 0.5,
-        max_relative_distance_y: 0.5,
-        use_incremental: true,
-    
-        board_width: 105.0,
-        board_height: 15.0,
-        channel_width: 0.1,
-        channel_spacing: 0.1,
-        pitch: 1.5,
-        pitch_offset_x: 3.,
-        pitch_offset_y: 3.,
-        port_diameter: 0.5,
-        layout: Layout::Octilinear,
+    // Be careful, this may run for several days ...
+    generate_benchmarks();
+
+    //set1(3, false);
+    //set2(3, false);
+    //set3(3, false);
+    //set4(3, false);
+    //set5(3, false);
+    //set6(3, false);
+    //set7(3, false);
+    //set8(3, false);
+    //set9(3, false);
+    //set10(3, false);
+    //set11(3, false);
+    //set12(3, false);
+    //set13(3, false);
+    //set14(3, false);
+    //set15(3, false);
+    //set16(3, false);
+    //set17(3, false);
+    //set18(3, false);
+    //set19(3, false);
+    //set20(3, false);
+}
+
+fn generate_benchmarks() {
+    let n_cases_per_group = 2;
+    let n_workers = 4;
+
+    let pool = ThreadPool::new(n_workers);
+    pool.execute(move || {
+        set1(n_cases_per_group, true);
     });
+    pool.execute(move || {
+        set2(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set3(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set4(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set5(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set6(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set7(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set8(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set9(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set10(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set11(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set12(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set13(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set14(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set15(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set16(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set17(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set18(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set19(n_cases_per_group, true);
+    });
+    pool.execute(move || {
+        set20(n_cases_per_group, true);
+    });
+}
+
+fn set1(cases: usize, silent: bool) {
+    generate_case_group(
+        "1_30x15_10_0.4_R",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 10,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 30.0,
+            board_height: 15.0,
+            channel_width: 0.4,
+            channel_spacing: 0.4,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Rectilinear,
+        },
+    )
+}
+
+fn set2(cases: usize, silent: bool) {
+    generate_case_group(
+        "2_30x15_10_0.4_O",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 10,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 30.0,
+            board_height: 15.0,
+            channel_width: 0.4,
+            channel_spacing: 0.4,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Octilinear,
+        },
+    )
+}
+
+fn set3(cases: usize, silent: bool) {
+    generate_case_group(
+        "3_30x15_20_0.2_R",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 20,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 30.0,
+            board_height: 15.0,
+            channel_width: 0.2,
+            channel_spacing: 0.2,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Rectilinear,
+        },
+    )
+}
+
+fn set4(cases: usize, silent: bool) {
+    generate_case_group(
+        "4_30x15_20_0.2_O",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 20,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 30.0,
+            board_height: 15.0,
+            channel_width: 0.2,
+            channel_spacing: 0.2,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Octilinear,
+        },
+    )
+}
+
+fn set5(cases: usize, silent: bool) {
+    generate_case_group(
+        "5_30x15_30_0.1_R",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 30,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 30.0,
+            board_height: 15.0,
+            channel_width: 0.1,
+            channel_spacing: 0.1,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Rectilinear,
+        },
+    )
+}
+
+fn set6(cases: usize, silent: bool) {
+    generate_case_group(
+        "6_30x15_30_0.1_O",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 30,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 30.0,
+            board_height: 15.0,
+            channel_width: 0.1,
+            channel_spacing: 0.1,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Octilinear,
+        },
+    )
+}
+
+fn set7(cases: usize, silent: bool) {
+    generate_case_group(
+        "7_105x15_20_0.4_R",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 20,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 15.0,
+            channel_width: 0.4,
+            channel_spacing: 0.4,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Rectilinear,
+        },
+    )
+}
+
+fn set8(cases: usize, silent: bool) {
+    generate_case_group(
+        "8_105x15_20_0.4_O",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 20,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 15.0,
+            channel_width: 0.4,
+            channel_spacing: 0.4,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Octilinear,
+        },
+    )
+}
+
+fn set9(cases: usize, silent: bool) {
+    generate_case_group(
+        "9_105x15_30_0.2_R",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 30,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 15.0,
+            channel_width: 0.2,
+            channel_spacing: 0.2,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Rectilinear,
+        },
+    )
+}
+
+fn set10(cases: usize, silent: bool) {
+    generate_case_group(
+        "10_105x15_30_0.2_O",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 30,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 15.0,
+            channel_width: 0.2,
+            channel_spacing: 0.2,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Octilinear,
+        },
+    )
+}
+
+fn set11(cases: usize, silent: bool) {
+    generate_case_group(
+        "11_105x15_40_0.1_R",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 40,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 15.0,
+            channel_width: 0.1,
+            channel_spacing: 0.1,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Rectilinear,
+        },
+    )
+}
+
+fn set12(cases: usize, silent: bool) {
+    generate_case_group(
+        "12_105x15_40_0.1_O",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 40,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 15.0,
+            channel_width: 0.1,
+            channel_spacing: 0.1,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Octilinear,
+        },
+    )
+}
+
+fn set13(cases: usize, silent: bool) {
+    generate_case_group(
+        "13_105x15_50_0.1_R",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 50,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 15.0,
+            channel_width: 0.1,
+            channel_spacing: 0.1,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Rectilinear,
+        },
+    )
+}
+
+fn set14(cases: usize, silent: bool) {
+    generate_case_group(
+        "14_105x15_50_0.1_O",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 50,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 15.0,
+            channel_width: 0.1,
+            channel_spacing: 0.1,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Octilinear,
+        },
+    )
+}
+
+fn set15(cases: usize, silent: bool) {
+    generate_case_group(
+        "15_105x105_50_0.4_R",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 50,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 105.0,
+            channel_width: 0.4,
+            channel_spacing: 0.4,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Rectilinear,
+        },
+    )
+}
+
+fn set16(cases: usize, silent: bool) {
+    generate_case_group(
+        "16_105x105_50_0.4_O",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 50,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.5,
+            max_relative_distance_y: 0.5,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 105.0,
+            channel_width: 0.4,
+            channel_spacing: 0.4,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Octilinear,
+        },
+    )
+}
+
+fn set17(cases: usize, silent: bool) {
+    generate_case_group(
+        "17_105x105_100_0.2_R",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 100,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.3,
+            max_relative_distance_y: 0.3,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 105.0,
+            channel_width: 0.2,
+            channel_spacing: 0.2,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Rectilinear,
+        },
+    )
+}
+fn set18(cases: usize, silent: bool) {
+    generate_case_group(
+        "18_105x105_100_0.2_O",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 100,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.3,
+            max_relative_distance_y: 0.3,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 105.0,
+            channel_width: 0.2,
+            channel_spacing: 0.2,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Octilinear,
+        },
+    )
+}
+
+fn set19(cases: usize, silent: bool) {
+    generate_case_group(
+        "19_105x105_200_0.2_R",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 200,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.2,
+            max_relative_distance_y: 0.2,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 105.0,
+            channel_width: 0.2,
+            channel_spacing: 0.2,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Rectilinear,
+        },
+    )
+}
+
+fn set20(cases: usize, silent: bool) {
+    generate_case_group(
+        "20_105x105_200_0.2_O",
+        &RandomGenerationOptions {
+            n_cases: cases,
+            n_connections: 200,
+            connections_3_share: 0.1,
+            connections_4_share: 0.1,
+            max_relative_distance_x: 0.2,
+            max_relative_distance_y: 0.2,
+            use_incremental: true,
+            silent,
+
+            board_width: 105.0,
+            board_height: 105.0,
+            channel_width: 0.2,
+            channel_spacing: 0.2,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.5,
+            layout: Layout::Octilinear,
+        },
+    )
 }
 
 fn generate_case_group(group_name: &str, options: &RandomGenerationOptions) {
     let cases_path = Path::new(DIR);
     let case_batch = random_cases(options);
     let case_batch_path = cases_path.join(group_name);
-    fs::create_dir_all(&case_batch_path);
+    let _ = fs::create_dir_all(&case_batch_path);
     write_to_files(&case_batch_path, &case_batch);
 }
 
@@ -173,6 +763,7 @@ struct RandomGenerationOptions {
     max_relative_distance_x: f64,
     max_relative_distance_y: f64,
     use_incremental: bool,
+    silent: bool,
 
     board_width: f64,
     board_height: f64,
@@ -199,6 +790,7 @@ fn random_cases(options: &RandomGenerationOptions) -> Vec<(String, RouteInput)> 
         channel_spacing,
         layout,
         use_incremental,
+        silent,
         ..
     } = options;
     let incremental_tries_per_connection = 4 * f64::ceil(f64::sqrt(n_connections as f64)) as usize;
@@ -228,14 +820,16 @@ fn random_cases(options: &RandomGenerationOptions) -> Vec<(String, RouteInput)> 
     let mut cases = Vec::new();
 
     for i in 0..usize::MAX {
-        if i > 0 {
-            print!("\r");
-        }
-        print!("Round {}. Found: {}.", i, cases.len());
-        std::io::stdout().flush().unwrap();
-        if cases.len() >= n_cases {
-            println!("{} cases generated in {} tries.", n_cases, i);
-            break;
+        if !silent {
+            if i > 0 {
+                print!("\r");
+            }
+            print!("Round {}. Found: {}.", i, cases.len());
+            std::io::stdout().flush().unwrap();
+            if cases.len() >= n_cases {
+                println!("{} cases generated in {} tries.", n_cases, i);
+                break;
+            }
         }
 
         let connections = if use_incremental {
@@ -289,8 +883,10 @@ fn random_cases(options: &RandomGenerationOptions) -> Vec<(String, RouteInput)> 
         }
     }
 
-    println!("\n");
-    println!("Generated {} cases.", n_cases);
+    if !silent {
+        println!("\n");
+        println!("Generated {} cases.", n_cases);
+    }
     cases
 }
 
