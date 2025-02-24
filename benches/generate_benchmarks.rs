@@ -42,7 +42,7 @@ fn main() {
 }
 
 fn generate_benchmarks() {
-    let n_cases_per_group = 2;
+    let n_cases_per_group = 250;
     let n_workers = 4;
 
     let pool = ThreadPool::new(n_workers);
