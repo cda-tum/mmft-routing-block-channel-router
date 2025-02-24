@@ -17,28 +17,28 @@ const MAX_PORTS: usize = 100000000;
 
 fn main() {
     // Be careful, this may run for several days ...
-    generate_benchmarks();
+    //generate_benchmarks();
 
-    //set1(3, false);
-    //set2(3, false);
-    //set3(3, false);
-    //set4(3, false);
-    //set5(3, false);
-    //set6(3, false);
-    //set7(3, false);
-    //set8(3, false);
-    //set9(3, false);
-    //set10(3, false);
-    //set11(3, false);
-    //set12(3, false);
-    //set13(3, false);
-    //set14(3, false);
-    //set15(3, false);
-    //set16(3, false);
-    //set17(3, false);
-    //set18(3, false);
-    //set19(3, false);
-    //set20(3, false);
+    //set1(250, false);
+    //set2(250, false);
+    //set3(250, false);
+    //set4(250, false);
+    //set5(250, false);
+    //set6(250, false);
+    //set7(250, false);
+    //set8(250, false);
+    //set9(250, false);
+    //set10(250, false);
+    //set11(250, false);
+    //set12(250, false);
+    //set13(250, false);
+    //set14(250, false);
+    //set15(250, false);
+    //set16(250, false);
+    //set17(250, false);
+    //set18(250, false);
+    //set19(250, false);
+    //set20(250, false);
 }
 
 fn generate_benchmarks() {
@@ -106,6 +106,8 @@ fn generate_benchmarks() {
     pool.execute(move || {
         set20(n_cases_per_group, true);
     });
+
+    pool.join();
 }
 
 fn set1(cases: usize, silent: bool) {
