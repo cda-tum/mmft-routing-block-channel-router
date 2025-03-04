@@ -1,8 +1,7 @@
 use std::{
     collections::HashMap,
     f64,
-    fs::{self, File},
-    io::BufReader,
+    fs::{self},
     path::Path,
 };
 
