@@ -48,6 +48,10 @@ export function ConnectionEditor(props: {
                     />)
                 }
 
+                <BranchPortInput
+                    connectionState={props.connectionState}
+                    branchPort={props.connectionState.preview.branchPort}
+                />
             </Stack>
 
             <Stack
@@ -176,6 +180,39 @@ export function PortInput(props: {
         {props.port.error !== undefined &&
             <FormHelperText>
                 {props.port.error}
+            </FormHelperText>
+        }
+    </FormControl>
+}
+
+export function BranchPortInput(props: {
+    branchPort: PortField
+    connectionState: ReturnType<typeof useConnectionState>
+}) {
+    const id = useId()
+
+    return <FormControl {...(props.branchPort.error !== undefined ? { error: true } : {})}
+        sx={{
+
+        }}
+    >
+        <FormLabel htmlFor={id}>Custom Branch Point (Optional)</FormLabel>
+        <Input
+            value={props.branchPort.fieldValue}
+            placeholder={'A1, C12, ...'}
+            id={id}
+            onChange={e => {
+                props.connectionState.preview.updateBranchPort(e.target.value)
+            }}
+            sx={{
+                '& input':
+                    { textAlign: 'center' },
+                width: '14em'
+            }}
+        />
+        {props.branchPort.error !== undefined &&
+            <FormHelperText>
+                {props.branchPort.error}
             </FormHelperText>
         }
     </FormControl>

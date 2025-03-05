@@ -23,10 +23,16 @@ export function route(input: InputState) {
             pitch_offset_y: input.parameters.pitchOffsetY.value,
             port_diameter: input.parameters.portDiameter.value,
             max_ports: input.parameters.maxPorts.value,
-            connections: Object.entries(input.connections).filter(([_, connection]) => connection.ports.length > 1).map(([c_id, connection]) => [parseInt(c_id), connection.ports]),
+            connections: Object.entries(input.connections).filter(([_, connection]) => connection.ports.length > 1).map(([c_id, connection]) => ({
+                id: parseInt(c_id), 
+                ports: connection.ports,
+                branch_port: connection.branchPort
+            })),
             min_grid_size: 0,
             layout: input.parameters.layout.value,
         }
+
+        console.log(args)
 
         console.time('timing')
         const result = wasm_route(args)

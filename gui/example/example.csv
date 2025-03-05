@@ -1,13 +1,13 @@
-This file demonstrates how a possible CSV input may look like.;;;;
-;;;;
-;;;;
-;;;;
-;Port 1;Port 2;Port 3;Port 4
-Connection 1;B12;E8;;
-Connection 2;A15;E11;I12;
-…;C17;G14;;
-;B20;G20;E23;
-;B26;G25;;
-;C28;C33;;
-;E28;E33;;
-;G46;C52;C48;F50
+This file demonstrates how a possible CSV input may look like.;;;;;
+;;;;;
+;;;;;
+;;;;;
+;Port 1;Port 2;Port 3;Port 4;Custom Branch Point
+Connection 1;B12;E8;;;
+Connection 2;A15;E11;I12;;
+…;C17;G14;;;
+;B20;G20;E23;;
+;B26;G25;;;
+;C28;C33;;;BR_A31
+;E28;E33;;;
+;G46;C52;C48;F50;BR_E54

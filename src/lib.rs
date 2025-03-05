@@ -1,9 +1,9 @@
 mod board_router;
 mod board_router_wasm;
-mod graph_search;
-mod validation;
 mod dxf;
+mod graph_search;
 mod port_nomenclature;
+mod validation;
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
@@ -12,11 +12,10 @@ pub fn add(left: u64, right: u64) -> u64 {
 #[cfg(test)]
 mod tests {
 
-
-    use board_router::{
-        route, Layout, RouteInput
-    };
+    use board_router::{route, Layout, RouteInput};
     use validation::{validate, ValidateInput};
+
+    use crate::board_router::RouteInputConnection;
 
     use super::*;
 
@@ -55,7 +54,38 @@ mod tests {
             min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
-            connections: Vec::from([(0, vec![(5, 5), (5, 7)]), (1, vec![(6, 5), (6, 7)]), (2, vec![(7, 5), (7, 7)]), (3, vec![(8, 5), (8, 7)]), (4, vec![(9, 5), (9, 7)]), (0, vec![(4, 6), (10, 6)])]),
+            connections: Vec::from([
+                RouteInputConnection {
+                    id: 0,
+                    ports: vec![(5, 5), (5, 7)],
+                    branch_port: None,
+                },
+                RouteInputConnection {
+                    id: 1,
+                    ports: vec![(6, 5), (6, 7)],
+                    branch_port: None,
+                },
+                RouteInputConnection {
+                    id: 2,
+                    ports: vec![(7, 5), (7, 7)],
+                    branch_port: None,
+                },
+                RouteInputConnection {
+                    id: 3,
+                    ports: vec![(8, 5), (8, 7)],
+                    branch_port: None,
+                },
+                RouteInputConnection {
+                    id: 4,
+                    ports: vec![(9, 5), (9, 7)],
+                    branch_port: None,
+                },
+                RouteInputConnection {
+                    id: 0,
+                    ports: vec![(4, 6), (10, 6)],
+                    branch_port: None,
+                },
+            ]),
         });
 
         println!("{:?}", result);
@@ -84,7 +114,18 @@ mod tests {
             min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
-            connections: Vec::from([(0, vec![(2, 0), (1, 1)]), (1, vec![(0, 0), (2, 2)])]),
+            connections: Vec::from([
+                RouteInputConnection {
+                    id: 0,
+                    ports: vec![(2, 0), (1, 1)],
+                    branch_port: None,
+                },
+                RouteInputConnection {
+                    id: 1,
+                    ports: vec![(0, 0), (2, 2)],
+                    branch_port: None,
+                },
+            ]),
         });
 
         println!("{:?}", result);
@@ -113,9 +154,11 @@ mod tests {
             min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
-            connections: Vec::from([
-                (0, vec![(5, 5), (11, 5), (8, 2), (8, 8)]), // "Plus sign"
-            ]),
+            connections: Vec::from([RouteInputConnection {
+                id: 0,
+                ports: vec![(5, 5), (11, 5), (8, 2), (8, 8)],
+                branch_port: None,
+            }]),
         });
     }
 
@@ -133,9 +176,11 @@ mod tests {
             min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
-            connections: Vec::from([
-                (0, vec![(5, 5), (11, 5), (8, 2), (8, 8)]),
-            ]),
+            connections: Vec::from([RouteInputConnection {
+                id: 0,
+                ports: vec![(5, 5), (11, 5), (8, 2), (8, 8)],
+                branch_port: None,
+            }]),
         });
     }
 
@@ -153,9 +198,33 @@ mod tests {
             min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
-            connections: Vec::from([
-                (0, vec![(0, 0), (5, 5)]),
-            ]),
+            connections: Vec::from([RouteInputConnection {
+                id: 0,
+                ports: vec![(0, 0), (5, 5)],
+                branch_port: None,
+            }]),
+        });
+    }
+
+    #[test]
+    fn test_5() {
+        let result = route(RouteInput {
+            channel_width: 0.4,
+            channel_spacing: 0.3,
+            board_width: 105.,
+            board_height: 15.,
+            pitch: 1.5,
+            pitch_offset_x: 3.,
+            pitch_offset_y: 3.,
+            port_diameter: 0.7,
+            min_grid_size: 0.,
+            max_ports: 20000,
+            layout: Layout::Octilinear,
+            connections: Vec::from([RouteInputConnection {
+                id: 0,
+                ports: vec![(19, 4), (27, 5)],
+                branch_port: Some((23, 0)),
+            }]),
         });
     }
 }
