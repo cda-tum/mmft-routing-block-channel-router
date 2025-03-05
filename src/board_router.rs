@@ -171,12 +171,11 @@ fn compute_extra_node(
     ports: &[Port],
     cells_x: usize,
     cells_y: usize,
-    cells_per_pitch: usize,
+    port_cell: impl Fn(&(usize, usize)) -> (usize, usize)
 ) -> Option<(usize, usize)> {
     // Compute centroid
     let s = ports.iter().copied().fold((0, 0), |a, p| {
-        let port_cell_x = ((cells_per_pitch - 1) / 2) + cells_per_pitch * p.0;
-        let port_cell_y = ((cells_per_pitch - 1) / 2) + cells_per_pitch * p.1;
+        let (port_cell_x, port_cell_y) = port_cell(&p);
         (
             a.0 + nodes[port_cell_x * cells_y + port_cell_y].ix,
             a.1 + nodes[port_cell_x * cells_y + port_cell_y].iy,
@@ -381,7 +380,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         if ports.len() > 2 {
             // there are more than 2 nodes connected, so we connect them in a star like structure
             // define the center node
-            let center_node = compute_extra_node(&nodes, &ports, cells_x, cells_y, cells_per_pitch);
+            let center_node = compute_extra_node(&nodes, &ports, cells_x, cells_y, port_cell);
             if let Some(node) = center_node {
                 let id = node.0 * cells_y + node.1;
                 nodes[id].multi_connection = Some(*c_id);
