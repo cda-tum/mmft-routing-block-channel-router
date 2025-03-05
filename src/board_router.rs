@@ -25,7 +25,13 @@ pub struct RouteInput {
 
 pub type ConnectionID = usize;
 pub type RouteInputConnections = Vec<RouteInputConnection>;
-pub type RouteInputConnection = (ConnectionID, Vec<Port>); // Handle multiple ports for one connection
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RouteInputConnection {
+    pub id: ConnectionID, 
+    pub ports: Vec<Port>,
+    pub branch_port: Option<Port>
+}
 pub type Port = (usize, usize);
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -335,7 +341,8 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         .collect::<Vec<RouteInputConnection>>();
 
     // Reserve cells at and around used ports for the corresponding connection only (prevent other connections from crossing foreign ports)
-    for (c_id, ports) in input_connections.iter() {
+    for input_connection in input_connections.iter() {
+        let RouteInputConnection { id: c_id, ports, .. } = input_connection;
         for port in ports {
             let (cell_x, cell_y) = port_cell(port);
 
@@ -376,12 +383,25 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
 
     let mut join_nodes = HashMap::<ConnectionID, (usize, usize)>::new();
 
-    for (c_id, ports) in input_connections.iter() {
+    for input_connection in input_connections.iter() {
+        let RouteInputConnection { id: c_id, ports, branch_port } = input_connection;
         if ports.len() > 2 {
             // there are more than 2 nodes connected, so we connect them in a star like structure
             // define the center node
-            let center_node = compute_extra_node(&nodes, &ports, cells_x, cells_y, port_cell);
+            let center_node = if branch_port.is_some() {
+                Some(port_cell(&branch_port.unwrap()))
+            } else {
+                compute_extra_node(&nodes, ports, cells_x, cells_y, port_cell)
+            };
+
             if let Some(node) = center_node {
+                let id = node.0 * cells_y + node.1;
+                nodes[id].multi_connection = Some(*c_id);
+                join_nodes.insert(*c_id, node);
+            }
+        } else {
+            if branch_port.is_some() {
+                let node = port_cell(&branch_port.unwrap());
                 let id = node.0 * cells_y + node.1;
                 nodes[id].multi_connection = Some(*c_id);
                 join_nodes.insert(*c_id, node);
@@ -400,6 +420,7 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         to_cell: (usize, usize),
     }
 
+    // 2-port connections with a branch_port are also regarded as two StarBranch'es
     struct StarBranch {
         connection: usize,
         from_cell: Option<(usize, usize)>,
@@ -408,13 +429,30 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     }
 
     let mut routing_connections = Vec::new();
-    for (c_id, ports) in input_connections.iter() {
+    for input_connection in input_connections.iter() {
+        let RouteInputConnection { id: c_id, ports, .. } = input_connection;
         if ports.len() == 2 {
-            routing_connections.push(RoutingConnection::PortToPort(PortToPort {
-                connection: *c_id,
-                from_cell: port_cell(&ports[0]),
-                to_cell: port_cell(&ports[1]),
-            }));
+            if join_nodes.contains_key(c_id) {
+                routing_connections.push(RoutingConnection::StarBranch(StarBranch {
+                    connection: *c_id,
+                    from_cell: join_nodes.get(&c_id).copied(),
+                    to_cell: port_cell(&ports[0]),
+                    num_branches: ports.len(),
+                }));
+
+                routing_connections.push(RoutingConnection::StarBranch(StarBranch {
+                    connection: *c_id,
+                    from_cell: join_nodes.get(&c_id).copied(),
+                    to_cell: port_cell(&ports[1]),
+                    num_branches: ports.len(),
+                }));
+            } else {
+                routing_connections.push(RoutingConnection::PortToPort(PortToPort {
+                    connection: *c_id,
+                    from_cell: port_cell(&ports[0]),
+                    to_cell: port_cell(&ports[1]),
+                }));
+            }
         } else if ports.len() > 2 {
             for port in ports.iter() {
                 routing_connections.push(RoutingConnection::StarBranch(StarBranch {

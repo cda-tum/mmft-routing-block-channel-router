@@ -275,9 +275,12 @@ export function BoardDisplay(props: {
                     setCSVMessage(`Error: ${connections}`)
                 } else {
                     props.clearOutputConnections?.()
-                    const cleanedConnections = connections.map(ports => ports.filter(([column, row]) => props.columns !== undefined && column < props.columns && props.rows !== undefined && row < props.rows)).filter(c => c !== undefined && c.length >= minPorts)
-                    connectionState.replaceWith(Object.fromEntries(cleanedConnections.map((ports, i) => [i.toString(), { ports }])))
-                    setCSVMessage(`Imported ${cleanedConnections.length} connections with a total of ${cleanedConnections.reduce((acc, c) => acc + c.length, 0)} ports successfully.`)
+                    const cleanedConnections = connections.map(c => ({
+                        ports: c.ports.filter(([column, row]) => props.columns !== undefined && column < props.columns && props.rows !== undefined && row < props.rows),
+                        branchPort: c.branchPort
+                    })).filter(c => c.ports !== undefined && c.ports.length >= minPorts)
+                    connectionState.replaceWith(Object.fromEntries(cleanedConnections.map((c, i) => [i.toString(), { ports: c.ports, branchPort: c.branchPort }])))
+                    setCSVMessage(`Imported ${cleanedConnections.length} connections with a total of ${cleanedConnections.reduce((acc, c) => acc + c.ports.length, 0)} ports successfully.`)
                 }
             }}
         />

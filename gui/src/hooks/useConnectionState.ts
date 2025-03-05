@@ -5,6 +5,7 @@ import { portIndexToString, PortKey, portStringToIndex } from "../utils/ports"
 export type PortConnectionMap = Record<number, undefined | Record<number, ConnectionID | undefined>>
 export type ConnectionStateConnection = {
     ports: PortKey[]
+    branchPort: PortKey | undefined
 }
 export type ConnectionsState = Record<ConnectionID, ConnectionStateConnection>
 
@@ -13,7 +14,8 @@ export const ERROR_MESSAGES = {
     INVALID_PORT: 'Invalid port identifier',
     OUT_OF_BOUNDS: 'Out of bounds',
     DUPLICATE_PORT: 'Duplicate port',
-    ALREADY_TAKEN: 'Port is taken by other connection'
+    ALREADY_TAKEN: 'Port is taken by other connection',
+    ALREADY_TAKEN_BRANCH: 'Port is branch point of other connection'
 }
 
 export type PortField = {
@@ -26,6 +28,7 @@ export type ConnectionPreviewState = {
     active: boolean
     connection: ConnectionID
     ports: PortField[]
+    branchPort: PortField
 }
 
 export type Boundaries = {
@@ -37,9 +40,14 @@ export const connectionPreviewStateDefault = {
     active: false,
     connection: 0,
     ports: [],
+    branchPort: {
+        index: undefined,
+        fieldValue: "",
+        error: undefined
+    }
 }
 
-export function portError(index: number, portKey: PortKey | undefined, boundaries: Boundaries, isUsedByOtherThan: (key: PortKey, connection: number) => boolean, ports: PortField[], connection: ConnectionID) {
+export function portError(index: number, portKey: PortKey | undefined, boundaries: Boundaries, isUsedByOtherThan: (key: PortKey, connection: number) => boolean, ports: PortField[], branchPort: PortField, connection: ConnectionID) {
     if (portKey == undefined) {
         return ERROR_MESSAGES.INVALID_PORT
     }
@@ -54,6 +62,37 @@ export function portError(index: number, portKey: PortKey | undefined, boundarie
 
     const otherPorts = [...ports]
     otherPorts.splice(index, 1)
+    if (otherPorts.some(p => p.index !== undefined && p.index[0] === portKey[0] && p.index[1] === portKey[1])) {
+        return ERROR_MESSAGES.DUPLICATE_PORT
+    }
+
+    if(branchPort.index !== undefined && portKey[0] === branchPort.index[0] && portKey[1] === branchPort.index[1]) {
+        return ERROR_MESSAGES.DUPLICATE_PORT
+    }
+
+    if (isUsedByOtherThan(portKey, connection)) {
+        return ERROR_MESSAGES.ALREADY_TAKEN
+    }
+}
+
+export function branchPortError(portKey: PortKey | undefined, fieldValue: undefined | string, boundaries: Boundaries, isUsedByOtherThan: (key: PortKey, connection: number) => boolean, ports: PortField[], connection: ConnectionID) {
+    if (portKey === undefined) {
+        if (fieldValue === undefined || fieldValue === '') {
+            return undefined
+        } else {
+            return ERROR_MESSAGES.INVALID_PORT
+        }
+    }
+
+    if (portKey[0] < 0 || portKey[0] >= boundaries.columns) {
+        return ERROR_MESSAGES.OUT_OF_BOUNDS
+    }
+
+    if (portKey[1] < 0 || portKey[1] >= boundaries.rows) {
+        return ERROR_MESSAGES.OUT_OF_BOUNDS
+    }
+
+    const otherPorts = [...ports]
     if (otherPorts.some(p => p.index !== undefined && p.index[0] === portKey[0] && p.index[1] === portKey[1])) {
         return ERROR_MESSAGES.DUPLICATE_PORT
     }
@@ -80,7 +119,8 @@ export function useConnectionState(props: {
         setConnectionPreviewState(s => {
             return {
                 ...s,
-                ports: updatePortErrors(s.ports)
+                ports: updatePortErrors(s.ports, s.branchPort),
+                branchPort: updateBranchPortErrors(s.ports, s.branchPort)
             }
         })
     }
@@ -97,13 +137,13 @@ export function useConnectionState(props: {
         setConnections(remainingConnections)
     }
 
-    const isValid = () => connectionPreviewState.ports.every(p => p.error === undefined)
+    const isValid = () => connectionPreviewState.ports.every(p => p.error === undefined) && connectionPreviewState.branchPort.error === undefined
 
-    const isUsedByOtherThan = (port: PortKey, connection: ConnectionID) => portConnectionMap[port[0]]?.[port[1]] !== undefined && portConnectionMap[port[0]]?.[port[1]] !== connection
+    const isUsedByOtherThan = (port: PortKey, connection: ConnectionID) => (portConnectionMap[port[0]]?.[port[1]] !== undefined && portConnectionMap[port[0]]?.[port[1]] !== connection) || Object.entries(connections).some(([connectionId, c]) => parseInt(connectionId) !== connection && c.branchPort !== undefined && c.branchPort[0] === port[0] && c.branchPort[0] === port[1])
 
-    const updatePortErrors = (ports: PortField[]) => {
+    const updatePortErrors = (ports: PortField[], branchPort: PortField) => {
         return ports.map((port, j) => {
-            const error = portError(j, port.index, props.boundaries, isUsedByOtherThan, ports, connectionPreviewState.connection)
+            const error = portError(j, port.index, props.boundaries, isUsedByOtherThan, ports, branchPort, connectionPreviewState.connection)
             return {
                 ...port,
                 error
@@ -111,11 +151,19 @@ export function useConnectionState(props: {
         })
     }
 
+    const updateBranchPortErrors = (ports: PortField[], branchPort: PortField) => {
+        const error = branchPortError(branchPort.index, branchPort.fieldValue, props.boundaries, isUsedByOtherThan, ports, connectionPreviewState.connection)
+        return {
+            ...branchPort,
+            error
+        }
+    }
+
     const unfinishedPorts = () => {
         return connectionPreviewState.ports.map((port, i) => [port, i] as [PortField, number]).filter(([port, _]) => port.index === undefined)
     }
 
-    const addOrUpdateConnection = (connection: ConnectionID, ports?: PortKey[]) => {
+    const addOrUpdateConnection = (connection: ConnectionID, ports?: PortKey[], branchPort?: PortKey) => {
         if (connections[connection] !== undefined) {
             removeConnection(connection)
         }
@@ -133,7 +181,8 @@ export function useConnectionState(props: {
         setConnections(c => ({
             ...c,
             [connection]: {
-                ports: ports ?? []
+                ports: ports ?? [],
+                branchPort
             }
         }))
     }
@@ -179,7 +228,7 @@ export function useConnectionState(props: {
         portConnectionMap,
         replaceWith,
         clear,
-        isUsed: (port: PortKey) => portConnectionMap[port[0]]?.[port[1]] !== undefined,
+        isUsed: (port: PortKey) => portConnectionMap[port[0]]?.[port[1]] !== undefined || Object.entries(connections).some(([_, c]) => c.branchPort !== undefined && c.branchPort[0] === port[0] && c.branchPort[1] === port[1]),
         isUsedByOtherThan,
         connectionOf: (port: PortKey) => portConnectionMap[port[0]]?.[port[1]],
         portsOf,
@@ -237,14 +286,15 @@ export function useConnectionState(props: {
                     fieldValue: '',
                     index: undefined,
                     error: ERROR_MESSAGES.MISSING
-                }]
+                }],
             })),
             removePort: (i: number) => setConnectionPreviewState(s => {
                 const remainingPorts = [...s.ports]
                 remainingPorts.splice(i, 1)
                 return {
                     ...s,
-                    ports: updatePortErrors(remainingPorts)
+                    ports: updatePortErrors(remainingPorts, s.branchPort),
+                    branchPort: updateBranchPortErrors(remainingPorts, s.branchPort)
                 }
             }),
             updatePorts,
@@ -260,7 +310,25 @@ export function useConnectionState(props: {
                     })
                     return {
                         ...s,
-                        ports: updatePortErrors(updatedPorts)
+                        ports: updatePortErrors(updatedPorts, s.branchPort),
+                        branchPort: updateBranchPortErrors(updatedPorts, s.branchPort)
+                    }
+                })
+            },
+
+            updateBranchPort: (fieldValue: string | undefined) => {
+                const portKey = fieldValue !== undefined ? portStringToIndex(fieldValue) : undefined
+
+                setConnectionPreviewState(s => {
+                    const branchPort = {
+                        fieldValue: fieldValue ?? "",
+                        index: portKey,
+                        error: s.branchPort.error
+                    }
+                    return {
+                        ...s,
+                        ports: updatePortErrors(s.ports, branchPort),
+                        branchPort: updateBranchPortErrors(s.ports, branchPort)
                     }
                 })
             },
@@ -281,6 +349,11 @@ export function useConnectionState(props: {
                             fieldValue: portIndexToString(p),
                             error: undefined
                         })),
+                        branchPort: {
+                            index: connections[connection].branchPort,
+                            fieldValue: connections[connection].branchPort !== undefined ? portIndexToString(connections[connection].branchPort) : "",
+                            error: undefined
+                        },
                         connection: connection
                     }))
                     return true
@@ -297,12 +370,17 @@ export function useConnectionState(props: {
                         index: undefined,
                         error: ERROR_MESSAGES.MISSING
                     })),
+                    branchPort: {
+                        fieldValue: '',
+                        index: undefined,
+                        error: undefined
+                    },
                     connection: connection
                 }))
             },
             acceptPreview: () => {
                 setConnectionPreviewState(s => {
-                    addOrUpdateConnection(s.connection, s.ports.map(p => p.index as PortKey))
+                    addOrUpdateConnection(s.connection, s.ports.map(p => p.index as PortKey), s.branchPort.index)
                     return { ...s, active: false }
                 })
             },
@@ -320,6 +398,7 @@ export function useConnectionState(props: {
             },
             active: connectionPreviewState.active,
             ports: connectionPreviewState.ports,
+            branchPort: connectionPreviewState.branchPort,
             connection: connectionPreviewState.connection,
         }
     }
