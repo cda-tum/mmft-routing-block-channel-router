@@ -2,6 +2,7 @@ import { compute_ports } from '../../../pkg/mmft_board_router';
 import { InputParameters } from './input-parameters';
 
 export const PORT_PATTERN = /^([a-zA-Z]+)([1-9][0-9]*)$/
+export const BRANCHPORT_CSV_PATTERN = /^BR_([a-zA-Z]+)([1-9][0-9]*)$/
 
 export type Port = {
     index: [number, number]
@@ -36,6 +37,18 @@ export function generatePorts(parameters: InputParameters): { ports: InputPorts,
     } catch (e) {
         console.error('An unknown error occurred.')
     }
+}
+
+export function branchPortCSVStringToIndex(port: string): [number, number] | undefined {
+    const r = port.match(BRANCHPORT_CSV_PATTERN)
+    if (r === undefined || r === null) {
+        return undefined
+    }
+    const yString = r[1]
+    const xString = r[2]
+    const x = parseInt(xString) - 1
+    const y = fromAlphabetCol(yString)
+    return [x, y]
 }
 
 export function portStringToIndex(port: string): [number, number] | undefined {

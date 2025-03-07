@@ -6,6 +6,7 @@ export type ConnectionID = number
 export type InputConnection = {
     color: string
     ports: PortKey[]
+    branchPort: PortKey | undefined
 }
 
 export type InputConnections = Record<ConnectionID, InputConnection>
