@@ -35,6 +35,8 @@ fn main() {
                 fs::read_to_string(entry.path().to_str().unwrap()).expect("Error reading file.");
             let json: serde_json::Value = serde_json::from_str(&content).expect("Invalid JSON.");
 
+            println!("{}", entry.path().to_str().unwrap());
+
             let transformed = RouteInput {
                 channel_width: json.get("channel_width").unwrap().as_f64().unwrap(),
                 channel_spacing: json.get("channel_spacing").unwrap().as_f64().unwrap(),
