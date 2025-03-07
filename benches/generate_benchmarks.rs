@@ -17,9 +17,9 @@ const MAX_PORTS: usize = 100000000;
 
 fn main() {
     // Be careful, this may run for several days ...
-    generate_benchmarks();
+    //generate_benchmarks();
 
-    //set1(250, false);
+    set1(250, false);
     //set2(250, false);
     //set3(250, false);
     //set4(250, false);

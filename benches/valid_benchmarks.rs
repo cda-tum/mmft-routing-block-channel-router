@@ -52,4 +52,5 @@ fn main() {
             print!("Ignored: {}; Total: {}, Successful: {}", ignored, total, success)
         }
     }
+    print!("\n")
 }
