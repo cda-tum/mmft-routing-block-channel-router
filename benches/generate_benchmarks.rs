@@ -643,7 +643,7 @@ fn write_to_files(path: &Path, cases: &Vec<(String, RouteInput)>) {
         file_name.push_str(".json");
         let path = path.join(file_name);
         let writer = BufWriter::new(File::create(path).expect("File open error."));
-        serde_json::to_writer(
+        serde_json::to_writer_pretty(
             writer,
             &serde_json::to_value(case_data).expect("Serialization error."),
         )
@@ -702,7 +702,7 @@ fn random_port_connection(
 
 fn random_port_connections(
     options: &RandomPortConnectionsOptions,
-) -> Vec<(usize, Vec<(usize, usize)>)> {
+) -> Vec<RouteInputConnection> {
     let total_connections =
         options.n_connections_2 + options.n_connections_3 + options.n_connections_4;
     let mut occupied = Vec::new();
@@ -717,7 +717,11 @@ fn random_port_connections(
             };
             let connection = random_port_connection(ports, &options, &occupied);
             connection.iter().for_each(|c| occupied.push(*c));
-            (i, connection)
+            RouteInputConnection {
+                id: i, 
+                ports: connection,
+                branch_port: None
+            }
         })
         .collect()
 }
@@ -726,7 +730,7 @@ fn random_port_connections_incremental(
     options: &RandomPortConnectionsOptions,
     is_valid: impl Fn(&Vec<RouteInputConnection>) -> bool,
     tries_per_connection: usize,
-) -> Result<Vec<(usize, Vec<(usize, usize)>)>, ()> {
+) -> Result<Vec<RouteInputConnection>, ()> {
     let total_connections =
         options.n_connections_2 + options.n_connections_3 + options.n_connections_4;
     let mut occupied = Vec::new();
@@ -741,7 +745,11 @@ fn random_port_connections_incremental(
         };
         for j in 0..tries_per_connection {
             let connection = random_port_connection(ports, &options, &mut occupied);
-            connections.push((i, connection.clone()));
+            connections.push(RouteInputConnection {
+                id: i,
+                ports: connection.clone(),
+                branch_port: None,
+            });
             let is_valid = is_valid(&connections);
             if !is_valid {
                 if j == tries_per_connection - 1 {

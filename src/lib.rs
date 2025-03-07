@@ -200,7 +200,7 @@ mod tests {
 
     #[test]
     fn test_5() {
-        let result = route(RouteInput {
+        let result = route(&RouteInput {
             channel_width: 0.4,
             channel_spacing: 0.3,
             board_width: 105.,
@@ -209,7 +209,6 @@ mod tests {
             pitch_offset_x: 3.,
             pitch_offset_y: 3.,
             port_diameter: 0.7,
-            min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
             connections: Vec::from([RouteInputConnection {
