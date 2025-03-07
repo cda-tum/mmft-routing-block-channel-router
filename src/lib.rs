@@ -1,13 +1,11 @@
-mod board_router;
+pub mod board_router;
 mod board_router_wasm;
-mod dxf;
+pub mod dxf;
 mod graph_search;
 mod port_nomenclature;
 mod validation;
+pub mod utils;
 
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
 
 #[cfg(test)]
 mod tests {
@@ -30,7 +28,6 @@ mod tests {
             pitch_offset_x: Some(500.0),
             pitch_offset_y: Some(500.0),
             port_diameter: Some(200.0),
-            min_grid_size: None,
             max_ports: Some(20000),
             layout: Some(Layout::Rectilinear),
             connections: Some(Vec::new()),
@@ -42,7 +39,7 @@ mod tests {
     #[test]
     fn it_routes() {
         let channel_width: f64 = 100.;
-        let result = route(RouteInput {
+        let result = route(&RouteInput {
             channel_width: channel_width,
             channel_spacing: 100.,
             board_width: 10000.,
@@ -51,7 +48,6 @@ mod tests {
             pitch_offset_x: 500.,
             pitch_offset_y: 500.,
             port_diameter: 200.,
-            min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
             connections: Vec::from([
@@ -102,7 +98,7 @@ mod tests {
 
     #[test]
     fn test() {
-        let result = route(RouteInput {
+        let result = route(&RouteInput {
             channel_width: 100.,
             channel_spacing: 100.,
             board_width: 2000.,
@@ -111,7 +107,6 @@ mod tests {
             pitch_offset_x: 500.,
             pitch_offset_y: 500.,
             port_diameter: 200.,
-            min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
             connections: Vec::from([
@@ -142,7 +137,7 @@ mod tests {
 
     #[test]
     fn star_like_connections() {
-        let result = route(RouteInput {
+        let result = route(&RouteInput {
             channel_width: 100.,
             channel_spacing: 100.,
             board_width: 10000.,
@@ -151,7 +146,6 @@ mod tests {
             pitch_offset_x: 500.,
             pitch_offset_y: 500.,
             port_diameter: 200.,
-            min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
             connections: Vec::from([RouteInputConnection {
@@ -164,7 +158,7 @@ mod tests {
 
     #[test]
     fn three_point_connection() {
-        let result = route(RouteInput {
+        let result = route(&RouteInput {
             channel_width: 100.,
             channel_spacing: 100.,
             board_width: 10000.,
@@ -173,7 +167,6 @@ mod tests {
             pitch_offset_x: 500.,
             pitch_offset_y: 500.,
             port_diameter: 200.,
-            min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
             connections: Vec::from([RouteInputConnection {
@@ -186,7 +179,7 @@ mod tests {
 
     #[test]
     fn longer_board_connection() {
-        let result = route(RouteInput {
+        let result = route(&RouteInput {
             channel_width: 0.375,
             channel_spacing: 0.375,
             board_width: 105.,
@@ -195,7 +188,6 @@ mod tests {
             pitch_offset_x: 1.5,
             pitch_offset_y: 1.5,
             port_diameter: 0.4,
-            min_grid_size: 0.,
             max_ports: 20000,
             layout: Layout::Octilinear,
             connections: Vec::from([RouteInputConnection {

@@ -506,7 +506,7 @@ fn end_points(
     }
 }
 
-pub enum DXFEntity {
+pub enum GeometricEntity {
     Polyline(Polyline),
     Line(Line),
 }
@@ -522,7 +522,7 @@ impl Polyline {
         match self {
             Polyline::Closed(vec) | Polyline::Open(vec) => {
                 vec.iter_mut().for_each(|p| p[1] = -p[1]);
-            },
+            }
         }
 
         self
@@ -532,7 +532,7 @@ impl Polyline {
         match self {
             Polyline::Closed(vec) | Polyline::Open(vec) => {
                 vec.iter_mut().for_each(|p| p[1] += add);
-            },
+            }
         }
 
         self
@@ -544,18 +544,18 @@ pub struct Line {
     to: [f64; 2],
 }
 
-fn write_dxf<W: Write>(out: &mut W, entities: &[DXFEntity]) -> Result<()> {
+fn write_dxf<W: Write>(out: &mut W, entities: &[GeometricEntity]) -> Result<()> {
     write_dxf_head(out)?;
     write_dxf_entities(out, entities)?;
     write_dxf_end(out)?;
     Ok(())
 }
 
-fn write_dxf_entities<W: Write>(out: &mut W, entities: &[DXFEntity]) -> Result<()> {
+fn write_dxf_entities<W: Write>(out: &mut W, entities: &[GeometricEntity]) -> Result<()> {
     for entity in entities {
         match entity {
-            DXFEntity::Polyline(polyline) => write_dxf_polyline(out, polyline)?,
-            DXFEntity::Line(line) => write_dxf_line(out, line)?,
+            GeometricEntity::Polyline(polyline) => write_dxf_polyline(out, polyline)?,
+            GeometricEntity::Line(line) => write_dxf_line(out, line)?,
         }
     }
 
@@ -688,23 +688,136 @@ pub fn generate_dxf(input: GenerateDXFInput) -> GenerateDXFOutput {
             .connections
             .iter()
             .map(|(_, connection)| {
-                DXFEntity::Polyline(octilinear_outline(
-                    connection,
-                    input.channel_width,
-                    &input.channel_cap,
-                ).invert_y().add_y(input.board_height).to_owned())
+                GeometricEntity::Polyline(
+                    octilinear_outline(connection, input.channel_width, &input.channel_cap)
+                        .invert_y()
+                        .add_y(input.board_height)
+                        .to_owned(),
+                )
             })
-            .chain(iter::once(DXFEntity::Polyline(Polyline::Closed(
-                Vec::from([
+            .chain(iter::once(GeometricEntity::Polyline(
+                Polyline::Closed(Vec::from([
                     [0., 0.],
                     [input.board_width, 0.],
                     [input.board_width, input.board_height],
                     [0., input.board_height],
-                ]),
-            ).invert_y().add_y(input.board_height).to_owned())))
-            .collect::<Vec<DXFEntity>>(),
+                ]))
+                .invert_y()
+                .add_y(input.board_height)
+                .to_owned(),
+            )))
+            .collect::<Vec<GeometricEntity>>(),
     );
     GenerateDXFOutput(String::from_utf8(s).unwrap())
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GenerateSVGInput {
+    pub connections: BoardRouterOutputBoard,
+    pub channel_width: f64,
+    pub channel_cap: ChannelCap,
+    pub board_width: f64,
+    pub board_height: f64,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GenerateSVGOutput(pub String);
+
+pub fn generate_svg(input: GenerateSVGInput) -> GenerateSVGOutput {
+    let mut s = Vec::new();
+    let mut buf = Cursor::new(&mut s);
+    let _ = write_svg(
+        &mut buf,
+        &input,
+        &input
+            .connections
+            .connections
+            .iter()
+            .map(|(_, connection)| {
+                GeometricEntity::Polyline(octilinear_outline(
+                    connection,
+                    input.channel_width,
+                    &input.channel_cap,
+                ))
+            })
+            .collect::<Vec<GeometricEntity>>(),
+    );
+    GenerateSVGOutput(String::from_utf8(s).unwrap())
+}
+
+fn write_svg<W: Write>(
+    out: &mut W,
+    input: &GenerateSVGInput,
+    entities: &[GeometricEntity],
+) -> Result<()> {
+    write_svg_head(out, input)?;
+    write_svg_entities(out, input, entities)?;
+    write_svg_end(out, input)?;
+    Ok(())
+}
+
+fn write_svg_entities<W: Write>(
+    out: &mut W,
+    input: &GenerateSVGInput,
+    entities: &[GeometricEntity],
+) -> Result<()> {
+    for entity in entities {
+        match entity {
+            GeometricEntity::Polyline(polyline) => write_svg_polyline(out, input, polyline)?,
+            GeometricEntity::Line(line) => write_svg_line(out, input, line)?,
+        }
+    }
+
+    Ok(())
+}
+
+fn write_svg_polyline<W: Write>(
+    out: &mut W,
+    _: &GenerateSVGInput,
+    polyline: &Polyline,
+) -> Result<()> {
+    let (points, sign) = match polyline {
+        Polyline::Closed(points) => (points, "z"),
+        Polyline::Open(points) => (points, ""),
+    };
+    let path_data = format!(
+        "M{}{}",
+        points
+            .iter()
+            .map(|p| format!("{},{}", p[0], p[1]))
+            .collect::<Vec<String>>()
+            .join("L"),
+        sign
+    );
+    out.write_all(format!("<path d=\"{}\" stroke=\"none\"/>", path_data).as_bytes())?;
+    Ok(())
+}
+
+fn write_svg_line<W: Write>(out: &mut W, input: &GenerateSVGInput, line: &Line) -> Result<()> {
+    out.write_all(
+        format!(
+            "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke-width=\"{}\"/>",
+            line.from[0], line.from[1], line.to[0], line.to[1], input.channel_width
+        )
+        .as_bytes(),
+    )?;
+    Ok(())
+}
+
+fn write_svg_head<W: Write>(out: &mut W, input: &GenerateSVGInput) -> Result<()> {
+    out.write_all(
+        format!(
+            "<svg version=\"1.1\" width=\"{}\" height=\"{}\" xmlns=\"http://www.w3.org/2000/svg\">",
+            input.board_width, input.board_height
+        )
+        .as_bytes(),
+    )?;
+    Ok(())
+}
+
+fn write_svg_end<W: Write>(out: &mut W, input: &GenerateSVGInput) -> Result<()> {
+    out.write_all(b"</svg>")?;
+    Ok(())
 }
 
 #[cfg(test)]

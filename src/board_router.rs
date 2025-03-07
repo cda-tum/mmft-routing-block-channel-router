@@ -7,7 +7,7 @@ use std::{
 
 use crate::graph_search::{a_star, AStarNode};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RouteInput {
     pub channel_width: f64,
     pub channel_spacing: f64,
@@ -18,7 +18,6 @@ pub struct RouteInput {
     pub pitch_offset_x: f64,
     pub pitch_offset_y: f64,
     pub port_diameter: f64,
-    pub min_grid_size: f64,
     pub max_ports: usize,
     pub connections: RouteInputConnections,
 }
@@ -34,7 +33,7 @@ pub struct RouteInputConnection {
 }
 pub type Port = (usize, usize);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum Layout {
     Rectilinear,
     Octilinear,
@@ -256,7 +255,7 @@ pub fn compute_ports(
     return ComputePortsOutput { ports_x, ports_y };
 }
 
-pub fn route(input: RouteInput) -> BoardRouterOutput {
+pub fn route(input: &RouteInput) -> BoardRouterOutput {
     let channel_distance = input.channel_width + input.channel_spacing;
     let cells_per_pitch = (input.pitch / channel_distance).floor() as usize;
     let cell_size = input.pitch / (cells_per_pitch as f64);
