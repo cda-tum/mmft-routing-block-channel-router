@@ -112,7 +112,7 @@ fn generate_benchmarks() {
 
 fn set1(cases: usize, silent: bool) {
     generate_case_group(
-        "1_30x15_10_0.4_R",
+        "01_30x15_10_0.4_R",
         &RandomGenerationOptions {
             n_cases: cases,
             n_connections: 10,
@@ -138,7 +138,7 @@ fn set1(cases: usize, silent: bool) {
 
 fn set2(cases: usize, silent: bool) {
     generate_case_group(
-        "2_30x15_10_0.4_O",
+        "02_30x15_10_0.4_O",
         &RandomGenerationOptions {
             n_cases: cases,
             n_connections: 10,
@@ -164,7 +164,7 @@ fn set2(cases: usize, silent: bool) {
 
 fn set3(cases: usize, silent: bool) {
     generate_case_group(
-        "3_30x15_20_0.2_R",
+        "03_30x15_20_0.2_R",
         &RandomGenerationOptions {
             n_cases: cases,
             n_connections: 20,
@@ -190,7 +190,7 @@ fn set3(cases: usize, silent: bool) {
 
 fn set4(cases: usize, silent: bool) {
     generate_case_group(
-        "4_30x15_20_0.2_O",
+        "04_30x15_20_0.2_O",
         &RandomGenerationOptions {
             n_cases: cases,
             n_connections: 20,
@@ -216,7 +216,7 @@ fn set4(cases: usize, silent: bool) {
 
 fn set5(cases: usize, silent: bool) {
     generate_case_group(
-        "5_30x15_30_0.1_R",
+        "05_30x15_30_0.1_R",
         &RandomGenerationOptions {
             n_cases: cases,
             n_connections: 30,
@@ -242,7 +242,7 @@ fn set5(cases: usize, silent: bool) {
 
 fn set6(cases: usize, silent: bool) {
     generate_case_group(
-        "6_30x15_30_0.1_O",
+        "06_30x15_30_0.1_O",
         &RandomGenerationOptions {
             n_cases: cases,
             n_connections: 30,
@@ -268,7 +268,7 @@ fn set6(cases: usize, silent: bool) {
 
 fn set7(cases: usize, silent: bool) {
     generate_case_group(
-        "7_105x15_20_0.4_R",
+        "07_105x15_20_0.4_R",
         &RandomGenerationOptions {
             n_cases: cases,
             n_connections: 20,
@@ -294,7 +294,7 @@ fn set7(cases: usize, silent: bool) {
 
 fn set8(cases: usize, silent: bool) {
     generate_case_group(
-        "8_105x15_20_0.4_O",
+        "08_105x15_20_0.4_O",
         &RandomGenerationOptions {
             n_cases: cases,
             n_connections: 20,
@@ -320,7 +320,7 @@ fn set8(cases: usize, silent: bool) {
 
 fn set9(cases: usize, silent: bool) {
     generate_case_group(
-        "9_105x15_30_0.2_R",
+        "09_105x15_30_0.2_R",
         &RandomGenerationOptions {
             n_cases: cases,
             n_connections: 30,
