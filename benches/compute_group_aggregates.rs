@@ -127,6 +127,6 @@ fn main() {
         );
     }
 
-    let results = serde_json::to_string(&aggregate).expect("Could not serialize results");
+    let results = serde_json::to_string_pretty(&aggregate).expect("Could not serialize results");
     fs::write(Path::new(DIR).join("aggregate.json"), &results).expect("Could not write results");
 }
