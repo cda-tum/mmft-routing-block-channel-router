@@ -68,7 +68,6 @@ struct GridNode {
     y: f64,
     connection: Option<usize>,
     blocked: bool,
-    multi_connection: Option<usize>, // is branch point
 }
 
 impl PartialEq for GridNode {
@@ -205,9 +204,8 @@ fn compute_extra_node(
                 let unoccupied = ring.iter().all(|n| {
                     let node = &nodes[n.0 .0 * cells_y + n.0 .1];
                     let n_connection = node.connection;
-                    let n_multi_connection = node.multi_connection;
 
-                    return n_connection.is_none() && n_multi_connection.is_none() && !node.blocked;
+                    return n_connection.is_none() && !node.blocked;
                 });
 
                 if unoccupied {
@@ -327,7 +325,6 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
                 y: cell_offset_y + y as f64 * cell_size,
                 connection: None,
                 blocked: false,
-                multi_connection: None,
             });
         }
     }
@@ -394,14 +391,14 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
 
             if let Some(node) = center_node {
                 let id = node.0 * cells_y + node.1;
-                nodes[id].multi_connection = Some(*c_id);
+                nodes[id].connection = Some(*c_id);
                 join_nodes.insert(*c_id, node);
             }
         } else {
             if branch_port.is_some() {
                 let node = port_cell(&branch_port.unwrap());
                 let id = node.0 * cells_y + node.1;
-                nodes[id].multi_connection = Some(*c_id);
+                nodes[id].connection = Some(*c_id);
                 join_nodes.insert(*c_id, node);
             }
         }
@@ -619,11 +616,6 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
                                     return None;
                                 }
                             }
-                            if let Some(c) = node.multi_connection {
-                                if c != c_id {
-                                    return None;
-                                }
-                            }
                             Some(((cell_id, Some(current)), c))
                         }
                         _ => None,
@@ -722,32 +714,27 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
                                     return None;
                                 }
                             }
-                            if let Some(c) = node.multi_connection {
-                                if c != c_id {
-                                    return None;
-                                }
-                            }
                             if n.ix != x && n.iy != y {
                                 let block_a_id = n.ix * cells_y + y;
                                 let node_a = &nodes[block_a_id];
+                                if node_a.blocked {
+                                    return None;
+                                }
                                 if let Some(c) = node_a.connection {
                                     if c != c_id {
                                         return None;
                                     }
                                 }
-                                if node_a.blocked && node_a.multi_connection.is_none() {
-                                    return None;
-                                }
 
                                 let block_b_id = x * cells_y + n.iy;
                                 let node_b = &nodes[block_b_id];
+                                if node_b.blocked {
+                                    return None;
+                                }
                                 if let Some(c) = node_b.connection {
                                     if c != c_id {
                                         return None;
                                     }
-                                }
-                                if node_b.blocked && node_b.multi_connection.is_none() {
-                                    return None;
                                 }
                             }
                             Some(((cell_id, Some(current)), c))
@@ -775,7 +762,7 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
         };
 
         let result = a_star(
-            if !nodes[start_node_id].blocked || (nodes[start_node_id].multi_connection.is_some() && nodes[start_node_id].multi_connection.unwrap() == c_id) {
+            if !nodes[start_node_id].blocked || (nodes[start_node_id].connection.is_some() && nodes[start_node_id].connection.unwrap() == c_id) {
                 Vec::from([(start_node_id, None)])
             } else {
                 Vec::new()
