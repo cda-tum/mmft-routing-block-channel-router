@@ -4,7 +4,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use mmft_board_router::{board_router::route, utils::read_input_from_file};
 use walkdir::WalkDir;
 
-const DIR: &str = "./benches/cases";
+const DIR: &str = "./benches/cases/";
 const TARGET_DIR: &str = "./target/criterion/";
 
 fn criterion_benchmark(c: &mut Criterion) {

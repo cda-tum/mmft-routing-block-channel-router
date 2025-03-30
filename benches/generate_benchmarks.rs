@@ -5,12 +5,12 @@ use std::{
 };
 
 use mmft_board_router::board_router::{
-    compute_ports, route, ComputePortsInput, ComputePortsOutput, Layout, RouteInput,
-    RouteInputConnection,
+    compute_ports, route, ComputePortsInput, ComputePortsOutput, ConnectionID, Layout, RouteInput, RouteInputConnection
 };
+use threadpool::ThreadPool;
+
 use nanoid::nanoid;
 use rand::Rng;
-use threadpool::ThreadPool;
 
 const DIR: &str = "./benches/cases";
 const MAX_PORTS: usize = 100000000;
@@ -718,7 +718,7 @@ fn random_port_connections(
             let connection = random_port_connection(ports, &options, &occupied);
             connection.iter().for_each(|c| occupied.push(*c));
             RouteInputConnection {
-                id: i, 
+                id: i as ConnectionID, 
                 ports: connection,
                 branch_port: None
             }
@@ -746,7 +746,7 @@ fn random_port_connections_incremental(
         for j in 0..tries_per_connection {
             let connection = random_port_connection(ports, &options, &mut occupied);
             connections.push(RouteInputConnection {
-                id: i,
+                id: i as ConnectionID,
                 ports: connection.clone(),
                 branch_port: None,
             });

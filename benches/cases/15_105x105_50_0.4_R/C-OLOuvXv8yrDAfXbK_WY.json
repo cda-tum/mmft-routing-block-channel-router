@@ -1,0 +1,774 @@
+{
+  "board_height": 105.0,
+  "board_width": 105.0,
+  "channel_spacing": 0.4,
+  "channel_width": 0.4,
+  "connections": [
+    {
+      "branch_port": null,
+      "id": 0,
+      "ports": [
+        [
+          44,
+          38
+        ],
+        [
+          38,
+          52
+        ],
+        [
+          24,
+          38
+        ],
+        [
+          42,
+          54
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 1,
+      "ports": [
+        [
+          51,
+          2
+        ],
+        [
+          50,
+          6
+        ],
+        [
+          43,
+          17
+        ],
+        [
+          20,
+          10
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 2,
+      "ports": [
+        [
+          12,
+          17
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          8,
+          12
+        ],
+        [
+          15,
+          34
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 3,
+      "ports": [
+        [
+          37,
+          20
+        ],
+        [
+          39,
+          46
+        ],
+        [
+          18,
+          31
+        ],
+        [
+          19,
+          15
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 4,
+      "ports": [
+        [
+          45,
+          10
+        ],
+        [
+          42,
+          2
+        ],
+        [
+          50,
+          21
+        ],
+        [
+          17,
+          8
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 5,
+      "ports": [
+        [
+          50,
+          2
+        ],
+        [
+          58,
+          6
+        ],
+        [
+          48,
+          25
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 6,
+      "ports": [
+        [
+          55,
+          28
+        ],
+        [
+          55,
+          51
+        ],
+        [
+          44,
+          49
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 7,
+      "ports": [
+        [
+          13,
+          61
+        ],
+        [
+          20,
+          60
+        ],
+        [
+          7,
+          64
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 8,
+      "ports": [
+        [
+          22,
+          12
+        ],
+        [
+          17,
+          13
+        ],
+        [
+          33,
+          19
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 9,
+      "ports": [
+        [
+          7,
+          46
+        ],
+        [
+          31,
+          37
+        ],
+        [
+          15,
+          54
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 10,
+      "ports": [
+        [
+          12,
+          15
+        ],
+        [
+          10,
+          29
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 11,
+      "ports": [
+        [
+          61,
+          27
+        ],
+        [
+          64,
+          59
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 12,
+      "ports": [
+        [
+          1,
+          41
+        ],
+        [
+          29,
+          23
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 13,
+      "ports": [
+        [
+          44,
+          22
+        ],
+        [
+          52,
+          1
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 14,
+      "ports": [
+        [
+          7,
+          13
+        ],
+        [
+          21,
+          13
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 15,
+      "ports": [
+        [
+          29,
+          62
+        ],
+        [
+          31,
+          42
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 16,
+      "ports": [
+        [
+          4,
+          54
+        ],
+        [
+          23,
+          42
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 17,
+      "ports": [
+        [
+          2,
+          45
+        ],
+        [
+          29,
+          34
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 18,
+      "ports": [
+        [
+          35,
+          52
+        ],
+        [
+          17,
+          66
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 19,
+      "ports": [
+        [
+          14,
+          49
+        ],
+        [
+          21,
+          48
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 20,
+      "ports": [
+        [
+          54,
+          45
+        ],
+        [
+          56,
+          48
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 21,
+      "ports": [
+        [
+          35,
+          62
+        ],
+        [
+          7,
+          37
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 22,
+      "ports": [
+        [
+          47,
+          11
+        ],
+        [
+          40,
+          19
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 23,
+      "ports": [
+        [
+          1,
+          6
+        ],
+        [
+          20,
+          22
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 24,
+      "ports": [
+        [
+          60,
+          43
+        ],
+        [
+          48,
+          66
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 25,
+      "ports": [
+        [
+          58,
+          52
+        ],
+        [
+          62,
+          55
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 26,
+      "ports": [
+        [
+          66,
+          50
+        ],
+        [
+          64,
+          40
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 27,
+      "ports": [
+        [
+          51,
+          53
+        ],
+        [
+          49,
+          57
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 28,
+      "ports": [
+        [
+          56,
+          65
+        ],
+        [
+          37,
+          59
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 29,
+      "ports": [
+        [
+          51,
+          62
+        ],
+        [
+          41,
+          56
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 30,
+      "ports": [
+        [
+          13,
+          63
+        ],
+        [
+          30,
+          53
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 31,
+      "ports": [
+        [
+          48,
+          30
+        ],
+        [
+          45,
+          30
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 32,
+      "ports": [
+        [
+          12,
+          46
+        ],
+        [
+          0,
+          61
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 33,
+      "ports": [
+        [
+          2,
+          42
+        ],
+        [
+          5,
+          23
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 34,
+      "ports": [
+        [
+          46,
+          8
+        ],
+        [
+          48,
+          9
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 35,
+      "ports": [
+        [
+          10,
+          52
+        ],
+        [
+          35,
+          25
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 36,
+      "ports": [
+        [
+          59,
+          27
+        ],
+        [
+          58,
+          22
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 37,
+      "ports": [
+        [
+          49,
+          64
+        ],
+        [
+          57,
+          35
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 38,
+      "ports": [
+        [
+          18,
+          1
+        ],
+        [
+          2,
+          11
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 39,
+      "ports": [
+        [
+          29,
+          41
+        ],
+        [
+          18,
+          55
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 40,
+      "ports": [
+        [
+          8,
+          8
+        ],
+        [
+          23,
+          5
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 41,
+      "ports": [
+        [
+          14,
+          3
+        ],
+        [
+          19,
+          9
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 42,
+      "ports": [
+        [
+          66,
+          25
+        ],
+        [
+          64,
+          42
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 43,
+      "ports": [
+        [
+          53,
+          38
+        ],
+        [
+          66,
+          10
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 44,
+      "ports": [
+        [
+          32,
+          13
+        ],
+        [
+          35,
+          18
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 45,
+      "ports": [
+        [
+          5,
+          60
+        ],
+        [
+          6,
+          66
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 46,
+      "ports": [
+        [
+          16,
+          13
+        ],
+        [
+          15,
+          15
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 47,
+      "ports": [
+        [
+          42,
+          59
+        ],
+        [
+          54,
+          53
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 48,
+      "ports": [
+        [
+          55,
+          32
+        ],
+        [
+          59,
+          21
+        ]
+      ]
+    },
+    {
+      "branch_port": null,
+      "id": 49,
+      "ports": [
+        [
+          34,
+          10
+        ],
+        [
+          34,
+          7
+        ]
+      ]
+    }
+  ],
+  "layout": "Rectilinear",
+  "max_ports": 100000000,
+  "pitch": 1.5,
+  "pitch_offset_x": 3.0,
+  "pitch_offset_y": 3.0,
+  "port_diameter": 0.5
+}
