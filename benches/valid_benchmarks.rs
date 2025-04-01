@@ -1,16 +1,5 @@
-use std::{
-    fs::{self, File},
-    io::BufWriter,
-    path::{Path, PathBuf},
-};
-
 use clap::Parser;
-use mmft_board_router::{
-    board_router::{route, BoardRouterOutputError, Layout, Port, RouteInput, RouteInputConnection},
-    dxf::{generate_svg, GenerateSVGInput, GenerateSVGOutput},
-    utils::read_input_from_file,
-};
-use serde::Deserialize;
+use mmft_board_router::{board_router::route, utils::read_input_from_file};
 use walkdir::WalkDir;
 
 const DIR: &str = "./benches/cases";
@@ -43,13 +32,14 @@ fn main() {
                         Ok(_) => success += 1,
                         Err(_) => (),
                     }
-                },
-                Err(_) => {
-                    ignored += 1
-                },
+                }
+                Err(_) => ignored += 1,
             }
             print!("\r                                                   \r");
-            print!("Ignored: {}; Total: {}, Successful: {}", ignored, total, success)
+            print!(
+                "Ignored: {}; Total: {}, Successful: {}",
+                ignored, total, success
+            )
         }
     }
     print!("\n")

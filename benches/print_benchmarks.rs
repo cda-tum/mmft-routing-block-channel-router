@@ -1,16 +1,14 @@
 use std::{
-    fs::{self, File},
-    io::BufWriter,
+    fs::{self},
     path::{Path, PathBuf},
 };
 
 use clap::Parser;
 use mmft_board_router::{
-    board_router::{route, BoardRouterOutputError, Layout, Port, RouteInput, RouteInputConnection},
+    board_router::{route, BoardRouterOutputError},
     dxf::{generate_svg, GenerateSVGInput, GenerateSVGOutput},
     utils::read_input_from_file,
 };
-use serde::Deserialize;
 use walkdir::WalkDir;
 
 const DIR: &str = "./benches/cases";

@@ -8,12 +8,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::board_router::{BoardRouterOutputBoard, Channel, Point};
 
-struct OctilinearOutlineInput {
-    channels: Vec<Channel>,
-    channel_width: f64,
-    channel_cap: ChannelCap,
-}
-
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct ExceedBy(f64);
 
@@ -815,7 +809,7 @@ fn write_svg_head<W: Write>(out: &mut W, input: &GenerateSVGInput) -> Result<()>
     Ok(())
 }
 
-fn write_svg_end<W: Write>(out: &mut W, input: &GenerateSVGInput) -> Result<()> {
+fn write_svg_end<W: Write>(out: &mut W, _: &GenerateSVGInput) -> Result<()> {
     out.write_all(b"</svg>")?;
     Ok(())
 }

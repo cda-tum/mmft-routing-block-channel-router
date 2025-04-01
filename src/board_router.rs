@@ -2,7 +2,7 @@ use core::f64;
 use serde::{Deserialize, Serialize};
 use std::{
     cmp::Ordering,
-    collections::{HashMap, HashSet, VecDeque}, num::NonZero,
+    collections::{HashMap, HashSet, VecDeque},
 };
 
 use crate::graph_search::{a_star, AStarNode};
