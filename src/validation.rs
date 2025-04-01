@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::board_router::{
-    compute_ports, ComputePortsInput, ComputePortsOutput, ConnectionID, Layout, Port, RouteInputConnections
+    compute_ports, ComputePortsInput, ComputePortsOutput, ConnectionID, Layout, Port,
+    RouteInputConnections,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -14,7 +15,6 @@ pub struct ValidateInput {
     pub pitch_offset_y: Option<f64>,
     pub channel_width: Option<f64>,
     pub channel_spacing: Option<f64>,
-    pub min_grid_size: Option<f64>,
     pub max_ports: Option<usize>,
     pub layout: Option<Layout>,
     pub connections: Option<RouteInputConnections>,
@@ -252,11 +252,14 @@ pub fn validate(input: ValidateInput) -> Result<ValidationOk, ValidationErr> {
             board_height: input.board_height.unwrap(),
             pitch: input.pitch.unwrap(),
             pitch_offset_x: input.pitch_offset_x.unwrap(),
-            pitch_offset_y: input.pitch_offset_y.unwrap()
+            pitch_offset_y: input.pitch_offset_y.unwrap(),
         });
         let total_ports = ports_x * ports_y;
         if total_ports > input.max_ports.unwrap() {
-            errors.push(ValidationError::MaxPortsExceeded(total_ports, input.max_ports.unwrap()))
+            errors.push(ValidationError::MaxPortsExceeded(
+                total_ports,
+                input.max_ports.unwrap(),
+            ))
         }
     }
 

@@ -7,7 +7,7 @@ use std::{
 
 use crate::graph_search::{a_star, AStarNode};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RouteInput {
     pub channel_width: f64,
     pub channel_spacing: f64,
@@ -18,7 +18,6 @@ pub struct RouteInput {
     pub pitch_offset_x: f64,
     pub pitch_offset_y: f64,
     pub port_diameter: f64,
-    pub min_grid_size: f64,
     pub max_ports: usize,
     pub connections: RouteInputConnections,
 }
@@ -34,11 +33,10 @@ pub struct RouteInputConnection {
 }
 pub type Port = (usize, usize);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum Layout {
     Rectilinear,
     Octilinear,
-    Mixed,
 }
 
 pub type BoardRouterOutput = Result<BoardRouterOutputBoard, BoardRouterOutputError>;
@@ -63,20 +61,8 @@ pub type Point = [f64; 2]; // a point in 2D (x, y)
 
 #[derive(Debug)]
 struct GridNode {
-    id: usize,
-    ix: usize,
-    iy: usize,
-    x: f64,
-    y: f64,
-    connection: Option<usize>,
+    connection: Option<ConnectionID>,
     blocked: bool,
-    multi_connection: Option<usize>, // can have multiple connections
-}
-
-impl PartialEq for GridNode {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
 }
 
 #[inline]
@@ -183,8 +169,8 @@ fn compute_extra_node(
     let s = ports.iter().copied().fold((0, 0), |a, p| {
         let (port_cell_x, port_cell_y) = port_cell(&p);
         (
-            a.0 + nodes[port_cell_x * cells_y + port_cell_y].ix,
-            a.1 + nodes[port_cell_x * cells_y + port_cell_y].iy,
+            a.0 + port_cell_x,
+            a.1 + port_cell_y,
         )
     });
     let center = (s.0 / ports.len(), s.1 / ports.len());
@@ -197,7 +183,7 @@ fn compute_extra_node(
         if let Some(candidate) = e {
             if !closed.contains(&candidate) {
                 closed.insert(candidate);
-                let candidate_indices = (nodes[candidate].ix, nodes[candidate].iy);
+                let candidate_indices = (candidate / cells_y, candidate % cells_y);
                 let neighbors = neighbors(candidate_indices, cells_x, cells_y);
                 let mut ring = Vec::from_iter(neighbors.iter());
                 let candidate_cell = &(candidate_indices, 0.);
@@ -207,9 +193,8 @@ fn compute_extra_node(
                 let unoccupied = ring.iter().all(|n| {
                     let node = &nodes[n.0 .0 * cells_y + n.0 .1];
                     let n_connection = node.connection;
-                    let n_multi_connection = node.multi_connection;
 
-                    return n_connection.is_none() && n_multi_connection.is_none() && !node.blocked;
+                    return n_connection.is_none() && !node.blocked;
                 });
 
                 if unoccupied {
@@ -256,7 +241,7 @@ pub fn compute_ports(
     return ComputePortsOutput { ports_x, ports_y };
 }
 
-pub fn route(input: RouteInput) -> BoardRouterOutput {
+pub fn route(input: &RouteInput) -> BoardRouterOutput {
     let channel_distance = input.channel_width + input.channel_spacing;
     let cells_per_pitch = (input.pitch / channel_distance).floor() as usize;
     let cell_size = input.pitch / (cells_per_pitch as f64);
@@ -316,20 +301,14 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     let port_influence_radius = port_radius + input.channel_spacing + input.channel_width / 2.;
     let box_size = (port_influence_radius / cell_size).ceil();
 
-    let mut nodes = Vec::<GridNode>::new();
+    let mut nodes = Vec::<GridNode>::with_capacity(cells_x * cells_y);
 
     // Generate routing nodes/cells
-    for x in 0..cells_x {
-        for y in 0..cells_y {
+    for _ in 0..cells_x {
+        for _ in 0..cells_y {
             nodes.push(GridNode {
-                id: (x * cells_y + y) as usize,
-                ix: x,
-                iy: y,
-                x: cell_offset_x + x as f64 * cell_size,
-                y: cell_offset_y + y as f64 * cell_size,
                 connection: None,
                 blocked: false,
-                multi_connection: None,
             });
         }
     }
@@ -347,8 +326,8 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
             let (cell_x, cell_y) = port_cell(port);
 
             let node_position = (
-                nodes[cell_x * cells_y + cell_y].x,
-                nodes[cell_x * cells_y + cell_y].y,
+                cell_offset_x + cell_x as f64 * cell_size,
+                cell_offset_y + cell_y as f64 * cell_size,
             );
 
             for box_x in usize::saturating_sub(cell_x, box_size as usize)
@@ -358,8 +337,8 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                     ..(cell_y + 1 + box_size as usize).clamp(0, cells_y)
                 {
                     let box_node_position = (
-                        nodes[box_x * cells_y + box_y].x,
-                        nodes[box_x * cells_y + box_y].y,
+                        cell_offset_x + box_x as f64 * cell_size,
+                        cell_offset_y + box_y as f64 * cell_size,
                     );
                     let distance = f64::hypot(
                         box_node_position.0 - node_position.0,
@@ -396,14 +375,14 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
 
             if let Some(node) = center_node {
                 let id = node.0 * cells_y + node.1;
-                nodes[id].multi_connection = Some(*c_id);
+                nodes[id].connection = Some(*c_id);
                 join_nodes.insert(*c_id, node);
             }
         } else {
             if branch_port.is_some() {
                 let node = port_cell(&branch_port.unwrap());
                 let id = node.0 * cells_y + node.1;
-                nodes[id].multi_connection = Some(*c_id);
+                nodes[id].connection = Some(*c_id);
                 join_nodes.insert(*c_id, node);
             }
         }
@@ -415,14 +394,14 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
     }
 
     struct PortToPort {
-        connection: usize,
+        connection: ConnectionID,
         from_cell: (usize, usize),
         to_cell: (usize, usize),
     }
 
     // 2-port connections with a branch_port are also regarded as two StarBranch'es
     struct StarBranch {
-        connection: usize,
+        connection: ConnectionID,
         from_cell: Option<(usize, usize)>,
         to_cell: (usize, usize),
         num_branches: usize,
@@ -560,48 +539,48 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
 
         let start_node_id = ax * cells_y + ay;
         let target_node_id = bx * cells_y + by;
-        let target_node = &nodes[target_node_id];
+        let (target_node_ix, target_node_iy) = (bx, by);
 
         // Setup successor cell functions for rectilinear, octilinear, etc; Since they capture some variables (e.g., cells_x/y), they need to be defined here.
         let rectilinear = |a: &AStarNode<(usize, Option<usize>)>| -> Vec<((usize, Option<usize>), f64)> {
             let current = a.node.0;
-            let n = &nodes[current];
+            let (nix, niy) = (current / cells_y, current % cells_y);
             let options = match a.node.1 {
                 Some(previous) => {
-                    let p = &nodes[previous];
-                    if p.ix < n.ix {
+                    let (pix, piy) = (previous / cells_y, previous % cells_y);
+                    if pix < nix {
                         Vec::from([
-                            up_if_exists((n.ix, n.iy)),
-                            down_if_exists((n.ix, n.iy), cells_y),
-                            right_if_exists((n.ix, n.iy), cells_x),
+                            up_if_exists((nix, niy)),
+                            down_if_exists((nix, niy), cells_y),
+                            right_if_exists((nix, niy), cells_x),
                         ])
-                    } else if p.ix > n.ix {
+                    } else if pix > nix {
                         Vec::from([
-                            up_if_exists((n.ix, n.iy)),
-                            down_if_exists((n.ix, n.iy), cells_y),
-                            left_if_exists((n.ix, n.iy)),
+                            up_if_exists((nix, niy)),
+                            down_if_exists((nix, niy), cells_y),
+                            left_if_exists((nix, niy)),
                         ])
-                    } else if p.iy < n.iy {
+                    } else if piy < niy {
                         Vec::from([
-                            down_if_exists((n.ix, n.iy), cells_y),
-                            left_if_exists((n.ix, n.iy)),
-                            right_if_exists((n.ix, n.iy), cells_x),
+                            down_if_exists((nix, niy), cells_y),
+                            left_if_exists((nix, niy)),
+                            right_if_exists((nix, niy), cells_x),
                         ])
-                    } else if p.iy > n.iy {
+                    } else if piy > niy {
                         Vec::from([
-                            up_if_exists((n.ix, n.iy)),
-                            left_if_exists((n.ix, n.iy)),
-                            right_if_exists((n.ix, n.iy), cells_x),
+                            up_if_exists((nix, niy)),
+                            left_if_exists((nix, niy)),
+                            right_if_exists((nix, niy), cells_x),
                         ])
                     } else {
                         panic!()
                     }
                 }
                 None => Vec::from([
-                    down_if_exists((n.ix, n.iy), cells_y),
-                    up_if_exists((n.ix, n.iy)),
-                    left_if_exists((n.ix, n.iy)),
-                    right_if_exists((n.ix, n.iy), cells_x),
+                    down_if_exists((nix, niy), cells_y),
+                    up_if_exists((nix, niy)),
+                    left_if_exists((nix, niy)),
+                    right_if_exists((nix, niy), cells_x),
                 ]),
             };
 
@@ -613,18 +592,13 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                         Some(((x, y), c)) => {
                             let cell_id = x * cells_y + y;
                             let node = &nodes[cell_id];
+                            if node.blocked {
+                                return None;
+                            }
                             if let Some(c) = node.connection {
                                 if c != c_id {
                                     return None;
                                 }
-                            }
-                            if let Some(c) = node.multi_connection {
-                                if c != c_id {
-                                    return None;
-                                }
-                            }
-                            if node.blocked {
-                                return None;
                             }
                             Some(((cell_id, Some(current)), c))
                         }
@@ -636,75 +610,75 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
 
         let octilinear = |a: &AStarNode<(usize, Option<usize>)>| -> Vec<((usize, Option<usize>), f64)> {
             let current = a.node.0;
-            let n = &nodes[current];
+            let (nix, niy) = (current / cells_y, current % cells_y);
             let options = match a.node.1 {
                 Some(previous) => {
-                    let p = &nodes[previous];
-                    if p.ix < n.ix {
-                        if p.iy < n.iy {
+                    let (pix, piy) = (previous / cells_y, previous % cells_y);
+                    if pix < nix {
+                        if piy < niy {
                             Vec::from([
-                                down_if_exists((n.ix, n.iy), cells_y),
-                                right_down_if_exists((n.ix, n.iy), cells_x, cells_y),
-                                right_if_exists((n.ix, n.iy), cells_x),
+                                down_if_exists((nix, niy), cells_y),
+                                right_down_if_exists((nix, niy), cells_x, cells_y),
+                                right_if_exists((nix, niy), cells_x),
                             ])
-                        } else if p.iy > n.iy {
+                        } else if piy > niy {
                             Vec::from([
-                                up_if_exists((n.ix, n.iy)),
-                                right_up_if_exists((n.ix, n.iy), cells_x),
-                                right_if_exists((n.ix, n.iy), cells_x),
-                            ])
-                        } else {
-                            Vec::from([
-                                right_up_if_exists((n.ix, n.iy), cells_x),
-                                right_down_if_exists((n.ix, n.iy), cells_x, cells_y),
-                                right_if_exists((n.ix, n.iy), cells_x),
-                            ])
-                        }
-                    } else if p.ix > n.ix {
-                        if p.iy < n.iy {
-                            Vec::from([
-                                down_if_exists((n.ix, n.iy), cells_y),
-                                left_down_if_exists((n.ix, n.iy), cells_y),
-                                left_if_exists((n.ix, n.iy)),
-                            ])
-                        } else if p.iy > n.iy {
-                            Vec::from([
-                                up_if_exists((n.ix, n.iy)),
-                                left_up_if_exists((n.ix, n.iy)),
-                                left_if_exists((n.ix, n.iy)),
+                                up_if_exists((nix, niy)),
+                                right_up_if_exists((nix, niy), cells_x),
+                                right_if_exists((nix, niy), cells_x),
                             ])
                         } else {
                             Vec::from([
-                                left_up_if_exists((n.ix, n.iy)),
-                                left_down_if_exists((n.ix, n.iy), cells_y),
-                                left_if_exists((n.ix, n.iy)),
+                                right_up_if_exists((nix, niy), cells_x),
+                                right_down_if_exists((nix, niy), cells_x, cells_y),
+                                right_if_exists((nix, niy), cells_x),
                             ])
                         }
-                    } else if p.iy < n.iy {
+                    } else if pix > nix {
+                        if piy < niy {
+                            Vec::from([
+                                down_if_exists((nix, niy), cells_y),
+                                left_down_if_exists((nix, niy), cells_y),
+                                left_if_exists((nix, niy)),
+                            ])
+                        } else if piy > niy {
+                            Vec::from([
+                                up_if_exists((nix, niy)),
+                                left_up_if_exists((nix, niy)),
+                                left_if_exists((nix, niy)),
+                            ])
+                        } else {
+                            Vec::from([
+                                left_up_if_exists((nix, niy)),
+                                left_down_if_exists((nix, niy), cells_y),
+                                left_if_exists((nix, niy)),
+                            ])
+                        }
+                    } else if piy < niy {
                         Vec::from([
-                            down_if_exists((n.ix, n.iy), cells_y),
-                            left_down_if_exists((n.ix, n.iy), cells_y),
-                            right_down_if_exists((n.ix, n.iy), cells_x, cells_y),
+                            down_if_exists((nix, niy), cells_y),
+                            left_down_if_exists((nix, niy), cells_y),
+                            right_down_if_exists((nix, niy), cells_x, cells_y),
                         ])
-                    } else if p.iy > n.iy {
+                    } else if piy > niy {
                         Vec::from([
-                            up_if_exists((n.ix, n.iy)),
-                            left_up_if_exists((n.ix, n.iy)),
-                            right_up_if_exists((n.ix, n.iy), cells_x),
+                            up_if_exists((nix, niy)),
+                            left_up_if_exists((nix, niy)),
+                            right_up_if_exists((nix, niy), cells_x),
                         ])
                     } else {
                         panic!()
                     }
                 }
                 None => Vec::from([
-                    down_if_exists((n.ix, n.iy), cells_y),
-                    left_down_if_exists((n.ix, n.iy), cells_y),
-                    right_down_if_exists((n.ix, n.iy), cells_x, cells_y),
-                    up_if_exists((n.ix, n.iy)),
-                    left_up_if_exists((n.ix, n.iy)),
-                    right_up_if_exists((n.ix, n.iy), cells_x),
-                    left_if_exists((n.ix, n.iy)),
-                    right_if_exists((n.ix, n.iy), cells_x),
+                    down_if_exists((nix, niy), cells_y),
+                    left_down_if_exists((nix, niy), cells_y),
+                    right_down_if_exists((nix, niy), cells_x, cells_y),
+                    up_if_exists((nix, niy)),
+                    left_up_if_exists((nix, niy)),
+                    right_up_if_exists((nix, niy), cells_x),
+                    left_if_exists((nix, niy)),
+                    right_if_exists((nix, niy), cells_x),
                 ]),
             };
 
@@ -716,178 +690,35 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                         Some(((x, y), c)) => {
                             let cell_id = x * cells_y + y;
                             let node = &nodes[cell_id];
+                            if node.blocked {
+                                return None;
+                            }
                             if let Some(c) = node.connection {
                                 if c != c_id {
                                     return None;
                                 }
                             }
-                            if let Some(c) = node.multi_connection {
-                                if c != c_id {
-                                    return None;
-                                }
-                            }
-                            if node.blocked {
-                                return None;
-                            }
-                            if n.ix != x && n.iy != y {
-                                let block_a_id = n.ix * cells_y + y;
+                            if nix != x && niy != y {
+                                let block_a_id = nix * cells_y + y;
                                 let node_a = &nodes[block_a_id];
-                                if let Some(c) = node_a.connection {
-                                    if c != c_id {
-                                        return None;
-                                    }
-                                }
-                                if node_a.blocked && node_a.multi_connection.is_none() {
-                                    return None;
-                                }
-
-                                let block_b_id = x * cells_y + n.iy;
-                                let node_b = &nodes[block_b_id];
-                                if let Some(c) = node_b.connection {
-                                    if c != c_id {
-                                        return None;
-                                    }
-                                }
-                                if node_b.blocked && node_b.multi_connection.is_none() {
-                                    return None;
-                                }
-                            }
-                            Some(((cell_id, Some(current)), c))
-                        }
-                        _ => None,
-                    }
-                })
-                .collect()
-        };
-
-        // Not used currently, not up to date
-        let mixed = |a: &AStarNode<(usize, Option<usize>)>| -> Vec<((usize, Option<usize>), f64)> {
-            let current = a.node.0;
-            let n = &nodes[current];
-            let options = match a.node.1 {
-                Some(previous) => {
-                    let p = &nodes[previous];
-                    if p.ix < n.ix {
-                        if p.iy < n.iy {
-                            Vec::from([
-                                down_if_exists((n.ix, n.iy), cells_y),
-                                right_down_if_exists((n.ix, n.iy), cells_x, cells_y),
-                                right_if_exists((n.ix, n.iy), cells_x),
-                                right_up_if_exists((n.ix, n.iy), cells_x),
-                                left_down_if_exists((n.ix, n.iy), cells_y),
-                            ])
-                        } else if p.iy > n.iy {
-                            Vec::from([
-                                up_if_exists((n.ix, n.iy)),
-                                right_up_if_exists((n.ix, n.iy), cells_x),
-                                right_if_exists((n.ix, n.iy), cells_x),
-                                right_down_if_exists((n.ix, n.iy), cells_x, cells_y),
-                                left_up_if_exists((n.ix, n.iy)),
-                            ])
-                        } else {
-                            Vec::from([
-                                right_up_if_exists((n.ix, n.iy), cells_x),
-                                right_down_if_exists((n.ix, n.iy), cells_x, cells_y),
-                                right_if_exists((n.ix, n.iy), cells_x),
-                                up_if_exists((n.ix, n.iy)),
-                                down_if_exists((n.ix, n.iy), cells_y),
-                            ])
-                        }
-                    } else if p.ix > n.ix {
-                        if p.iy < n.iy {
-                            Vec::from([
-                                down_if_exists((n.ix, n.iy), cells_y),
-                                left_down_if_exists((n.ix, n.iy), cells_y),
-                                left_if_exists((n.ix, n.iy)),
-                                left_up_if_exists((n.ix, n.iy)),
-                                right_down_if_exists((n.ix, n.iy), cells_x, cells_y),
-                            ])
-                        } else if p.iy > n.iy {
-                            Vec::from([
-                                up_if_exists((n.ix, n.iy)),
-                                left_up_if_exists((n.ix, n.iy)),
-                                left_if_exists((n.ix, n.iy)),
-                                right_up_if_exists((n.ix, n.iy), cells_x),
-                                left_down_if_exists((n.ix, n.iy), cells_y),
-                            ])
-                        } else {
-                            Vec::from([
-                                left_up_if_exists((n.ix, n.iy)),
-                                left_down_if_exists((n.ix, n.iy), cells_y),
-                                left_if_exists((n.ix, n.iy)),
-                                up_if_exists((n.ix, n.iy)),
-                                down_if_exists((n.ix, n.iy), cells_y),
-                            ])
-                        }
-                    } else if p.iy < n.iy {
-                        Vec::from([
-                            down_if_exists((n.ix, n.iy), cells_y),
-                            left_down_if_exists((n.ix, n.iy), cells_y),
-                            right_down_if_exists((n.ix, n.iy), cells_x, cells_y),
-                            left_if_exists((n.ix, n.iy)),
-                            right_if_exists((n.ix, n.iy), cells_x),
-                        ])
-                    } else if p.iy > n.iy {
-                        Vec::from([
-                            up_if_exists((n.ix, n.iy)),
-                            left_up_if_exists((n.ix, n.iy)),
-                            right_up_if_exists((n.ix, n.iy), cells_x),
-                            left_if_exists((n.ix, n.iy)),
-                            right_if_exists((n.ix, n.iy), cells_x),
-                        ])
-                    } else {
-                        panic!()
-                    }
-                }
-                None => Vec::from([
-                    down_if_exists((n.ix, n.iy), cells_y),
-                    left_down_if_exists((n.ix, n.iy), cells_y),
-                    right_down_if_exists((n.ix, n.iy), cells_x, cells_y),
-                    up_if_exists((n.ix, n.iy)),
-                    left_up_if_exists((n.ix, n.iy)),
-                    right_up_if_exists((n.ix, n.iy), cells_x),
-                    left_if_exists((n.ix, n.iy)),
-                    right_if_exists((n.ix, n.iy), cells_x),
-                ]),
-            };
-
-            // Check whether the cell can be reached (is unblocked, and for diagonal connections, diagonal neighbors are unblocked)
-            options
-                .into_iter()
-                .filter_map(|o| -> Option<((usize, Option<usize>), f64)> {
-                    match o {
-                        Some(((x, y), c)) => {
-                            let cell_id = x * cells_y + y;
-                            let node = &nodes[cell_id];
-                            if let Some(c) = node.connection {
-                                if c != c_id {
-                                    return None;
-                                }
-                            }
-                            if node.blocked {
-                                return None;
-                            }
-                            if n.ix != x && n.iy != y {
-                                let block_a_id = n.ix * cells_y + y;
-                                let node_a = &nodes[block_a_id];
-                                if let Some(c) = node_a.connection {
-                                    if c != c_id {
-                                        return None;
-                                    }
-                                }
                                 if node_a.blocked {
                                     return None;
                                 }
-
-                                let block_b_id = x * cells_y + n.iy;
-                                let node_b = &nodes[block_b_id];
-                                if let Some(c) = node_b.connection {
+                                if let Some(c) = node_a.connection {
                                     if c != c_id {
                                         return None;
                                     }
                                 }
+
+                                let block_b_id = x * cells_y + niy;
+                                let node_b = &nodes[block_b_id];
                                 if node_b.blocked {
                                     return None;
+                                }
+                                if let Some(c) = node_b.connection {
+                                    if c != c_id {
+                                        return None;
+                                    }
                                 }
                             }
                             Some(((cell_id, Some(current)), c))
@@ -902,21 +733,24 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
         let successors: &dyn Fn(&AStarNode<(usize, Option<usize>)>) -> Vec<((usize, Option<usize>), f64)> = match input.layout {
             Layout::Rectilinear => &rectilinear,
             Layout::Octilinear => &octilinear,
-            Layout::Mixed => &mixed,
         };
 
         let is_target = |n: &(usize, Option<usize>)| -> bool { n.0 == target_node_id };
 
         // Set euclidean distance as heuristic
         let heuristic = |i: &(usize, Option<usize>)| -> f64 {
-            let n = &nodes[i.0];
-            let dx = n.ix.abs_diff(target_node.ix);
-            let dy = n.iy.abs_diff(target_node.iy);
+            let (nix, niy) = (i.0 / cells_y, i.0 % cells_y);
+            let dx = nix.abs_diff(target_node_ix);
+            let dy = niy.abs_diff(target_node_iy);
             f64::hypot(dx as f64, dy as f64)
         };
 
         let result = a_star(
-            Vec::from([(start_node_id, None)]),
+            if !nodes[start_node_id].blocked || (nodes[start_node_id].connection.is_some() && nodes[start_node_id].connection.unwrap() == c_id) {
+                Vec::from([(start_node_id, None)])
+            } else {
+                Vec::new()
+            },
             &heuristic,
             &successors,
             &is_target,
@@ -932,7 +766,8 @@ pub fn route(input: RouteInput) -> BoardRouterOutput {
                     .map(|n| {
                         let node = &mut nodes[n.0];
                         node.blocked = true;
-                        [node.x, node.y]
+                        let (n0ix, n0iy) = (n.0 / cells_y, n.0 % cells_y);
+                        [cell_offset_x + n0ix as f64 * cell_size, cell_offset_y + n0iy as f64 * cell_size]
                     })
                     .collect::<Channel>();
                 match &routing_connection {
