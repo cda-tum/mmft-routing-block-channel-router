@@ -59,6 +59,7 @@ fn print_benchmark_for_file(file_name: &str) {
         board_height: input.board_height,
         channel_width: input.channel_width,
         channel_cap: mmft_board_router::dxf::ChannelCap::Butt,
+        port_diameter: Some(input.port_diameter)
     });
     let mut svg_file_name = PathBuf::from(file);
     svg_file_name.set_extension("svg");
