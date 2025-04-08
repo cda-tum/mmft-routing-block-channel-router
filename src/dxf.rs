@@ -1,7 +1,7 @@
 use core::f64;
 use std::{
     io::{Cursor, Result, Write},
-    iter,
+    iter::{self, empty},
 };
 
 use serde::{Deserialize, Serialize};
@@ -503,6 +503,8 @@ fn end_points(
 pub enum GeometricEntity {
     Polyline(Polyline),
     Line(Line),
+    Circle(Circle),
+    Rectangle(Rectangle),
 }
 
 #[derive(Clone)]
@@ -538,6 +540,16 @@ pub struct Line {
     to: [f64; 2],
 }
 
+pub struct Circle {
+    center: [f64; 2],
+    radius: f64,
+}
+
+pub struct Rectangle {
+    position: [f64; 2],
+    dimensions: [f64; 2],
+}
+
 fn write_dxf<W: Write>(out: &mut W, entities: &[GeometricEntity]) -> Result<()> {
     write_dxf_head(out)?;
     write_dxf_entities(out, entities)?;
@@ -550,6 +562,7 @@ fn write_dxf_entities<W: Write>(out: &mut W, entities: &[GeometricEntity]) -> Re
         match entity {
             GeometricEntity::Polyline(polyline) => write_dxf_polyline(out, polyline)?,
             GeometricEntity::Line(line) => write_dxf_line(out, line)?,
+            _ => (),
         }
     }
 
@@ -712,6 +725,7 @@ pub struct GenerateSVGInput {
     pub channel_cap: ChannelCap,
     pub board_width: f64,
     pub board_height: f64,
+    pub port_diameter: Option<f64>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -734,6 +748,41 @@ pub fn generate_svg(input: GenerateSVGInput) -> GenerateSVGOutput {
                     &input.channel_cap,
                 ))
             })
+            .chain(
+                input
+                    .connections
+                    .connections
+                    .iter()
+                    .flat_map(|(_, connection)| {
+                        if connection.len() == 1 {
+                            Vec::from([
+                                GeometricEntity::Circle(Circle {
+                                    center: *connection[0].first().unwrap(),
+                                    radius: input.port_diameter.unwrap() / 2.,
+                                }),
+                                GeometricEntity::Circle(Circle {
+                                    center: *connection[0].last().unwrap(),
+                                    radius: input.port_diameter.unwrap() / 2.,
+                                }),
+                            ])
+                        } else {
+                            connection
+                                .iter()
+                                .map(|c| {
+                                    GeometricEntity::Circle(Circle {
+                                        center: *c.last().unwrap(),
+                                        radius: input.port_diameter.unwrap() / 2.,
+                                    })
+                                })
+                                .collect::<Vec<GeometricEntity>>()
+                        }
+                    })
+                    .take_while(|_| input.port_diameter.is_some()),
+            )
+            .chain([GeometricEntity::Rectangle(Rectangle {
+                position: [0., 0.],
+                dimensions: [input.board_width, input.board_height],
+            })])
             .collect::<Vec<GeometricEntity>>(),
     );
     GenerateSVGOutput(String::from_utf8(s).unwrap())
@@ -759,6 +808,8 @@ fn write_svg_entities<W: Write>(
         match entity {
             GeometricEntity::Polyline(polyline) => write_svg_polyline(out, input, polyline)?,
             GeometricEntity::Line(line) => write_svg_line(out, input, line)?,
+            GeometricEntity::Circle(circle) => write_svg_circle(out, input, circle)?,
+            GeometricEntity::Rectangle(rectangle) => write_svg_rectangle(out, input, rectangle)?,
         }
     }
 
@@ -792,6 +843,36 @@ fn write_svg_line<W: Write>(out: &mut W, input: &GenerateSVGInput, line: &Line) 
         format!(
             "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke-width=\"{}\"/>",
             line.from[0], line.from[1], line.to[0], line.to[1], input.channel_width
+        )
+        .as_bytes(),
+    )?;
+    Ok(())
+}
+
+fn write_svg_rectangle<W: Write>(
+    out: &mut W,
+    input: &GenerateSVGInput,
+    rectangle: &Rectangle,
+) -> Result<()> {
+    out.write_all(
+        format!(
+            "<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" stroke-width=\"{}\" stroke=\"#000\" fill=\"none\" />",
+            rectangle.position[0],
+            rectangle.position[1],
+            rectangle.dimensions[0],
+            rectangle.dimensions[1],
+            2. * input.channel_width
+        )
+        .as_bytes(),
+    )?;
+    Ok(())
+}
+
+fn write_svg_circle<W: Write>(out: &mut W, _: &GenerateSVGInput, circle: &Circle) -> Result<()> {
+    out.write_all(
+        format!(
+            "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" stroke-width=\"0\" fill=\"#000\" />",
+            circle.center[0], circle.center[1], circle.radius
         )
         .as_bytes(),
     )?;
