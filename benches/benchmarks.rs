@@ -5,7 +5,7 @@ use mmft_board_router::{board_router::route, utils::read_input_from_file};
 use walkdir::WalkDir;
 
 const DIR: &str = "./benches/cases/";
-const ONLY_GROUPS: [&str; 3] = ["F1_MOOC_Culture_RB_v1.0", "F2_MOOC+Sensor_Culture_RB_v1.0", "F3_Parallel_Culture_RB_v1.0"];
+const ONLY_GROUPS: [&str; 0] = [];
 const TARGET_DIR: &str = "./target/criterion/";
 
 fn criterion_benchmark(c: &mut Criterion) {
