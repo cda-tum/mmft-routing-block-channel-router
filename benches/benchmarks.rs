@@ -5,6 +5,7 @@ use mmft_board_router::{board_router::route, utils::read_input_from_file};
 use walkdir::WalkDir;
 
 const DIR: &str = "./benches/cases/";
+const ONLY_GROUPS: [&str; 3] = ["F1_MOOC_Culture_RB_v1.0", "F2_MOOC+Sensor_Culture_RB_v1.0", "F3_Parallel_Culture_RB_v1.0"];
 const TARGET_DIR: &str = "./target/criterion/";
 
 fn criterion_benchmark(c: &mut Criterion) {
@@ -23,6 +24,10 @@ fn criterion_benchmark(c: &mut Criterion) {
             std::path::Component::Normal(os_str) => os_str.to_str().unwrap().to_owned(),
             _ => panic!(),
         };
+
+        if ONLY_GROUPS.len() > 0 && !ONLY_GROUPS.contains(&group_name.as_ref()) {
+            continue
+        }
 
         let mut benchmark_group = c.benchmark_group(group_name);
         for case in WalkDir::new(group.path())

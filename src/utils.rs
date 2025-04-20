@@ -4,7 +4,7 @@ use convert_case::{Case, Casing};
 use serde::Deserialize;
 use serde_json::{Map, Value};
 
-use crate::board_router::RouteInput;
+use crate::board_router::{RouteInput, RouteInputConnection};
 
 pub fn read_input_from_file(file: &Path) -> Result<RouteInput, String> {
     if file.is_file() {
@@ -30,13 +30,20 @@ pub fn read_input_from_file(file: &Path) -> Result<RouteInput, String> {
 
             match json.get("input").unwrap().get("connections").unwrap() {
                 serde_json::Value::Object(connections) => {
-                    let connections: Vec<(usize, &Value)> = connections
+                    let connections: Vec<Value> = connections
                         .iter()
                         .map(|(connection_id, connection)| {
-                            (
-                                connection_id.parse().unwrap(),
-                                connection.get("ports").unwrap(),
-                            )
+                            let mut obj = Map::new();
+                            let branch_port = connection.get("branchPort");
+                            obj.insert("id".to_owned(), connection_id.parse().unwrap());
+                            obj.insert("ports".to_owned(), connection.get("ports").unwrap().clone());
+                            match branch_port {
+                                Some(v) => {
+                                    obj.insert("branch_port".to_owned(), v.clone());
+                                }
+                                None => (),
+                            };
+                            serde_json::to_value(obj).unwrap()
                         })
                         .collect();
                     obj.insert(
@@ -53,7 +60,11 @@ pub fn read_input_from_file(file: &Path) -> Result<RouteInput, String> {
 
         match RouteInput::deserialize(input_json) {
             Ok(r) => Ok(r),
-            Err(_) => Err("Not a valid input".to_owned()),
+            Err(e) => Err(format!(
+                "{} {}",
+                "Not a valid input".to_owned(),
+                e.to_string()
+            )),
         }
     } else {
         Err("Not a file".to_owned())
