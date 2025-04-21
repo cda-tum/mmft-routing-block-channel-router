@@ -102,7 +102,7 @@ fn main() {
         }
 
         let mean = mean(&entries);
-        let std = standard_deviation(&entries, None);
+        let std = if entries.len() < 2 { 0.0 } else { standard_deviation(&entries, None) };
         let min = entries.iter().fold(f64::INFINITY, |a, &b| a.min(b));
         let max = entries.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
 

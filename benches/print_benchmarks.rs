@@ -45,7 +45,7 @@ fn print_benchmark_for_file(file_name: &str) {
     let file = Path::new(&file_name);
     let input = match read_input_from_file(file) {
         Ok(r) => r,
-        Err(_) => return,
+        Err(e) => {println!("{:?}", e); return},
     };
     let result = route(&input);
     let connections = match result {
