@@ -28,9 +28,12 @@ mod tests {
             pitch_offset_x: Some(500.0),
             pitch_offset_y: Some(500.0),
             port_diameter: Some(200.0),
+            frame_height: Some(12000.0),
+            frame_width: Some(60000.),
             max_ports: Some(20000),
             layout: Some(Layout::Rectilinear),
             connections: Some(Vec::new()),
+            frame_padding: Some(500.0),
         });
 
         println!("{:?}", result)

@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
-import { Accordion, AccordionDetails, AccordionGroup, AccordionSummary, Box, Button, Link, Stack, Typography, useTheme } from "@mui/joy"
+import {
+    Accordion,
+    AccordionDetails,
+    AccordionGroup,
+    AccordionSummary,
+    Box,
+    Button,
+    Link,
+    Stack,
+    Typography,
+    useTheme
+} from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
 import { defaultInputParameters, InputParameters, validate, validateAble } from "./utils/input-parameters"
 import { generatePorts, PortKey } from "./utils/ports"
@@ -17,6 +28,7 @@ import { PortDiameterIcon } from "./icons/PortDiameterIcon"
 import { PitchOffsetXIcon } from "./icons/PitchOffsetXIcon"
 import { PitchOffsetYIcon } from "./icons/PitchOffsetYIcon"
 import { ChannelWidthIcon } from "./icons/ChannelWidthIcon"
+import { ChipFrameIcon } from "./icons/ChipFrameIcon.tsx"
 import { ChannelSpacingIcon } from "./icons/ChannelSpacingIcon"
 import { ConnectionsState } from "./hooks/useConnectionState"
 import { OutputChannelCapChoice } from "./components/OutputChannelCapChoice"
@@ -29,6 +41,10 @@ import { ChannelIcon } from "./icons/ChannelIcon"
 import { SxProps } from "@mui/joy/styles/types"
 import { BoardIcon } from "./icons/BoardIcon"
 import { MMFTIcon } from "./icons/MMFTIcon"
+import {ChipFrameChoice} from "./components/ChipFrameChoice.tsx";
+import {ChipFramePaddingIcon} from "./icons/ChipFramePaddingIcon.tsx";
+import {ChipFrameWidthIcon} from "./icons/ChipFrameWidthIcon.tsx";
+import {ChipFrameHeightIcon} from "./icons/ChipFrameHeightIcon.tsx";
 
 export type InputState = {
     parameters: InputParameters
@@ -198,6 +214,8 @@ export function BoardUI() {
     const hasErrors = (input.parameter_errors !== undefined && input.parameter_errors.length > 0) || (input.general_errors !== undefined && input.general_errors.length > 0) || (input.connection_errors !== undefined && input.connection_errors.length > 0) || Object.values(input.parameters).some(p => p.error)
 
     const accordionErrorSx: SxProps = { backgroundColor: `rgb(from ${theme.vars.palette.danger[500]} r g b / calc(alpha / 2))` }
+
+    const showFrameInputFields = input.parameters.chipFrame.value === "WithFrame";
 
     return <div
         style={{
@@ -385,7 +403,6 @@ export function BoardUI() {
                             layout={input.parameters.layout.value}
                             onChange={layout => updateInputParameter('layout', layout, layout)}
                         />
-
                     </AccordionDetails>
 
                 </Accordion>
@@ -405,7 +422,59 @@ export function BoardUI() {
                         />
                     </AccordionDetails>
                 </Accordion>
+
+                <Accordion>
+                    <AccordionSummary sx={input.parameters.channelCap.error || input.parameters.channelCapCustom.error ? accordionErrorSx : {}}>
+                        <Typography level="h4"><ChipFrameIcon sx={{
+                            verticalAlign: 'bottom'
+                        }} /> Chip Frame Settings</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <ChipFrameChoice
+                            chipFrame={input.parameters.chipFrame.value}
+                            onChange={chipFrame => updateInputParameter('chipFrame', chipFrame, chipFrame)}
+                        />
+                        {showFrameInputFields && (
+                        <Stack
+                            direction="row"
+                            spacing={4}
+                            flexWrap='wrap'
+                            useFlexGap
+                        >
+                            <MicrometerInput
+                                label="Frame Width"
+                                explainIcon={<ChipFrameWidthIcon width={50} height={50} />}
+                                value={input.parameters.frameWidth.fieldValue}
+                                error={input.parameters.frameWidth.error ? input.parameters.frameWidth.errorMessage : undefined}
+                                warning={input.parameters.frameWidth.warning}
+                                onChange={(fv, pv) => updateInputParameter('frameWidth', fv, pv)}
+                                description="Absolute width of the frame surrounding the routing board."
+                            />
+                            <MicrometerInput
+                                label="Frame Height"
+                                explainIcon={<ChipFrameHeightIcon width={50} height={50} />}
+                                value={input.parameters.frameHeight.fieldValue}
+                                error={input.parameters.frameHeight.error ? input.parameters.frameHeight.errorMessage : undefined}
+                                warning={input.parameters.frameHeight.warning}
+                                onChange={(fv, pv) => updateInputParameter('frameHeight', fv, pv)}
+                                description="Absolute height of the frame surrounding the routing board."
+                            />
+                            <MicrometerInput
+                                label="Frame Padding"
+                                explainIcon={<ChipFramePaddingIcon width={50} height={50} />}
+                                value={input.parameters.framePadding.fieldValue}
+                                error={input.parameters.framePadding.error ? input.parameters.framePadding.errorMessage : undefined}
+                                warning={input.parameters.framePadding.warning}
+                                onChange={(fv, pv) => updateInputParameter('framePadding', fv, pv)}
+                                description="Padding between the routing board and the frame"
+                            />
+                        </Stack>
+                        )}
+                    </AccordionDetails>
+                </Accordion>
             </AccordionGroup>
+
+
 
 
 
@@ -445,6 +514,10 @@ export function BoardUI() {
                                 }))
                             }}
                             initialInputConnections={initialInputConnections}
+                            useChipFrame={input.parameters.chipFrame.value!}
+                            frameWidth={input.parameters.frameWidth.value!}
+                            frameHeight={input.parameters.frameHeight.value!}
+                            chipFramePadding={input.parameters.framePadding.value!}
                         />
 
                         {hasErrors && <Typography

@@ -5,6 +5,14 @@
   text-align: center;*/
 }
 
+[data-joy-color-scheme="dark"]{
+  --frame-bg: #272727;
+  --frame-content-bg: #2b2b33;
+  --frame-border:#2a2f36;
+  --board-bg: #0c0c0c;
+  --chip-content: #1e1e1e;
+}
+
 header, footer {
   margin: 0;
   padding: 1rem 2rem;
@@ -27,4 +35,17 @@ main {
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+}
+
+.chip-frame{
+  background-color: var(--frame-bg);
+  position: relative;
+}
+
+.chip-frame-content {
+  background-color: var(--chip-content);
+}
+
+.board-stage{
+  background-color: var(--board-bg);
 }

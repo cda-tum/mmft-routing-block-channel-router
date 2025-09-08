@@ -1,6 +1,6 @@
-import { Box, Button, Menu, MenuItem, Modal, ModalClose, ModalDialog, Typography, useTheme } from "@mui/joy"
+import {Box, Button, Menu, MenuItem, Modal, ModalClose, ModalDialog, Stack, Typography, useTheme} from "@mui/joy"
 import { PortDisplay } from "./PortDisplay"
-import { useEffect, useMemo, useRef, useState } from "react"
+import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react"
 import { portIndexToString, PortKey } from "../utils/ports"
 import { ConnectionsState, useConnectionState } from "../hooks/useConnectionState"
 import { ConnectionEditor, minPorts } from "./ConnectionEditor"
@@ -9,6 +9,13 @@ import { ConnectionDisplay } from "./ConnectionDisplay"
 import { ArrowDropDown } from "@mui/icons-material"
 import { UploadButton } from "./UploadButton"
 import { readCSV } from "../utils/readCSV"
+import { ChipFrame } from "./ChipFrame"
+import { Rnd } from "react-rnd"
+import React from "react"
+import {OutsidePortDisplay} from "./OutsidePortDisplay.tsx";
+import {OutsidePortPicker} from "./OutsidePortPicker.tsx";
+import {OutsidePortEditor} from "./OutsidePortEditor.tsx";
+
 
 export function BoardDisplay(props: {
     show: boolean
@@ -26,6 +33,11 @@ export function BoardDisplay(props: {
     outputConnections?: OutputConnections
     clearOutputConnections?: () => void
     closeDropdown: boolean
+    useChipFrame: string
+    chipFramePadding?: number
+    frameWidth: number,
+    frameHeight: number
+
 }) {
     const theme = useTheme()
 
@@ -49,9 +61,126 @@ export function BoardDisplay(props: {
     }, [props.initialInputConnections])
 
 
-    const strokeWidth = useMemo(() => props.portDiameter / 10, [props.portDiameter])
-    const margin = useMemo(() => strokeWidth / 2, [strokeWidth])
-    const viewBox = useMemo(() => `${-margin} ${-margin} ${props.boardWidth + 2 * margin} ${props.boardHeight + 2 * margin}`, [margin, props.boardWidth, props.boardHeight])
+    const strokeWidth = useMemo(() => props.portDiameter / 3, [props.portDiameter])
+
+
+    /* FRAME AND BOARD PARAMETERS (FOR DRAGGABLE ROUTING BOARD) */
+
+    const frameEnabled = props.useChipFrame === 'WithFrame'
+
+    const dragStageRef = useRef<HTMLDivElement>(null)
+    const outerStageRef = useRef<HTMLDivElement>(null)
+
+    const outerFrameWmm = props.frameWidth ?? 130  // mm
+    const outerFrameHmm = props.frameHeight ?? 30  // mm
+    const boardWmm = props.boardWidth  // mm
+    const boardHmm = props.boardHeight // mm
+    const framePaddingMm = props.chipFramePadding ?? 2 // mm
+
+    const innerWmm = Math.max(1, outerFrameWmm  - 2 * framePaddingMm)
+    const innerHmm = Math.max(1, outerFrameHmm - 2 * framePaddingMm)
+
+    const [frameOuterWidthPx, setFrameOuterWidthPx] = useState(800)
+    const [boardPos, setBoardPos] = useState({ x: 0, y: 0 })
+
+    // FOR FRAME
+    useLayoutEffect(() => {
+        const el = outerStageRef.current
+        if (!el) return
+        setFrameOuterWidthPx(el.clientWidth)
+    }, []);
+
+    useEffect(() => {
+        const el = outerStageRef.current
+        if (!el) return
+        const ro = new ResizeObserver(() => setFrameOuterWidthPx(el.clientWidth))
+        ro.observe(el)
+        return () => ro.disconnect()
+    }, [])
+
+    // Conversion of mm to px
+    const pxPerMM = frameOuterWidthPx / outerFrameWmm
+
+    const paddingPx= Math.max(0, framePaddingMm * pxPerMM)
+
+    const frameWidthPx  = frameOuterWidthPx
+    const frameHeightPx = outerFrameHmm * pxPerMM
+
+    // Board pixel size
+    const boardWidthPx  = Math.max(1, boardWmm * pxPerMM)
+    const boardHeightPx = Math.max(1, boardHmm * pxPerMM)
+
+    const clamp = useCallback((x: number, y: number) => {
+        const stage = dragStageRef.current
+        if (!stage) return { x, y }
+        const maxX = Math.max(stage.clientWidth  - boardWidthPx,  0)
+        const maxY = Math.max(stage.clientHeight - boardHeightPx, 0)
+        return { x: Math.min(Math.max(x, 0), maxX), y: Math.min(Math.max(y, 0), maxY) }
+    }, [boardWidthPx, boardHeightPx])
+
+    // Re-clamp when anything resizes
+    useEffect(() => {
+        setBoardPos(p => clamp(p.x, p.y))
+    }, [clamp, frameWidthPx, frameHeightPx, boardWidthPx, boardHeightPx])
+
+
+
+    /* OUTSIDE PORTS / MARKERS */
+
+    // clicking layer ref and selected point (in mm)
+    const clickLayerRef = useRef<HTMLDivElement>(null)
+
+    type Marker = { id: number; xMm: number; yMm: number }
+
+    const [markers, setMarkers] = useState<Marker[]>([])
+    const nextId = useRef(1)
+    const [selectedId, setSelectedId] = React.useState<number | null>(null)
+
+    const hasMarkers = markers.length > 0
+    const clearMarkers = React.useCallback(() => {
+            setMarkers([])
+            nextId.current = 1
+        }, [])
+    const markerResetButtonLabel = markers.length > 1 ? "Clear markers" : "Clear marker"
+
+    const selectedMarker = React.useMemo(
+        () => markers.find(m => m.id === selectedId) ?? null,
+        [markers, selectedId]
+    )
+
+    const updateMarker = (id: number, next: Partial<Pick<Marker,"xMm"|"yMm">>) =>
+        setMarkers(ms => ms.map(m => (m.id === id ? { ...m, ...next } : m)))
+
+    const deleteMarker = (id: number) => {
+        setMarkers(ms => ms.filter(m => m.id !== id))
+        setSelectedId(s => (s === id ? null : s))
+    }
+
+    const svgOverlayRef = React.useRef<SVGSVGElement | null>(null)
+
+    const pickFromEvent: React.MouseEventHandler<HTMLDivElement> = (e) => {
+        const svg = svgOverlayRef.current
+        if (!svg) return
+
+        // Create a point in *screen* coords (clientX/Y)
+        const pt = svg.createSVGPoint()
+        pt.x = e.clientX
+        pt.y = e.clientY
+
+        const ctm = svg.getScreenCTM()
+        if (!ctm) return
+
+        // Transform the point into the SVG's viewBox coordinate space
+        const inv = ctm.inverse()
+        const sp = pt.matrixTransform(inv)
+
+        // Clamp to your frame viewBox (mm)
+        const xMm = Math.min(Math.max(0, sp.x), innerWmm)
+        const yMm = Math.min(Math.max(0, sp.y), innerHmm)
+
+        setMarkers(prev => [...prev, { id: nextId.current++, xMm: +xMm.toFixed(2), yMm: +yMm.toFixed(2) }])
+    }
+
 
     const emptyStyle = {
         strokeDasharray: props.portDiameter / 5,
@@ -163,8 +292,7 @@ export function BoardDisplay(props: {
     >
 
     </rect>
-
-        {props.outputConnections !== undefined && Object.entries(connectionState.connections).map(([id, _connection]) => {
+        {props.outputConnections !== undefined && Object.entries(connectionState.connections).map(([id]) => {
             const connectionId = parseFloat(id)
             if (props.outputConnections === undefined) {
                 return undefined
@@ -200,6 +328,135 @@ export function BoardDisplay(props: {
         }
     </>
 
+
+    const boardSvg = (
+        <svg
+            width="100%"
+            height="100%"
+            viewBox={`0 0 ${boardWmm} ${boardHmm}`}
+            preserveAspectRatio="xMidYMid meet"
+        >
+            {contents}
+        </svg>
+    )
+
+    const draggableBoard = (
+        <Box ref={dragStageRef}
+             sx={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", zIndex: 2, pointerEvents: "none" }}>
+            <Rnd
+                bounds="parent"
+                position={boardPos}
+                size={{ width: boardWidthPx, height: boardHeightPx }}
+                onDragStart={() => clearMarkers()}
+                onDragStop={(_e, d) => setBoardPos(clamp(d.x, d.y))}
+                enableResizing={false}
+                style={{
+                    cursor: "grab",
+                    pointerEvents: "auto",
+                }}
+            >
+                <Box sx={{ width: "100%", height: "100%" }}>{boardSvg}</Box>
+            </Rnd>
+        </Box>
+    )
+
+    // overlay with marked outside ports
+    const outsidePortsOverlay = (
+        <Box sx={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none" }}>
+            <svg
+                ref={svgOverlayRef}
+                width="100%"
+                height="100%"
+                viewBox={`0 0 ${innerWmm} ${innerHmm}`}
+                preserveAspectRatio="xMidYMid meet"
+            >
+                {/* debug frame: should align exactly with start of padding */}
+                {/* <rect x="0" y="0" width={innerWmm} height={innerHmm}
+                      fill="none" stroke="magenta" strokeWidth={0.4} /> */}
+                {markers.map((m, i) => (
+                    <OutsidePortDisplay
+                        key={m.id}
+                        xMm={m.xMm}
+                        yMm={m.yMm}
+                        markerId={i + 1}
+                        diameterMm={1}
+                        fontSizeMm={1.6}
+                        labelSide="auto"
+                        frameWmm={innerWmm}
+                        frameHmm={innerHmm}
+                    />
+                ))}
+            </svg>
+        </Box>
+    )
+
+
+    const contentLayer = (
+        <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
+            <Box
+                ref={clickLayerRef}
+                onClick={pickFromEvent}
+                sx={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: 1,
+                }}
+            />
+            {outsidePortsOverlay}
+            {draggableBoard}
+        </Box>
+    )
+
+
+    // Board with frame around
+    const framedBoard = (
+        <Box
+            ref={outerStageRef}
+            className="chip-frame"
+            sx={{
+                position: "relative",
+                width: "100%",
+                minHeight: 280,
+                boxSizing: "border-box",
+                overflow: "hidden",
+            }}
+        >
+            <ChipFrame
+                minPadding={paddingPx}
+                frameSizePx={{width: frameWidthPx, height: frameHeightPx}}
+                defaultSize={{ width: frameWidthPx, height: frameHeightPx }}
+                minContentSizePx={{ width: boardWidthPx, height: boardHeightPx }}
+                className="chip-frame"
+                contentClassName="chip-frame-content"
+            >
+                <Box className="board-stage" sx={{ width:"100%", height:"100%" }}>
+                    {contentLayer}
+                </Box>
+            </ChipFrame>
+        </Box>
+    )
+
+    // unframed board for the default solution without extra chip area around the routing board
+    const plainBoard = (
+        <Box sx={{ width: "100%" }}>
+            <Box sx={{ width: "100%", aspectRatio: `${props.boardWidth} / ${props.boardHeight}` }}>
+                {boardSvg}
+            </Box>
+        </Box>
+    )
+
+    const editOutsidePort = <>
+        {selectedMarker && (
+            <OutsidePortEditor
+                marker={selectedMarker}
+                frameWmm={innerWmm}
+                frameHmm={innerHmm}
+                onSave={(id, next) => updateMarker(id, next)}
+                onDelete={(id) => deleteMarker(id)}
+            />
+        )}
+    </>
+
     const editConnection = connectionState.preview.active ? <ConnectionEditor
         connectionState={connectionState}
     /> : undefined
@@ -222,7 +479,7 @@ export function BoardDisplay(props: {
                 <>Connection {connectionState.preview.connection}</>
             }{!connectionState.preview.active &&
                 <>Select Connection</>
-                }
+            }
                 <ArrowDropDown sx={{ verticalAlign: 'bottom' }} />
             </Typography>
         </Button>
@@ -299,18 +556,62 @@ export function BoardDisplay(props: {
         }
     </>
 
-    const displayContent = <>
-        <svg
-            width="100%"
-            viewBox={viewBox}
+    const resetMarker = <>
+        <Button
+        sx={{
+            marginX: 2
+        }}
+        disabled={!hasMarkers}
+        onClick={() => clearMarkers()}
         >
-            {contents}
-        </svg>
-        {isBlank && <Typography>Click on ports to define connection ends, then generate the channel design in the section below.</Typography>}
-        {selectConnection}
-        {uploadCSV}
-        {editConnection}
+            {markerResetButtonLabel}
+        </Button>
     </>
+
+    const selectOutsidePort = <>
+        <OutsidePortPicker
+            markers={markers}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+        />
+    </>
+
+    const controlsRow = (
+        <Stack
+            direction="row"
+            spacing={1.5}
+            justifyContent="center"
+            alignItems="center"
+            sx={{ mt: 1, flexWrap: "wrap", width: "100%" }}
+            paddingBottom={3}
+            paddingTop={2}
+        >
+            {selectConnection}
+            {selectOutsidePort}
+            {uploadCSV}
+            {resetMarker}
+        </Stack>
+    )
+
+    const displayContent = (
+        <>
+            {frameEnabled ? framedBoard : plainBoard}
+            <Stack
+                direction="row"
+                spacing={1.5}
+                justifyContent="center"   // <- centers the whole row
+                alignItems="center"
+                sx={{ mt: 1, flexWrap: "wrap", width: "100%" }}
+                paddingBottom={2}
+                paddingTop={2}
+            >
+                {isBlank && <Typography sx={{ mt: 1 }}>Click on ports to define connection ends, then generate the channel design in the section below.</Typography>}
+                {controlsRow}
+            </Stack>
+            {editConnection}
+            {editOutsidePort}
+        </>
+    )
 
     const hasOutOfBoundsConnections = connectionState.hasOutOfBoundsConnections()
 

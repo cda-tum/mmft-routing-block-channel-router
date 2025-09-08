@@ -29,7 +29,11 @@ export const defaultInputParameterValues: InputParameterValues = {
     layout: 'Octilinear',
     channelCap: 'Square',
     channelCapCustom: 0.8,
-    maxPorts: 5000
+    maxPorts: 5000,
+    chipFrame: 'WithFrame',
+    frameWidth: 120,
+    frameHeight: 40,
+    framePadding: 2
 }
 
 export function generateInputParametersFromConfig(v: InputParameterValues): InputParameters {
@@ -51,6 +55,10 @@ export type InputParameterValues = {
     channelCap: string
     channelCapCustom: number
     maxPorts: number
+    chipFrame: string,
+    frameWidth: number,
+    frameHeight: number
+    framePadding: number
 }
 
 export type InputParameters = { [K in keyof InputParameterValues]: Value<InputParameterValues[K]> }
@@ -72,6 +80,10 @@ export function validate(parameters: InputParameters) {
         port_diameter: parameters.portDiameter.value,
         max_ports: parameters.maxPorts.value,
         layout: parameters.layout.value,
+        chipFrame: parameters.chipFrame.value,
+        frameWidth: parameters.frameWidth.value,
+        frameHeight: parameters.frameHeight.value,
+        framePadding: parameters.framePadding.value,
         connections: [], // TODO
     }
 
@@ -110,6 +122,18 @@ export function validate(parameters: InputParameters) {
                     } else if (error === 'MissingBoardHeight' || error === 'InvalidBoardHeight' || error === 'BoardHeightNotPositive') {
                         vp.boardHeight = {
                             ...vp.boardHeight,
+                            error: true,
+                            errorMessage: 'Must be a positive integer!'
+                        }
+                    } else if (error === 'MissingFrameWidth' || error === 'InvalidFrameWidth' || error === 'FrameWidthNotPositive') {
+                        vp.frameWidth = {
+                            ...vp.frameWidth,
+                            error: true,
+                            errorMessage: 'Must be a positive integer!'
+                        }
+                    } else if (error === 'MissingFrameHeight' || error === 'InvalidFrameHeight' || error === 'FrameHeightNotPositive') {
+                        vp.frameHeight = {
+                            ...vp.frameHeight,
                             error: true,
                             errorMessage: 'Must be a positive integer!'
                         }
@@ -172,6 +196,81 @@ export function validate(parameters: InputParameters) {
                                 ...vp.boardHeight,
                                 error: true,
                                 errorMessage: 'Must be a positive number!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('FrameWidthError' in error) {
+                        const suberror = error['FrameWidthError']
+                        if (suberror === 'Undefined') {
+                            vp.frameWidth = {
+                                ...vp.frameWidth,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'NotPositive') {
+                            vp.frameWidth = {
+                                ...vp.frameWidth,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else if (suberror === 'NotLargerThanBoardWidth') {
+                            vp.frameWidth = {
+                                ...vp.frameWidth,
+                                error: true,
+                                errorMessage: 'Must be larger than the board width!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('FrameHeightError' in error) {
+                        const suberror = error['FrameHeightError']
+                        if (suberror === 'Undefined') {
+                            vp.frameHeight = {
+                                ...vp.frameHeight,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'NotPositive') {
+                            vp.frameHeight = {
+                                ...vp.frameHeight,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else if (suberror === 'NotLargerThanBoardHeight') {
+                            vp.frameHeight = {
+                                ...vp.frameHeight,
+                                error: true,
+                                errorMessage: 'Must be larger than the board height!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('FramePaddingError' in error) {
+                        const suberror = error['FramePaddingError']
+                        if (suberror === 'Undefined') {
+                            vp.framePadding = {
+                                ...vp.framePadding,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'NotPositive') {
+                            vp.framePadding = {
+                                ...vp.framePadding,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else if (suberror === 'NotSmallerThanHalfFrameWidth') {
+                            vp.framePadding = {
+                                ...vp.framePadding,
+                                error: true,
+                                errorMessage: 'Must be smaller to fit the board\'s width inside the frame!'
+                            }
+                        } else if (suberror === 'NotSmallerThanHalfFrameHeight') {
+                            vp.framePadding = {
+                                ...vp.framePadding,
+                                error: true,
+                                errorMessage: 'Must be smaller to fit the board\'s height inside the frame!'
                             }
                         } else {
                             ge.push(`Unexpected Error: ${suberror}`)
