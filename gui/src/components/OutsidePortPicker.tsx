@@ -40,7 +40,6 @@ export function OutsidePortPicker({
         color: theme.vars.palette.text.primary
     }}>Select Outside Port</Typography>
 
-
     return (
         <div>
             <Dropdown>
