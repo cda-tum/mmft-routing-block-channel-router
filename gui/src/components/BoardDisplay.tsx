@@ -141,12 +141,18 @@ export function BoardDisplay(props: {
             setMarkers([])
             nextId.current = 1
         }, [])
+
     const markerResetButtonLabel = markers.length > 1 ? "Clear markers" : "Clear marker"
 
-    const selectedMarker = React.useMemo(
-        () => markers.find(m => m.id === selectedId) ?? null,
-        [markers, selectedId]
-    )
+    const ordered = React.useMemo(() => {
+        return [...markers].sort((a,b) => a.xMm - b.xMm || a.yMm - b.yMm);
+    }, [markers]);
+
+    const selectedIndex = React.useMemo(
+        () => ordered.findIndex(m => m.id === selectedId),
+        [ordered, selectedId]
+    );
+    const selectedMarker = selectedIndex >= 0 ? ordered[selectedIndex] : null;
 
     const updateMarker = (id: number, next: Partial<Pick<Marker,"xMm"|"yMm">>) =>
         setMarkers(ms => ms.map(m => (m.id === id ? { ...m, ...next } : m)))
@@ -373,13 +379,13 @@ export function BoardDisplay(props: {
                 {/* debug frame: should align exactly with start of padding */}
                 {/* <rect x="0" y="0" width={innerWmm} height={innerHmm}
                       fill="none" stroke="magenta" strokeWidth={0.4} /> */}
-                {markers.map((m, i) => (
+                {ordered.map((m, i) => (
                     <OutsidePortDisplay
                         key={m.id}
                         xMm={m.xMm}
                         yMm={m.yMm}
                         markerId={i + 1}
-                        diameterMm={1}
+                        diameterMm={props.portDiameter}
                         fontSizeMm={1.6}
                         labelSide="auto"
                         frameWmm={innerWmm}
@@ -389,7 +395,6 @@ export function BoardDisplay(props: {
             </svg>
         </Box>
     )
-
 
     const contentLayer = (
         <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
@@ -449,6 +454,7 @@ export function BoardDisplay(props: {
         {selectedMarker && (
             <OutsidePortEditor
                 marker={selectedMarker}
+                displayNumber={selectedIndex + 1}
                 frameWmm={innerWmm}
                 frameHmm={innerHmm}
                 onSave={(id, next) => updateMarker(id, next)}
@@ -608,8 +614,10 @@ export function BoardDisplay(props: {
                 {isBlank && <Typography sx={{ mt: 1 }}>Click on ports to define connection ends, then generate the channel design in the section below.</Typography>}
                 {controlsRow}
             </Stack>
-            {editConnection}
-            {editOutsidePort}
+            <Stack direction="column" spacing={1.5} alignItems="center">
+                {editConnection}
+                {editOutsidePort}
+            </Stack>
         </>
     )
 

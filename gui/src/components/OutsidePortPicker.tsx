@@ -4,8 +4,7 @@ import {
     Menu,
     MenuItem,
     MenuButton,
-    ListDivider,
-    Typography,
+    Typography, useTheme,
 } from "@mui/joy";
 import {ArrowDropDown} from "@mui/icons-material";
 
@@ -28,12 +27,19 @@ export function OutsidePortPicker({
                                       markers,
                                       selectedId,
                                       onSelect,
-                                      onUpdate,
-                                      onDelete,
-                                      renderEditor,
-                                      buttonLabel = "Select Outside Port",
                                   }: OutsidePortPickerProps) {
-    const selected = markers.find(m => m.id === selectedId) ?? null
+
+    const selectedIndex = React.useMemo(
+        () => markers.findIndex(m => m.id === selectedId),
+        [markers, selectedId]
+    );
+
+    const theme = useTheme()
+
+    const buttonLabel = <Typography sx={{
+        color: theme.vars.palette.text.primary
+    }}>Select Outside Port</Typography>
+
 
     return (
         <div>
@@ -41,11 +47,19 @@ export function OutsidePortPicker({
                 <MenuButton
                     sx={{
                         marginY: 2,
+                        color: theme.vars.palette.text.primary,
+                        backgroundColor: "#3070B3",
+                        ":hover": {
+                            backgroundColor: "#2a619c"
+                        }
                     }}
                     disabled={markers.length === 0}
                 >
-                    {selected ? `Outside Port: #${selected.id}` : buttonLabel}
-                    <ArrowDropDown sx={{ verticalAlign: 'bottom' }} />
+                    {selectedIndex >= 0 ? <Typography sx={{
+                        color: theme.vars.palette.text.primary
+                    }}>Outside Port: #{selectedIndex + 1}</Typography> : buttonLabel}
+                    <ArrowDropDown sx={{ verticalAlign: 'bottom', color: 'white'}} />
+
                 </MenuButton>
 
                 <Menu placement="bottom-start" sx={{
@@ -59,31 +73,16 @@ export function OutsidePortPicker({
                             onClick={() => onSelect(m.id)}
                             selected={m.id === selectedId}
                         >
-                            <Typography level="body-sm" sx={{ mr: 1, minWidth: 36 }}>#{idx + 1}</Typography>
+                            <Typography level="body-sm" sx={{ mr: 1, minWidth: 36 }}>
+                                #{idx + 1}
+                            </Typography>
                             <Typography level="body-sm" sx={{ color: "text.tertiary" }}>
                                 {m.xMm.toFixed(1)} mm, {m.yMm.toFixed(1)} mm
                             </Typography>
                         </MenuItem>
                     ))}
-
-                    {selected && (onDelete || onUpdate) && <ListDivider />}
-
-                    {selected && onDelete && (
-                        <MenuItem onClick={() => onDelete(selected.id)} color="danger">
-                            Delete selected
-                        </MenuItem>
-                    )}
                 </Menu>
             </Dropdown>
-
-            {selected && renderEditor && (
-                <div style={{ marginTop: 12 }}>
-                    {renderEditor(selected, {
-                        update: next => onUpdate?.(selected.id, next),
-                        remove: () => onDelete?.(selected.id),
-                    })}
-                </div>
-            )}
         </div>
     )
 }

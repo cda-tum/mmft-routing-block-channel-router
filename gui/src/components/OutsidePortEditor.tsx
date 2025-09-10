@@ -10,11 +10,13 @@ import {
     Stack,
     Typography, useTheme,
 } from "@mui/joy";
+import CheckIcon from "@mui/icons-material/Check";
 
 export type OutsidePort = { id: number; xMm: number; yMm: number };
 
 type OutsidePortEditorProps = {
     marker: OutsidePort
+    displayNumber: number,
 
     frameWmm?: number
     frameHmm?: number
@@ -28,6 +30,7 @@ type OutsidePortEditorProps = {
 
 export function OutsidePortEditor({
                                       marker,
+                                      displayNumber,
                                       frameWmm,
                                       frameHmm,
                                       onSave,
@@ -93,8 +96,8 @@ export function OutsidePortEditor({
                 alignItems="center"
                 flexWrap="wrap"
             >
-                <Typography level="title-sm" sx={{ mr: 1, minWidth: 110 }}>
-                    Outside Port #{marker.id}
+                <Typography level="title-sm" sx={{ margin: 2, mr: 1, minWidth: 110 }}>
+                    Outside Port #{displayNumber}
                 </Typography>
 
                 <FormControl size="sm" sx={{ minWidth: 160 }}>
@@ -143,21 +146,28 @@ export function OutsidePortEditor({
 
                 <Stack direction="row" spacing={1}>
                     <Button
-                        size="sm"
-                        variant="solid"
-                        color="primary"
+                        sx={{
+                            marginY: 2,
+                        }}
+                        variant="outlined"
                         disabled={hasError || unchanged}
                         onClick={handleSave}
                     >
-                        Save
+                        <Typography sx={{ color: theme.vars.palette.common.white }}>
+                            <CheckIcon sx={{
+                                verticalAlign: 'bottom'
+                            }} /> Save </Typography>
                     </Button>
                     <Button
-                        size="sm"
-                        variant="soft"
+                        variant="outlined"
                         color="danger"
+                        sx={{
+                            marginY: 2,
+                        }}
                         onClick={() => onDelete(marker.id)}
                     >
-                        Delete
+                        <Typography sx={{ color: theme.vars.palette.danger }}>
+                             Delete </Typography>
                     </Button>
                 </Stack>
             </Stack>

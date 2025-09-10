@@ -229,7 +229,7 @@ export function validate(parameters: InputParameters) {
                             vp.frameHeight = {
                                 ...vp.frameHeight,
                                 error: true,
-                                errorMessage: 'Please enter a valid number!'
+                                errorMessage: 'Please enter a DEBUG number!'
                             }
                         } else if (suberror === 'NotPositive') {
                             vp.frameHeight = {
