@@ -1,4 +1,3 @@
-// OutsidePortEditor.tsx
 import * as React from "react";
 import {
     Box,
@@ -14,6 +13,13 @@ import CheckIcon from "@mui/icons-material/Check";
 
 export type OutsidePort = { id: number; xMm: number; yMm: number };
 
+export type OutsidePortSave = {
+    xMm: number;
+    yMm: number;
+    /** optional – the human‑readable port string (e.g. “A12”) */
+    port: string;
+};
+
 type OutsidePortEditorProps = {
     marker: OutsidePort
     displayNumber: number,
@@ -22,7 +28,7 @@ type OutsidePortEditorProps = {
     frameHmm?: number
 
     /** Save updated coordinates */
-    onSave: (id: number, next: { xMm: number; yMm: number }) => void
+    onSave: (id: number, next: OutsidePortSave) => void;
 
     /** Delete this marker */
     onDelete: (id: number) => void
@@ -38,14 +44,23 @@ export function OutsidePortEditor({
                                   }: OutsidePortEditorProps) {
     const [xStr, setXStr] = React.useState<string>(String(marker.xMm))
     const [yStr, setYStr] = React.useState<string>(String(marker.yMm))
+    const [portStr, setPortStr] = React.useState<string>("");
+
+    const [origX, setOrigX]       = React.useState<number>(marker.xMm);
+    const [origY, setOrigY]       = React.useState<number>(marker.yMm);
+    const [originalPortStr, setOriginalPortStr] = React.useState<string>(""); // Snapshot to handle the save button logic
 
     const theme = useTheme()
 
-    // Keep inputs in sync when selection changes
     React.useEffect(() => {
-        setXStr(String(marker.xMm))
-        setYStr(String(marker.yMm))
-    }, [marker.id, marker.xMm, marker.yMm])
+        setXStr(String(marker.xMm));
+        setYStr(String(marker.yMm));
+
+        setPortStr("");
+        setOriginalPortStr("");
+        setOrigX(marker.xMm);           // Snapshot to handle the save button logic
+        setOrigY(marker.yMm);
+    }, [marker.id, marker.xMm, marker.yMm]);
 
     const xNum = Number(xStr)
     const yNum = Number(yStr)
@@ -55,28 +70,26 @@ export function OutsidePortEditor({
     const xNaN = Number.isNaN(xNum)
     const yNaN = Number.isNaN(yNum)
 
+    const portEmpty = xStr.trim() === ""
+
     const xOut =
         frameWmm != null && !xNaN && !xEmpty && (xNum < 0 || xNum > frameWmm)
     const yOut =
         frameHmm != null && !yNaN && !yEmpty && (yNum < 0 || yNum > frameHmm)
 
-    const hasError = xEmpty || yEmpty || xNaN || yNaN || xOut || yOut
+    const hasError = xEmpty || yEmpty || xNaN || yNaN || xOut || yOut || portEmpty
 
-    const unchanged =
-        !hasError && xNum === marker.xMm && yNum === marker.yMm
+    const unchanged = !hasError && xNum === origX && yNum === origY && portStr === originalPortStr;
 
     const handleSave = () => {
-        // Clamp to bounds if provided (instead of rejecting)
         const clamp = (v: number, min: number, max: number) =>
-            Math.min(Math.max(v, min), max)
+            Math.min(Math.max(v, min), max);
 
-        const nx =
-            frameWmm != null ? clamp(xNum, 0, frameWmm) : xNum
-        const ny =
-            frameHmm != null ? clamp(yNum, 0, frameHmm) : yNum
+        const nx = frameWmm != null ? clamp(xNum, 0, frameWmm) : xNum;
+        const ny = frameHmm != null ? clamp(yNum, 0, frameHmm) : yNum;
 
-        onSave(marker.id, { xMm: nx, yMm: ny })
-    }
+        onSave(marker.id, { xMm: nx, yMm: ny, port: portStr });
+    };
 
     return (
         <Box
@@ -142,6 +155,16 @@ export function OutsidePortEditor({
                             0 – {frameHmm} mm
                         </FormHelperText>
                     )}
+                </FormControl>
+
+                <FormControl size="sm" sx={{ minWidth: 160 }}>
+                    <FormLabel>Port On Routing Board</FormLabel>
+                    <Input
+                        type="text"
+                        value={portStr}
+                        onChange={(e) => setPortStr(e.target.value)}
+                        placeholder="A1, C12, ..."
+                    />
                 </FormControl>
 
                 <Stack direction="row" spacing={1}>

@@ -47,17 +47,17 @@ export function OutsidePortPicker({
                     sx={{
                         marginY: 2,
                         color: theme.vars.palette.text.primary,
-                        backgroundColor: "#3070B3",
+                        backgroundColor: theme.vars.palette.primary[500],
                         ":hover": {
-                            backgroundColor: "#2a619c"
+                            backgroundColor: "#015992"
                         }
                     }}
                     disabled={markers.length === 0}
                 >
                     {selectedIndex >= 0 ? <Typography sx={{
-                        color: theme.vars.palette.text.primary
+                        color: theme.vars.palette.common.white
                     }}>Outside Port: #{selectedIndex + 1}</Typography> : buttonLabel}
-                    <ArrowDropDown sx={{ verticalAlign: 'bottom', color: 'white'}} />
+                    <ArrowDropDown sx={{ verticalAlign: 'bottom', color: theme.vars.palette.common.white}} />
 
                 </MenuButton>
 
@@ -72,10 +72,10 @@ export function OutsidePortPicker({
                             onClick={() => onSelect(m.id)}
                             selected={m.id === selectedId}
                         >
-                            <Typography level="body-sm" sx={{ mr: 1, minWidth: 36 }}>
+                            <Typography level="body-sm" sx={{ mr: 1, minWidth: 36, color: theme.vars.palette.common.white }}>
                                 #{idx + 1}
                             </Typography>
-                            <Typography level="body-sm" sx={{ color: "text.tertiary" }}>
+                            <Typography level="body-sm" sx={{ color: theme.vars.palette.common.white }}>
                                 {m.xMm.toFixed(1)} mm, {m.yMm.toFixed(1)} mm
                             </Typography>
                         </MenuItem>

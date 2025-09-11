@@ -4,6 +4,8 @@ use std::{
     cmp::Ordering,
     collections::{HashMap, HashSet, VecDeque},
 };
+use web_sys::console;
+use wasm_bindgen::JsValue;
 
 use crate::graph_search::{a_star, AStarNode};
 
@@ -20,6 +22,11 @@ pub struct RouteInput {
     pub port_diameter: f64,
     pub max_ports: usize,
     pub connections: RouteInputConnections,
+    pub board_frame_gap_top_mm: f64,
+    pub board_frame_gap_right_mm: f64,
+    pub board_frame_gap_bottom_mm: f64,
+    pub board_frame_gap_left_mm: f64,
+    pub chip_frame: ChipFrame
 }
 
 pub type ConnectionID = usize;
@@ -27,7 +34,7 @@ pub type RouteInputConnections = Vec<RouteInputConnection>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RouteInputConnection {
-    pub id: ConnectionID, 
+    pub id: ConnectionID,
     pub ports: Vec<Port>,
     pub branch_port: Option<Port>
 }
@@ -37,6 +44,12 @@ pub type Port = (usize, usize);
 pub enum Layout {
     Rectilinear,
     Octilinear,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+pub enum ChipFrame {
+    WithFrame,
+    NoFrame,
 }
 
 pub type BoardRouterOutput = Result<BoardRouterOutputBoard, BoardRouterOutputError>;
@@ -242,6 +255,18 @@ pub fn compute_ports(
 }
 
 pub fn route(input: &RouteInput) -> BoardRouterOutput {
+
+    // DEBUGGING ONLY
+    // TODO: remove later
+    console::log_1(&JsValue::from_str("Top-Gap: "));
+    console::log_1(&JsValue::from_f64(input.board_frame_gap_top_mm));
+    console::log_1(&JsValue::from_str("Right-Gap: "));
+    console::log_1(&JsValue::from_f64(input.board_frame_gap_right_mm));
+    console::log_1(&JsValue::from_str("Bottom-Gap: "));
+    console::log_1(&JsValue::from_f64(input.board_frame_gap_bottom_mm));
+    console::log_1(&JsValue::from_str("Left-Gap: "));
+    console::log_1(&JsValue::from_f64(input.board_frame_gap_left_mm));
+
     let channel_distance = input.channel_width + input.channel_spacing;
     let cells_per_pitch = (input.pitch / channel_distance).floor() as usize;
     let cell_size = input.pitch / (cells_per_pitch as f64);
@@ -261,25 +286,39 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
         - ((cells_per_pitch / 2) as f64) * cell_size
         - half_cell_size
         - half_spacing;
-    let pre_offset_cells_x = ((pre_remaining_x / cell_size).max(0.)).floor() as usize;
+    let mut pre_offset_cells_x = ((pre_remaining_x / cell_size).max(0.)).floor() as usize;
 
     let pre_remaining_y = input.pitch_offset_y
         - ((cells_per_pitch / 2) as f64) * cell_size
         - half_cell_size
         - half_spacing;
-    let pre_offset_cells_y = ((pre_remaining_y / cell_size).max(0.)).floor() as usize;
+    let mut pre_offset_cells_y = ((pre_remaining_y / cell_size).max(0.)).floor() as usize;
 
     let post_remaining_x = input.pitch_offset_x
         - ((cells_per_pitch / 2) as f64) * cell_size
         - half_cell_size
         - half_spacing;
-    let post_offset_cells_x = ((post_remaining_x / cell_size).max(0.)).floor() as usize;
+    let mut post_offset_cells_x = ((post_remaining_x / cell_size).max(0.)).floor() as usize;
 
     let post_remaining_y = input.pitch_offset_y
         - ((cells_per_pitch / 2) as f64) * cell_size
         - half_cell_size
         - half_spacing;
-    let post_offset_cells_y = ((post_remaining_y / cell_size).max(0.)).floor() as usize;
+    let mut post_offset_cells_y = ((post_remaining_y / cell_size).max(0.)).floor() as usize;
+
+    if input.chip_frame == ChipFrame::WithFrame {
+        // How many cells fit into each gap (rounded down)
+        let gap_cells_left   = (input.board_frame_gap_left_mm   / cell_size).floor() as usize;
+        let gap_cells_right  = (input.board_frame_gap_right_mm  / cell_size).floor() as usize;
+        let gap_cells_top    = (input.board_frame_gap_top_mm    / cell_size).floor() as usize;
+        let gap_cells_bottom = (input.board_frame_gap_bottom_mm / cell_size).floor() as usize;
+
+        // Add those cells *outside* the existing board.
+        pre_offset_cells_x += gap_cells_left;
+        post_offset_cells_x += gap_cells_right;
+        pre_offset_cells_y += gap_cells_top;
+        post_offset_cells_y += gap_cells_bottom;
+    }
 
     let cells_x = main_grid_cells_x + pre_offset_cells_x + post_offset_cells_x;
     let cells_y = main_grid_cells_y + pre_offset_cells_y + post_offset_cells_y;

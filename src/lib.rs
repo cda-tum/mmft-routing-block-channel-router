@@ -13,7 +13,7 @@ mod tests {
     use board_router::{route, Layout, RouteInput};
     use validation::{validate, ValidateInput};
 
-    use crate::board_router::RouteInputConnection;
+    use crate::board_router::{ChipFrame, RouteInputConnection};
 
     use super::*;
 
@@ -33,7 +33,11 @@ mod tests {
             max_ports: Some(20000),
             layout: Some(Layout::Rectilinear),
             connections: Some(Vec::new()),
-            frame_padding: Some(500.0),
+            board_frame_gap_top_mm: Some(0.0),
+            board_frame_gap_right_mm: Some(0.0),
+            board_frame_gap_bottom_mm: Some(0.0),
+            board_frame_gap_left_mm: Some(0.0),
+            frame_padding: Some(500.0)
         });
 
         println!("{:?}", result)
@@ -53,6 +57,11 @@ mod tests {
             port_diameter: 200.,
             max_ports: 20000,
             layout: Layout::Octilinear,
+            chip_frame: ChipFrame::NoFrame,
+            board_frame_gap_top_mm: 0.,
+            board_frame_gap_right_mm: 0.,
+            board_frame_gap_bottom_mm: 0.,
+            board_frame_gap_left_mm: 0.,
             connections: Vec::from([
                 RouteInputConnection {
                     id: 0,
@@ -112,6 +121,11 @@ mod tests {
             port_diameter: 200.,
             max_ports: 20000,
             layout: Layout::Octilinear,
+            chip_frame: ChipFrame::NoFrame,
+            board_frame_gap_top_mm: 0.,
+            board_frame_gap_right_mm: 0.,
+            board_frame_gap_bottom_mm: 0.,
+            board_frame_gap_left_mm: 0.,
             connections: Vec::from([
                 RouteInputConnection {
                     id: 0,
@@ -151,6 +165,11 @@ mod tests {
             port_diameter: 200.,
             max_ports: 20000,
             layout: Layout::Octilinear,
+            chip_frame: ChipFrame::NoFrame,
+            board_frame_gap_top_mm: 0.,
+            board_frame_gap_right_mm: 0.,
+            board_frame_gap_bottom_mm: 0.,
+            board_frame_gap_left_mm: 0.,
             connections: Vec::from([RouteInputConnection {
                 id: 0,
                 ports: vec![(5, 5), (11, 5), (8, 2), (8, 8)],
@@ -172,6 +191,11 @@ mod tests {
             port_diameter: 200.,
             max_ports: 20000,
             layout: Layout::Octilinear,
+            chip_frame: ChipFrame::NoFrame,
+            board_frame_gap_top_mm: 0.,
+            board_frame_gap_right_mm: 0.,
+            board_frame_gap_bottom_mm: 0.,
+            board_frame_gap_left_mm: 0.,
             connections: Vec::from([RouteInputConnection {
                 id: 0,
                 ports: vec![(5, 5), (11, 5), (8, 2), (8, 8)],
@@ -193,6 +217,11 @@ mod tests {
             port_diameter: 0.4,
             max_ports: 20000,
             layout: Layout::Octilinear,
+            chip_frame: ChipFrame::NoFrame,
+            board_frame_gap_top_mm: 0.,
+            board_frame_gap_right_mm: 0.,
+            board_frame_gap_bottom_mm: 0.,
+            board_frame_gap_left_mm: 0.,
             connections: Vec::from([RouteInputConnection {
                 id: 0,
                 ports: vec![(0, 0), (5, 5)],
@@ -214,6 +243,11 @@ mod tests {
             port_diameter: 0.7,
             max_ports: 20000,
             layout: Layout::Octilinear,
+            chip_frame: ChipFrame::NoFrame,
+            board_frame_gap_top_mm: 0.,
+            board_frame_gap_right_mm: 0.,
+            board_frame_gap_bottom_mm: 0.,
+            board_frame_gap_left_mm: 0.,
             connections: Vec::from([RouteInputConnection {
                 id: 0,
                 ports: vec![(19, 4), (27, 5)],

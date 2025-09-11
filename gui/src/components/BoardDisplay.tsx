@@ -16,7 +16,6 @@ import {OutsidePortDisplay} from "./OutsidePortDisplay.tsx";
 import {OutsidePortPicker} from "./OutsidePortPicker.tsx";
 import {OutsidePortEditor} from "./OutsidePortEditor.tsx";
 
-
 export function BoardDisplay(props: {
     show: boolean
     boardWidth: number
@@ -36,8 +35,8 @@ export function BoardDisplay(props: {
     useChipFrame: string
     chipFramePadding?: number
     frameWidth: number,
-    frameHeight: number
-
+    frameHeight: number,
+    onGapsChange?: (gaps: { topMm: number, bottomMm: number, rightMm: number, leftMm: number }) => void
 }) {
     const theme = useTheme()
 
@@ -123,7 +122,21 @@ export function BoardDisplay(props: {
         setBoardPos(p => clamp(p.x, p.y))
     }, [clamp, frameWidthPx, frameHeightPx, boardWidthPx, boardHeightPx])
 
+    interface GapsMm {
+        leftMm: number;
+        topMm: number;
+        rightMm: number;
+        bottomMm: number;
+    }
 
+    const computeGaps = (pos: { x: number; y: number }): GapsMm => {
+        const leftMm   = pos.x / pxPerMM;
+        const topMm    = pos.y / pxPerMM;
+        const rightMm  = Math.max(0, innerWmm - leftMm - boardWmm);
+        const bottomMm = Math.max(0, innerHmm - topMm - boardHmm);
+        return { leftMm, topMm, rightMm, bottomMm };
+    };
+    
 
     /* OUTSIDE PORTS / MARKERS */
 
@@ -142,7 +155,7 @@ export function BoardDisplay(props: {
             nextId.current = 1
         }, [])
 
-    const markerResetButtonLabel = markers.length > 1 ? "Clear markers" : "Clear marker"
+    const markerResetButtonLabel = markers.length > 1 ? "Clear Markers" : "Clear Marker"
 
     const ordered = React.useMemo(() => {
         return [...markers].sort((a,b) => a.xMm - b.xMm || a.yMm - b.yMm);
@@ -354,7 +367,16 @@ export function BoardDisplay(props: {
                 position={boardPos}
                 size={{ width: boardWidthPx, height: boardHeightPx }}
                 onDragStart={() => clearMarkers()}
-                onDragStop={(_e, d) => setBoardPos(clamp(d.x, d.y))}
+                onDragStop={(_e, d) => {
+                    const newPos = clamp(d.x, d.y)
+                    setBoardPos(newPos)
+
+                    // compute gaps
+                    const gaps = computeGaps(newPos)
+
+                    // forward them to BoardUI
+                    props.onGapsChange?.(gaps)
+                }}
                 enableResizing={false}
                 style={{
                     cursor: "grab",
@@ -570,7 +592,10 @@ export function BoardDisplay(props: {
         disabled={!hasMarkers}
         onClick={() => clearMarkers()}
         >
-            {markerResetButtonLabel}
+            <Typography sx={{ color: theme.vars.palette.common.white }}>
+                {markerResetButtonLabel}
+            </Typography>
+
         </Button>
     </>
 

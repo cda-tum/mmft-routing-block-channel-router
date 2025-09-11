@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-
+use web_sys::js_sys::Math::abs;
 use crate::board_router::{
     compute_ports, ComputePortsInput, ComputePortsOutput, ConnectionID, Layout, Port,
     RouteInputConnections,
@@ -21,6 +21,10 @@ pub struct ValidateInput {
     pub max_ports: Option<usize>,
     pub layout: Option<Layout>,
     pub connections: Option<RouteInputConnections>,
+    pub board_frame_gap_top_mm: Option<f64>,
+    pub board_frame_gap_right_mm: Option<f64>,
+    pub board_frame_gap_bottom_mm: Option<f64>,
+    pub board_frame_gap_left_mm: Option<f64>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -299,11 +303,11 @@ pub fn validate(input: ValidateInput) -> Result<ValidationOk, ValidationErr> {
     });
 
     some!(input, frame_padding, board_width, board_height, frame_width, frame_height, {
-        if frame_padding > (frame_width / 2.) - board_width {
+        if frame_padding > abs((frame_width / 2.) - board_width) {
             errors.push(ValidationError::FramePaddingError(
                 FramePaddingError::NotSmallerThanHalfFrameWidth,
             ));
-        } else if frame_padding > (frame_height / 2.) - board_height {
+        } else if frame_padding > abs((frame_height / 2.) - board_height) {
             errors.push(ValidationError::FramePaddingError(
                 FramePaddingError::NotSmallerThanHalfFrameHeight,
             ));

@@ -4,9 +4,7 @@ use std::{
     path::Path,
 };
 
-use mmft_board_router::board_router::{
-    compute_ports, route, ComputePortsInput, ComputePortsOutput, ConnectionID, Layout, RouteInput, RouteInputConnection
-};
+use mmft_board_router::board_router::{compute_ports, route, ChipFrame, ComputePortsInput, ComputePortsOutput, ConnectionID, Layout, RouteInput, RouteInputConnection};
 use threadpool::ThreadPool;
 
 use nanoid::nanoid;
@@ -858,6 +856,11 @@ fn random_cases(options: &RandomGenerationOptions) -> Vec<(String, RouteInput)> 
                         layout,
                         max_ports: MAX_PORTS,
                         connections: connections.clone(),
+                        board_frame_gap_top_mm: 0.0,
+                        board_frame_gap_right_mm: 0.0,
+                        board_frame_gap_bottom_mm: 0.0,
+                        board_frame_gap_left_mm: 0.0,
+                        chip_frame: ChipFrame::WithFrame,
                     })
                 },
                 incremental_tries_per_connection,
@@ -882,6 +885,11 @@ fn random_cases(options: &RandomGenerationOptions) -> Vec<(String, RouteInput)> 
             layout,
             max_ports: MAX_PORTS,
             connections,
+            board_frame_gap_top_mm: 0.0,
+            board_frame_gap_right_mm: 0.0,
+            board_frame_gap_bottom_mm: 0.0,
+            board_frame_gap_left_mm: 0.0,
+            chip_frame: ChipFrame::WithFrame,
         };
 
         if has_successful_result(&input) {

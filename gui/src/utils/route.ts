@@ -30,6 +30,11 @@ export function route(input: InputState) {
             })),
             min_grid_size: 0,
             layout: input.parameters.layout.value,
+            chip_frame: input.parameters.chipFrame.value,
+            board_frame_gap_top_mm: input.parameters.boardFrameGapTopMm.value,
+            board_frame_gap_right_mm: input.parameters.boardFrameGapRightMm.value,
+            board_frame_gap_bottom_mm: input.parameters.boardFrameGapBottomMm.value,
+            board_frame_gap_left_mm: input.parameters.boardFrameGapLeftMm.value,
         }
 
         console.log(args)

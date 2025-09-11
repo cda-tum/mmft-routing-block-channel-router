@@ -432,7 +432,9 @@ export function BoardUI() {
                     <AccordionDetails>
                         <ChipFrameChoice
                             chipFrame={input.parameters.chipFrame.value}
-                            onChange={chipFrame => updateInputParameter('chipFrame', chipFrame, chipFrame)}
+                            onChange={(chipFrame) => {
+                                updateInputParameter("chipFrame", chipFrame, chipFrame)
+                            }}
                         />
                         {showFrameInputFields && (
                         <Stack
@@ -475,9 +477,6 @@ export function BoardUI() {
             </AccordionGroup>
 
 
-
-
-
             <Box sx={{ marginY: 2 }}>
                 <Typography level="h4">Connections</Typography>
                 <ContentBox>
@@ -518,6 +517,20 @@ export function BoardUI() {
                             frameWidth={input.parameters.frameWidth.value!}
                             frameHeight={input.parameters.frameHeight.value!}
                             chipFramePadding={input.parameters.framePadding.value!}
+                            onGapsChange={(gaps) => {
+                                const gapsAsParams = {
+                                    boardFrameGapTopMm:   { error: false, value: gaps.topMm,    fieldValue: gaps.topMm.toString() },
+                                    boardFrameGapRightMm: { error: false, value: gaps.rightMm,  fieldValue: gaps.rightMm.toString() },
+                                    boardFrameGapBottomMm:{ error: false, value: gaps.bottomMm, fieldValue: gaps.bottomMm.toString() },
+                                    boardFrameGapLeftMm:  { error: false, value: gaps.leftMm,   fieldValue: gaps.leftMm.toString() },
+                                } as Partial<InputParameters>
+
+                                const updatedParameters: InputParameters = {
+                                    ...input.parameters,
+                                    ...gapsAsParams,
+                                }
+                                updateInputParameters(updatedParameters)
+                            }}
                         />
 
                         {hasErrors && <Typography
