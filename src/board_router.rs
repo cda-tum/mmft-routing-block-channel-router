@@ -9,6 +9,12 @@ use wasm_bindgen::JsValue;
 
 use crate::graph_search::{a_star, AStarNode};
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+pub enum ChipFrame {
+    WithFrame,
+    NoFrame,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RouteInput {
     pub channel_width: f64,
@@ -44,12 +50,6 @@ pub type Port = (usize, usize);
 pub enum Layout {
     Rectilinear,
     Octilinear,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
-pub enum ChipFrame {
-    WithFrame,
-    NoFrame,
 }
 
 pub type BoardRouterOutput = Result<BoardRouterOutputBoard, BoardRouterOutputError>;

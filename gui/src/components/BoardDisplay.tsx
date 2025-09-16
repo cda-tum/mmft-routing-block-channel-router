@@ -14,7 +14,8 @@ import { Rnd } from "react-rnd"
 import React from "react"
 import {OutsidePortDisplay} from "./OutsidePortDisplay.tsx";
 import {OutsidePortPicker} from "./OutsidePortPicker.tsx";
-import {OutsidePortEditor} from "./OutsidePortEditor.tsx";
+import {OutsidePort, OutsidePortEditor} from "./OutsidePortEditor.tsx";
+import {GridConfig, snapToGrid} from "../utils/portGrid.ts";
 
 export function BoardDisplay(props: {
     show: boolean
@@ -143,9 +144,7 @@ export function BoardDisplay(props: {
     // clicking layer ref and selected point (in mm)
     const clickLayerRef = useRef<HTMLDivElement>(null)
 
-    type Marker = { id: number; xMm: number; yMm: number }
-
-    const [markers, setMarkers] = useState<Marker[]>([])
+    const [markers, setMarkers] = React.useState<OutsidePort[]>([]);
     const nextId = useRef(1)
     const [selectedId, setSelectedId] = React.useState<number | null>(null)
 
@@ -155,50 +154,53 @@ export function BoardDisplay(props: {
             nextId.current = 1
         }, [])
 
-    const markerResetButtonLabel = markers.length > 1 ? "Clear Markers" : "Clear Marker"
+    const markerResetButtonLabel = markers.length > 1 ? "Clear Outside Ports" : "Clear Outside Port"
 
-    const ordered = React.useMemo(() => {
-        return [...markers].sort((a,b) => a.xMm - b.xMm || a.yMm - b.yMm);
+    const orderedMarkers = React.useMemo(() => {
+        return markers
     }, [markers]);
 
     const selectedIndex = React.useMemo(
-        () => ordered.findIndex(m => m.id === selectedId),
-        [ordered, selectedId]
+        () => orderedMarkers.findIndex(m => m.id === selectedId),
+        [orderedMarkers, selectedId]
     );
-    const selectedMarker = selectedIndex >= 0 ? ordered[selectedIndex] : null;
+    const selectedMarker = selectedIndex >= 0 ? orderedMarkers[selectedIndex] : null;
 
-    const updateMarker = (id: number, next: Partial<Pick<Marker,"xMm"|"yMm">>) =>
-        setMarkers(ms => ms.map(m => (m.id === id ? { ...m, ...next } : m)))
+    const originX =  computeGaps({ x: boardPos.x, y: boardPos.y }).leftMm + props.pitchOffsetX - 0.35 // position of the first top-left port on the board
+    const originY = computeGaps({ x: boardPos.x, y: boardPos.y }).topMm - props.pitchOffsetY + 0.05
 
-    const deleteMarker = (id: number) => {
+    const grid: GridConfig = {
+        originMm: { x: originX, y: originY},
+        pitchMm:  { x: props.pitch + props.pitch / 90, y: props.pitch + props.pitch / 90},
+    };
+
+    const handleSave = (id: number, next: { xMm: number; yMm: number; port: string }) => {
+        setMarkers(ms => ms.map(m => (m.id === id ? { ...m, ...next } : m)));
+    };
+
+    const deleteOutsidePort = (id: number) => {
         setMarkers(ms => ms.filter(m => m.id !== id))
         setSelectedId(s => (s === id ? null : s))
     }
 
     const svgOverlayRef = React.useRef<SVGSVGElement | null>(null)
 
-    const pickFromEvent: React.MouseEventHandler<HTMLDivElement> = (e) => {
-        const svg = svgOverlayRef.current
-        if (!svg) return
+    const createOutsidePortMarker: React.MouseEventHandler<HTMLDivElement> = (e) => {
+        const svg = svgOverlayRef.current;
+        if (!svg) return;
 
-        // Create a point in *screen* coords (clientX/Y)
-        const pt = svg.createSVGPoint()
-        pt.x = e.clientX
-        pt.y = e.clientY
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX; pt.y = e.clientY;
+        const ctm = svg.getScreenCTM(); if (!ctm) return;
+        const sp = pt.matrixTransform(ctm.inverse());
 
-        const ctm = svg.getScreenCTM()
-        if (!ctm) return
+        const id = nextId.current++;
+        const snapped = snapToGrid(sp.x, sp.y, grid, { width: innerWmm, height: innerHmm });
+        if (!snapped) return;
 
-        // Transform the point into the SVG's viewBox coordinate space
-        const inv = ctm.inverse()
-        const sp = pt.matrixTransform(inv)
-
-        // Clamp to your frame viewBox (mm)
-        const xMm = Math.min(Math.max(0, sp.x), innerWmm)
-        const yMm = Math.min(Math.max(0, sp.y), innerHmm)
-
-        setMarkers(prev => [...prev, { id: nextId.current++, xMm: +xMm.toFixed(2), yMm: +yMm.toFixed(2) }])
-    }
+        setMarkers(ms => [...ms, { id, xMm: +snapped.x.toFixed(2), yMm: +snapped.y.toFixed(2), port: "" }]);
+        setSelectedId(id);
+    };
 
 
     const emptyStyle = {
@@ -398,10 +400,10 @@ export function BoardDisplay(props: {
                 viewBox={`0 0 ${innerWmm} ${innerHmm}`}
                 preserveAspectRatio="xMidYMid meet"
             >
-                {/* debug frame: should align exactly with start of padding */}
+                {/* debug frame */}
                 {/* <rect x="0" y="0" width={innerWmm} height={innerHmm}
                       fill="none" stroke="magenta" strokeWidth={0.4} /> */}
-                {ordered.map((m, i) => (
+                {orderedMarkers.map((m, i) => (
                     <OutsidePortDisplay
                         key={m.id}
                         xMm={m.xMm}
@@ -412,23 +414,47 @@ export function BoardDisplay(props: {
                         labelSide="auto"
                         frameWmm={innerWmm}
                         frameHmm={innerHmm}
+                        onClick={(e) => {
+                            e?.stopPropagation();
+                            setSelectedId(m.id);  // open/switch editor
+                        }}
                     />
                 ))}
             </svg>
         </Box>
     )
 
+    const gridOverlay = (
+        <Box sx={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none" }}>
+            <svg
+                width="100%" height="100%"
+                viewBox={`0 0 ${innerWmm} ${innerHmm}`}
+                preserveAspectRatio="xMidYMid meet"
+            >
+                <defs>
+                    {/* subtle repeating grid (mm units) */}
+                    <pattern id="mm-grid" width={props.pitch + props.pitch / 90} height={props.pitch + props.pitch / 90} patternUnits="userSpaceOnUse">
+                        <path d={`M ${props.pitch + props.pitch / 90} 0 L 0 0 0 ${props.pitch + props.pitch / 90}`} stroke="var(--joy-palette-neutral-400)"
+                              strokeOpacity="0.25" strokeWidth={0.2}/>
+                    </pattern>
+                </defs>
+                <rect x="0" y="0" width={innerWmm} height={innerHmm} fill="url(#mm-grid)" />
+            </svg>
+        </Box>
+    );
+
     const contentLayer = (
         <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
             <Box
                 ref={clickLayerRef}
-                onClick={pickFromEvent}
+                onPointerDown={createOutsidePortMarker}
                 sx={{
                     position: "absolute",
                     inset: 0,
                     zIndex: 1,
                 }}
             />
+            {gridOverlay}
             {outsidePortsOverlay}
             {draggableBoard}
         </Box>
@@ -477,10 +503,11 @@ export function BoardDisplay(props: {
             <OutsidePortEditor
                 marker={selectedMarker}
                 displayNumber={selectedIndex + 1}
-                frameWmm={innerWmm}
-                frameHmm={innerHmm}
-                onSave={(id, next) => updateMarker(id, next)}
-                onDelete={(id) => deleteMarker(id)}
+                gridConfig={grid}
+                innerWmm={innerWmm}
+                innerHmm={innerHmm}
+                onSave={(id, next) => handleSave(id, next)}
+                onDelete={(id) => deleteOutsidePort(id)}
             />
         )}
     </>
@@ -601,7 +628,7 @@ export function BoardDisplay(props: {
 
     const selectOutsidePort = <>
         <OutsidePortPicker
-            markers={markers}
+            markers={orderedMarkers}
             selectedId={selectedId}
             onSelect={setSelectedId}
         />
@@ -639,7 +666,7 @@ export function BoardDisplay(props: {
                 {isBlank && <Typography sx={{ mt: 1 }}>Click on ports to define connection ends, then generate the channel design in the section below.</Typography>}
                 {controlsRow}
             </Stack>
-            <Stack direction="column" spacing={1.5} alignItems="center">
+            <Stack direction="column" spacing={2.5} alignItems="center">
                 {editConnection}
                 {editOutsidePort}
             </Stack>

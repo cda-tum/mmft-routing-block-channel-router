@@ -15,7 +15,7 @@ export type OutsidePortDisplayProps = {
 
     interactive?: boolean;
     clickable?: boolean;
-    onClick?: () => void;
+    onClick?: (ev?: React.MouseEvent<SVGGElement>) => void;
 
     labelPaddingMm?: number;
     labelRadiusMm?: number;
@@ -37,7 +37,7 @@ export function OutsidePortDisplay({
                                        onClick,
                                        labelPaddingMm = 0.8,
                                        labelRadiusMm = 0.8,
-                                       id, className, style,
+                                       id, className,
                                    }: OutsidePortDisplayProps) {
     const t = useTheme();
     const [hover, setHover] = React.useState(false);
@@ -118,18 +118,26 @@ export function OutsidePortDisplay({
             id={id}
             className={className}
             transform={`translate(${xMm} ${yMm})`}
-            style={{
-                cursor: clickable ? "pointer" : "default",
-                pointerEvents: interactive ? "auto" : "none",
-                ...style,
+            style={{ pointerEvents: "auto", cursor: "pointer", outline: "none" }}
+            onPointerDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();      // avoid focusing the <g> & avoid background click
+                onClick?.();
             }}
-            onClick={clickable ? onClick : undefined}
             onMouseEnter={interactive ? () => setHover(true) : undefined}
             onMouseLeave={interactive ? () => setHover(false) : undefined}
             onKeyDown={onKeyDown}
             tabIndex={clickable ? 0 : -1}
             role={clickable ? "button" : "img"}
             aria-label={`${label1 ? label1 + " — " : ""}${label2}`}
+            onClick={
+                clickable
+                    ? (e) => {
+                        e.stopPropagation();        // don't trigger background click
+                        onClick?.(e);               // tell BoardDisplay which marker was hit
+                    }
+                    : undefined
+            }
         >
             <title>{`${label1 ? label1 + " — " : ""}${label2}`}</title>
 

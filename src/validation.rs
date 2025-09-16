@@ -139,6 +139,12 @@ pub enum ValidationWarning {
     BoardHeightNotMultiple(f64),
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub enum OutsidePortDestinationError {
+    Undefined,
+    NotPositive,
+}
+
 macro_rules! some {
     ($input: ident, $($field: ident),*, $code: block) => {
         match ($($input.$field,)*) {

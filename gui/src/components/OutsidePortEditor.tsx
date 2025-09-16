@@ -7,109 +7,104 @@ import {
     FormLabel,
     Input,
     Stack,
-    Typography, useTheme,
+    Typography,
 } from "@mui/joy";
 import CheckIcon from "@mui/icons-material/Check";
+import { GridConfig, snapToGrid } from "../utils/portGrid.ts";
 
-export type OutsidePort = { id: number; xMm: number; yMm: number };
+export type OutsidePort = { id: number; xMm: number; yMm: number; port?: string };
 
 export type OutsidePortSave = {
     xMm: number;
     yMm: number;
-    /** optional – the human‑readable port string (e.g. “A12”) */
-    port: string;
+    port: string; // human-readable e.g. "A12"
 };
 
 type OutsidePortEditorProps = {
-    marker: OutsidePort
-    displayNumber: number,
-
-    frameWmm?: number
-    frameHmm?: number
-
-    /** Save updated coordinates */
+    marker: OutsidePort;
+    displayNumber: number;
+    gridConfig: GridConfig;
+    innerWmm: number;
+    innerHmm: number;
     onSave: (id: number, next: OutsidePortSave) => void;
-
-    /** Delete this marker */
-    onDelete: (id: number) => void
-}
+    onDelete: (id: number) => void;
+};
 
 export function OutsidePortEditor({
                                       marker,
                                       displayNumber,
-                                      frameWmm,
-                                      frameHmm,
+                                      gridConfig,
+                                      innerWmm,
+                                      innerHmm,
                                       onSave,
                                       onDelete,
                                   }: OutsidePortEditorProps) {
-    const [xStr, setXStr] = React.useState<string>(String(marker.xMm))
-    const [yStr, setYStr] = React.useState<string>(String(marker.yMm))
-    const [portStr, setPortStr] = React.useState<string>("");
 
-    const [origX, setOrigX]       = React.useState<number>(marker.xMm);
-    const [origY, setOrigY]       = React.useState<number>(marker.yMm);
-    const [originalPortStr, setOriginalPortStr] = React.useState<string>(""); // Snapshot to handle the save button logic
+    // editable strings
+    const [xStr, setXStr] = React.useState(String(marker.xMm));
+    const [yStr, setYStr] = React.useState(String(marker.yMm));
+    const [portStr, setPortStr] = React.useState("");
 
-    const theme = useTheme()
+    // last-saved snapshot
+    const [snapX, setSnapX] = React.useState(marker.xMm);
+    const [snapY, setSnapY] = React.useState(marker.yMm);
+    const [snapPort, setSnapPort] = React.useState("");
 
     React.useEffect(() => {
         setXStr(String(marker.xMm));
         setYStr(String(marker.yMm));
+        const p = marker.port ?? "";
+        setPortStr(p);
+        setSnapX(marker.xMm);
+        setSnapY(marker.yMm);
+        setSnapPort(p);
+    }, [marker.id]);
 
-        setPortStr("");
-        setOriginalPortStr("");
-        setOrigX(marker.xMm);           // Snapshot to handle the save button logic
-        setOrigY(marker.yMm);
-    }, [marker.id, marker.xMm, marker.yMm]);
+    const xNum = Number(xStr);
+    const yNum = Number(yStr);
+    const xEmpty = xStr.trim() === "";
+    const yEmpty = yStr.trim() === "";
+    const xNaN = Number.isNaN(xNum);
+    const yNaN = Number.isNaN(yNum);
+    const portEmpty = portStr.trim() === "";
 
-    const xNum = Number(xStr)
-    const yNum = Number(yStr)
+    const xOut = !xNaN && !xEmpty && (xNum < 0 || xNum > innerWmm);
+    const yOut = !yNaN && !yEmpty && (yNum < 0 || yNum > innerHmm);
 
-    const xEmpty = xStr.trim() === ""
-    const yEmpty = yStr.trim() === ""
-    const xNaN = Number.isNaN(xNum)
-    const yNaN = Number.isNaN(yNum)
+    const hasError = xEmpty || yEmpty || xNaN || yNaN || xOut || yOut || portEmpty;
+    const portError = portStr.trim() === "";
 
-    const portEmpty = xStr.trim() === ""
-
-    const xOut =
-        frameWmm != null && !xNaN && !xEmpty && (xNum < 0 || xNum > frameWmm)
-    const yOut =
-        frameHmm != null && !yNaN && !yEmpty && (yNum < 0 || yNum > frameHmm)
-
-    const hasError = xEmpty || yEmpty || xNaN || yNaN || xOut || yOut || portEmpty
-
-    const unchanged = !hasError && xNum === origX && yNum === origY && portStr === originalPortStr;
+    // Enable Save only when something differs from the snapshot
+    const dirty =
+        !hasError &&
+        (Number(xStr) !== snapX || Number(yStr) !== snapY || portStr !== snapPort);
 
     const handleSave = () => {
-        const clamp = (v: number, min: number, max: number) =>
-            Math.min(Math.max(v, min), max);
+        if (hasError) return;
 
-        const nx = frameWmm != null ? clamp(xNum, 0, frameWmm) : xNum;
-        const ny = frameHmm != null ? clamp(yNum, 0, frameHmm) : yNum;
+        // snap to nearest valid grid node in bounds
+        const snapped = snapToGrid(xNum, yNum, gridConfig, { width: innerWmm, height: innerHmm });
+        if (!snapped) return;
 
-        onSave(marker.id, { xMm: nx, yMm: ny, port: portStr });
+        // send to parent
+        onSave(marker.id, { xMm: snapped.x, yMm: snapped.y, port: portStr });
+
+        // reflect what was saved in the inputs
+        const sx = +snapped.x.toFixed(2);
+        const sy = +snapped.y.toFixed(2);
+        setXStr(String(sx));
+        setYStr(String(sy));
+
+        // refresh snapshot -> Save disables until another change happens
+        setSnapX(sx);
+        setSnapY(sy);
+        setSnapPort(portStr);
     };
 
     return (
-        <Box
-            padding={2}
-            sx={{
-                borderRadius: theme.radius.sm,
-                border: '1px solid',
-                borderColor: theme.vars.palette.background.level3,
-                boxShadow: `0px 2px ${theme.vars.palette.background.level2}`,
-                backgroundColor: theme.vars.palette.background.popup
-            }}
-            alignItems="center"
-        >
-            <Stack
-                direction="row"
-                spacing={1.5}
-                alignItems="center"
-                flexWrap="wrap"
-            >
-                <Typography level="title-sm" sx={{ margin: 2, mr: 1, minWidth: 110 }}>
+        <Box /* …styling… */>
+            <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+                <Typography level="title-sm" sx={{ m: 2, mr: 1, minWidth: 140 }}>
                     Outside Port #{displayNumber}
                 </Typography>
 
@@ -119,20 +114,10 @@ export function OutsidePortEditor({
                         type="number"
                         value={xStr}
                         onChange={(e) => setXStr(e.target.value)}
-                        slotProps={{
-                            input: {
-                                step: 0.1,
-                                min: frameWmm != null ? 0 : undefined,
-                                max: frameWmm ?? undefined,
-                            },
-                        }}
+                        slotProps={{ input: { step: 0.1, min: 0, max: innerWmm } }}
                         endDecorator="mm"
                     />
-                    {xOut && (
-                        <FormHelperText color="danger">
-                            0 – {frameWmm} mm
-                        </FormHelperText>
-                    )}
+                    {xOut && <FormHelperText color="danger">0 – {innerWmm} mm</FormHelperText>}
                 </FormControl>
 
                 <FormControl size="sm" sx={{ minWidth: 160 }}>
@@ -141,59 +126,62 @@ export function OutsidePortEditor({
                         type="number"
                         value={yStr}
                         onChange={(e) => setYStr(e.target.value)}
-                        slotProps={{
-                            input: {
-                                step: 0.1,
-                                min: frameHmm != null ? 0 : undefined,
-                                max: frameHmm ?? undefined,
-                            },
-                        }}
+                        slotProps={{ input: { step: 0.1, min: 0, max: innerHmm } }}
                         endDecorator="mm"
                     />
-                    {yOut && (
-                        <FormHelperText color="danger">
-                            0 – {frameHmm} mm
-                        </FormHelperText>
-                    )}
+                    {yOut && <FormHelperText color="danger">0 – {innerHmm} mm</FormHelperText>}
                 </FormControl>
 
-                <FormControl size="sm" sx={{ minWidth: 160 }}>
-                    <FormLabel>Port On Routing Board</FormLabel>
+                <FormControl size="sm" sx={{ minWidth: 200 }}>
+                    <FormLabel sx={{ color: portError ? 'danger.600' : undefined }}>
+                        Port On Routing Board
+                    </FormLabel>
+
                     <Input
                         type="text"
                         value={portStr}
                         onChange={(e) => setPortStr(e.target.value)}
-                        placeholder="A1, C12, ..."
+                        placeholder="A1, C12, …"
+                        color={portError ? 'danger' : 'neutral'}    // ← red border when required/empty
+                        variant="outlined"
+                        slotProps={{
+                            input: {
+                                'aria-invalid': portError || undefined,
+                            },
+                        }}
                     />
+
+                    <FormHelperText
+                        color="danger"
+                        sx={{ visibility: portError ? 'visible' : 'hidden' }}
+                    >
+                        Required
+                    </FormHelperText>
                 </FormControl>
+
 
                 <Stack direction="row" spacing={1}>
                     <Button
-                        sx={{
-                            marginY: 2,
-                        }}
-                        variant="outlined"
-                        disabled={hasError || unchanged}
+                        sx={{ my: 2 }}
+                        variant="solid"
+                        color="primary"
+                        disabled={!dirty}
                         onClick={handleSave}
+                        startDecorator={<CheckIcon />}
                     >
-                        <Typography sx={{ color: theme.vars.palette.common.white }}>
-                            <CheckIcon sx={{
-                                verticalAlign: 'bottom'
-                            }} /> Save </Typography>
+                        Save
                     </Button>
                     <Button
-                        variant="outlined"
+                        sx={{ my: 2 }}
+                        variant="soft"
                         color="danger"
-                        sx={{
-                            marginY: 2,
-                        }}
                         onClick={() => onDelete(marker.id)}
                     >
-                        <Typography sx={{ color: theme.vars.palette.danger }}>
-                             Delete </Typography>
+                        Delete
                     </Button>
                 </Stack>
             </Stack>
         </Box>
-    )
+    );
 }
+
