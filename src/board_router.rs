@@ -28,6 +28,7 @@ pub struct RouteInput {
     pub port_diameter: f64,
     pub max_ports: usize,
     pub connections: RouteInputConnections,
+    pub outside_connections: RouteInputConnections,
     pub board_frame_gap_top_mm: f64,
     pub board_frame_gap_right_mm: f64,
     pub board_frame_gap_bottom_mm: f64,
@@ -254,6 +255,13 @@ pub fn compute_ports(
     return ComputePortsOutput { ports_x, ports_y };
 }
 
+
+pub fn log_outside_connections_json(outside: &RouteInputConnections) {
+    console::log_1(&JsValue::from_str("— outside_connections (JSON) —"));
+    let js_val = serde_wasm_bindgen::to_value(outside).expect("serialize outside_connections");
+    console::log_1(&js_val);
+}
+
 pub fn route(input: &RouteInput) -> BoardRouterOutput {
 
     // DEBUGGING ONLY
@@ -266,6 +274,8 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
     console::log_1(&JsValue::from_f64(input.board_frame_gap_bottom_mm));
     console::log_1(&JsValue::from_str("Left-Gap: "));
     console::log_1(&JsValue::from_f64(input.board_frame_gap_left_mm));
+
+    log_outside_connections_json(&input.outside_connections);
 
     let channel_distance = input.channel_width + input.channel_spacing;
     let cells_per_pitch = (input.pitch / channel_distance).floor() as usize;

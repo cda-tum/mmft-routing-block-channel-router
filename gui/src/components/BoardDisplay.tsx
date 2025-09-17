@@ -2,7 +2,7 @@ import {Box, Button, Menu, MenuItem, Modal, ModalClose, ModalDialog, Stack, Typo
 import { PortDisplay } from "./PortDisplay"
 import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react"
 import { portIndexToString, PortKey } from "../utils/ports"
-import { ConnectionsState, useConnectionState } from "../hooks/useConnectionState"
+import {ConnectionsState, ConnectionStateConnection, useConnectionState} from "../hooks/useConnectionState"
 import { ConnectionEditor, minPorts } from "./ConnectionEditor"
 import { OutputConnections } from "../utils/connections"
 import { ConnectionDisplay } from "./ConnectionDisplay"
@@ -14,8 +14,9 @@ import { Rnd } from "react-rnd"
 import React from "react"
 import {OutsidePortDisplay} from "./OutsidePortDisplay.tsx";
 import {OutsidePortPicker} from "./OutsidePortPicker.tsx";
-import {OutsidePort, OutsidePortEditor} from "./OutsidePortEditor.tsx";
+import {OutsidePort, OutsidePortEditor, OutsidePortProps, SaveResult} from "./OutsidePortEditor.tsx";
 import {GridConfig, snapToGrid} from "../utils/portGrid.ts";
+import {OutsideConnectionsState, useOutsideConnections} from "../hooks/useOutsideConnections.ts";
 
 export function BoardDisplay(props: {
     show: boolean
@@ -29,6 +30,11 @@ export function BoardDisplay(props: {
     columns: number | undefined
     rows: number | undefined
     onChange?: (connections: ConnectionsState) => void
+    onOutsideConnectionsChange?: (outside: ConnectionsState) => void;
+    onCombinedChange?: (content: {
+        connections: ConnectionsState;
+        outsideConnections: ConnectionsState;
+    }) => void;
     initialInputConnections: ConnectionsState
     outputConnections?: OutputConnections
     clearOutputConnections?: () => void
@@ -48,13 +54,87 @@ export function BoardDisplay(props: {
         }
     })
 
+    const outsideConnectionState = useOutsideConnections({
+        boundaries: {
+            rows: props.rows!,
+            columns: props.columns!
+        }
+    })
+
+    function outsideConnectionsToConnectionsState(oc: OutsideConnectionsState): ConnectionsState {
+        const out: ConnectionsState = {}
+        for (const c of Object.values(oc)) {
+
+            if (!c.outsideRowColumn) continue
+
+            const outsidePk: PortKey = [c.outsideRowColumn.col, c.outsideRowColumn.row]
+            const insidePk: PortKey = c.inside.port
+
+            const conn: ConnectionStateConnection = {
+                ports: [outsidePk, insidePk],
+                branchPort: undefined,
+            };
+            out[c.id] = conn
+        }
+        return out
+    }
+
     useEffect(() => {
         setSelectConnectionDropdownOpen(false)
     }, [props.closeDropdown])
 
-    useEffect(() => {
-        props.onChange?.(connectionState.connections)
-    }, [connectionState.connections])
+    const outsideCS = React.useMemo(
+        () => outsideConnectionsToConnectionsState(outsideConnectionState.connections),
+        [outsideConnectionState.connections]
+    );
+
+    // To improve performance --> Otherwise, the dragging becomes very choppy and slow
+    // Update connections only when something actually changed
+    function fingerprintConnections(cs: ConnectionsState): string {
+        const rows = Object.entries(cs).map(([id, c]) => {
+            const ports = c.ports.map(([x, y]) => `${x}:${y}`).join("|");
+            const branch = c.branchPort ? `${c.branchPort[0]}:${c.branchPort[1]}` : "-";
+            return `${id}#${ports}#${branch}`;
+        });
+        rows.sort();                // stable order
+        return rows.join(",");
+    }
+
+    const insideFP  = React.useMemo(
+        () => fingerprintConnections(connectionState.connections),
+        [connectionState.connections]
+    );
+    const outsideFP = React.useMemo(
+        () => fingerprintConnections(outsideCS),
+        [outsideCS]
+    );
+
+    const last = React.useRef<{ inside: string; outside: string }>({ inside: "", outside: "" });
+
+    React.useEffect(() => {
+        const insideChanged  = insideFP  !== last.current.inside;
+        const outsideChanged = outsideFP !== last.current.outside;
+
+        if (insideChanged) {
+            props.onChange?.(connectionState.connections);
+        }
+        if (outsideChanged) {
+            props.onOutsideConnectionsChange?.(outsideCS);
+        }
+        if (insideChanged || outsideChanged) {
+            props.onCombinedChange?.({
+                connections: connectionState.connections,
+                outsideConnections: outsideCS,
+            });
+            last.current = { inside: insideFP, outside: outsideFP };
+        }
+    }, [
+        insideFP,
+        outsideFP,
+        props.onChange,
+        props.onOutsideConnectionsChange,
+        props.onCombinedChange,
+    ]);
 
     useEffect(() => {
         connectionState.replaceWith(props.initialInputConnections)
@@ -152,6 +232,7 @@ export function BoardDisplay(props: {
     const clearMarkers = React.useCallback(() => {
             setMarkers([])
             nextId.current = 1
+            outsideConnectionState.clear();
         }, [])
 
     const markerResetButtonLabel = markers.length > 1 ? "Clear Outside Ports" : "Clear Outside Port"
@@ -166,22 +247,13 @@ export function BoardDisplay(props: {
     );
     const selectedMarker = selectedIndex >= 0 ? orderedMarkers[selectedIndex] : null;
 
-    const originX =  computeGaps({ x: boardPos.x, y: boardPos.y }).leftMm + props.pitchOffsetX - 0.35 // position of the first top-left port on the board
-    const originY = computeGaps({ x: boardPos.x, y: boardPos.y }).topMm - props.pitchOffsetY + 0.05
+    const originX = computeGaps({ x: boardPos.x, y: boardPos.y }).leftMm + props.pitchOffsetX - 0.3 // position of the first top-left port on the board
+    const originY = computeGaps({ x: boardPos.x, y: boardPos.y }).topMm + props.pitchOffsetY + 0.1
 
     const grid: GridConfig = {
         originMm: { x: originX, y: originY},
         pitchMm:  { x: props.pitch + props.pitch / 90, y: props.pitch + props.pitch / 90},
     };
-
-    const handleSave = (id: number, next: { xMm: number; yMm: number; port: string }) => {
-        setMarkers(ms => ms.map(m => (m.id === id ? { ...m, ...next } : m)));
-    };
-
-    const deleteOutsidePort = (id: number) => {
-        setMarkers(ms => ms.filter(m => m.id !== id))
-        setSelectedId(s => (s === id ? null : s))
-    }
 
     const svgOverlayRef = React.useRef<SVGSVGElement | null>(null)
 
@@ -201,6 +273,55 @@ export function BoardDisplay(props: {
         setMarkers(ms => [...ms, { id, xMm: +snapped.x.toFixed(2), yMm: +snapped.y.toFixed(2), port: "" }]);
         setSelectedId(id);
     };
+
+
+    const handleEditorSave = (id: number, next: OutsidePortProps): SaveResult => {
+        const gaps = computeGaps({ x: boardPos.x, y: boardPos.y });
+        const rowColumn = outsideMmToRowColumn({
+            xMm: next.xMm,
+            yMm: next.yMm,
+            gaps,
+            pitchMm: props.pitch,
+            pitchOffsetXmm: props.pitchOffsetX,
+            pitchOffsetYmm: props.pitchOffsetY,
+        });
+
+        const res = outsideConnectionState.upsertFromEditor({ id, xMm: next.xMm, yMm: next.yMm }, next.port, rowColumn);
+        if (!res.ok) return res;
+
+        setMarkers(ms =>
+            ms.map(m => (m.id === id ? { ...m, xMm: next.xMm, yMm: next.yMm, port: next.port } : m))
+        );
+        return { ok: true, connectionId: res.connectionId };
+    };
+
+
+    const handleEditorDelete = (id: number) => {
+        setMarkers(ms => ms.filter(m => m.id !== id));
+        outsideConnectionState.removeByMarker(id);
+        if (selectedId === id) setSelectedId(null);
+    };
+
+    function outsideMmToRowColumn(params: {
+        xMm: number;
+        yMm: number;
+        gaps: GapsMm;
+        pitchMm: number;
+        pitchOffsetXmm: number;
+        pitchOffsetYmm: number;
+    }) {
+        const {
+            xMm, yMm, gaps, pitchMm, pitchOffsetXmm, pitchOffsetYmm
+        } = params;
+
+        const originX = gaps.leftMm + pitchOffsetXmm;
+        const originY = gaps.topMm + pitchOffsetYmm;
+
+        const fx = Math.round((xMm - originX) / pitchMm);
+        const fy = Math.round((yMm - originY) / pitchMm);
+
+        return {col: fx, row: fy}
+    }
 
 
     const emptyStyle = {
@@ -506,8 +627,8 @@ export function BoardDisplay(props: {
                 gridConfig={grid}
                 innerWmm={innerWmm}
                 innerHmm={innerHmm}
-                onSave={(id, next) => handleSave(id, next)}
-                onDelete={(id) => deleteOutsidePort(id)}
+                onSave={(id, next) => handleEditorSave(id, next)}
+                onDelete={(id) => handleEditorDelete(id)}
             />
         )}
     </>

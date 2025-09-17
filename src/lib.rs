@@ -94,6 +94,7 @@ mod tests {
                     branch_port: None,
                 },
             ]),
+            outside_connections: vec![],
         });
 
         println!("{:?}", result);
@@ -138,6 +139,7 @@ mod tests {
                     branch_port: None,
                 },
             ]),
+            outside_connections: vec![],
         });
 
         println!("{:?}", result);
@@ -175,6 +177,7 @@ mod tests {
                 ports: vec![(5, 5), (11, 5), (8, 2), (8, 8)],
                 branch_port: None,
             }]),
+            outside_connections: vec![],
         });
     }
 
@@ -201,6 +204,7 @@ mod tests {
                 ports: vec![(5, 5), (11, 5), (8, 2), (8, 8)],
                 branch_port: None,
             }]),
+            outside_connections: vec![],
         });
     }
 
@@ -227,6 +231,7 @@ mod tests {
                 ports: vec![(0, 0), (5, 5)],
                 branch_port: None,
             }]),
+            outside_connections: vec![],
         });
     }
 
@@ -253,6 +258,7 @@ mod tests {
                 ports: vec![(19, 4), (27, 5)],
                 branch_port: Some((23, 0)),
             }]),
+            outside_connections: vec![],
         });
     }
 }

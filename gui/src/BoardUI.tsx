@@ -54,6 +54,7 @@ export type InputState = {
     portsX: number | undefined
     portsY: number | undefined
     connections: ConnectionsState
+    outsideConnections?: ConnectionsState
 }
 
 const defaultInputState: InputState = {
@@ -501,6 +502,15 @@ export function BoardUI() {
                             onChange={c => setInput(s => ({
                                 ...s,
                                 connections: c
+                            }))}
+                            onOutsideConnectionsChange={c => setInput(s => ({
+                                ...s,
+                                outsideConnections: c
+                            }))}
+                            onCombinedChange={(c) => setInput(s => ({
+                                ...s,
+                                connections: c.connections,
+                                outsideConnections: c.outsideConnections
                             }))}
                             outputConnections={output.connections}
                             closeDropdown={closeDropdown}
