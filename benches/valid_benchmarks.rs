@@ -25,9 +25,9 @@ fn main() {
         {
             let content = read_input_from_file(entry.path());
             match content {
-                Ok(input) => {
+                Ok(mut input) => {
                     total += 1;
-                    let result = route(&input);
+                    let result = route(&mut input);
                     match result {
                         Ok(_) => success += 1,
                         Err(_) => (),

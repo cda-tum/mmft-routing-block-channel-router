@@ -40,7 +40,6 @@ export function BoardDisplay(props: {
     clearOutputConnections?: () => void
     closeDropdown: boolean
     useChipFrame: string
-    chipFramePadding?: number
     frameWidth: number,
     frameHeight: number,
     onGapsChange?: (gaps: { topMm: number, bottomMm: number, rightMm: number, leftMm: number }) => void
@@ -140,7 +139,6 @@ export function BoardDisplay(props: {
         connectionState.replaceWith(props.initialInputConnections)
     }, [props.initialInputConnections])
 
-
     const strokeWidth = useMemo(() => props.portDiameter / 3, [props.portDiameter])
 
 
@@ -148,60 +146,37 @@ export function BoardDisplay(props: {
 
     const frameEnabled = props.useChipFrame === 'WithFrame'
 
-    const dragStageRef = useRef<HTMLDivElement>(null)
-    const outerStageRef = useRef<HTMLDivElement>(null)
+    const clickLayerRef = useRef<HTMLDivElement>(null)
 
-    const outerFrameWmm = props.frameWidth ?? 130  // mm
-    const outerFrameHmm = props.frameHeight ?? 30  // mm
+    const frameWidthMm = props.frameWidth ?? 130  // mm
+    const frameHeightMm = props.frameHeight ?? 30  // mm
     const boardWmm = props.boardWidth  // mm
     const boardHmm = props.boardHeight // mm
-    const framePaddingMm = props.chipFramePadding ?? 2 // mm
 
-    const innerWmm = Math.max(1, outerFrameWmm  - 2 * framePaddingMm)
-    const innerHmm = Math.max(1, outerFrameHmm - 2 * framePaddingMm)
-
-    const [frameOuterWidthPx, setFrameOuterWidthPx] = useState(800)
     const [boardPos, setBoardPos] = useState({ x: 0, y: 0 })
 
-    // FOR FRAME
+    const [contentSize, setContentSize] = useState({ w: 800, h: 400 });
+
     useLayoutEffect(() => {
-        const el = outerStageRef.current
-        if (!el) return
-        setFrameOuterWidthPx(el.clientWidth)
+        const el = clickLayerRef.current;
+        if (!el) return;
+        const update = () => setContentSize({ w: el.clientWidth, h: el.clientHeight });
+        update();
+        const ro = new ResizeObserver(update);
+        ro.observe(el);
+        return () => ro.disconnect();
     }, []);
 
-    useEffect(() => {
-        const el = outerStageRef.current
-        if (!el) return
-        const ro = new ResizeObserver(() => setFrameOuterWidthPx(el.clientWidth))
-        ro.observe(el)
-        return () => ro.disconnect()
-    }, [])
+    const pxPerMM = contentSize.w / frameWidthMm;
 
-    // Conversion of mm to px
-    const pxPerMM = frameOuterWidthPx / outerFrameWmm
+    const boardWidthPx  = props.boardWidth  * pxPerMM;
+    const boardHeightPx = props.boardHeight * pxPerMM;
 
-    const paddingPx= Math.max(0, framePaddingMm * pxPerMM)
-
-    const frameWidthPx  = frameOuterWidthPx
-    const frameHeightPx = outerFrameHmm * pxPerMM
-
-    // Board pixel size
-    const boardWidthPx  = Math.max(1, boardWmm * pxPerMM)
-    const boardHeightPx = Math.max(1, boardHmm * pxPerMM)
-
-    const clamp = useCallback((x: number, y: number) => {
-        const stage = dragStageRef.current
-        if (!stage) return { x, y }
-        const maxX = Math.max(stage.clientWidth  - boardWidthPx,  0)
-        const maxY = Math.max(stage.clientHeight - boardHeightPx, 0)
-        return { x: Math.min(Math.max(x, 0), maxX), y: Math.min(Math.max(y, 0), maxY) }
-    }, [boardWidthPx, boardHeightPx])
-
-    // Re-clamp when anything resizes
-    useEffect(() => {
-        setBoardPos(p => clamp(p.x, p.y))
-    }, [clamp, frameWidthPx, frameHeightPx, boardWidthPx, boardHeightPx])
+    const clamp = useCallback((x:number, y:number) => {
+        const maxX = Math.max(0, contentSize.w - boardWidthPx);
+        const maxY = Math.max(0, contentSize.h - boardHeightPx);
+        return { x: Math.min(Math.max(0, x), maxX), y: Math.min(Math.max(0, y), maxY) };
+    }, [contentSize, boardWidthPx, boardHeightPx]);
 
     interface GapsMm {
         leftMm: number;
@@ -213,16 +188,13 @@ export function BoardDisplay(props: {
     const computeGaps = (pos: { x: number; y: number }): GapsMm => {
         const leftMm   = pos.x / pxPerMM;
         const topMm    = pos.y / pxPerMM;
-        const rightMm  = Math.max(0, innerWmm - leftMm - boardWmm);
-        const bottomMm = Math.max(0, innerHmm - topMm - boardHmm);
+        const rightMm  = frameWidthMm - leftMm - boardWmm;
+        const bottomMm = frameHeightMm - topMm  - boardHmm;
         return { leftMm, topMm, rightMm, bottomMm };
     };
     
 
     /* OUTSIDE PORTS / MARKERS */
-
-    // clicking layer ref and selected point (in mm)
-    const clickLayerRef = useRef<HTMLDivElement>(null)
 
     const [markers, setMarkers] = React.useState<OutsidePort[]>([]);
     const nextId = useRef(1)
@@ -247,12 +219,12 @@ export function BoardDisplay(props: {
     );
     const selectedMarker = selectedIndex >= 0 ? orderedMarkers[selectedIndex] : null;
 
-    const originX = computeGaps({ x: boardPos.x, y: boardPos.y }).leftMm + props.pitchOffsetX - 0.3 // position of the first top-left port on the board
-    const originY = computeGaps({ x: boardPos.x, y: boardPos.y }).topMm + props.pitchOffsetY + 0.1
+    const originX = computeGaps({ x: boardPos.x, y: boardPos.y }).leftMm + props.pitchOffsetX // position of the first top-left port on the board
+    const originY = computeGaps({ x: boardPos.x, y: boardPos.y }).topMm + props.pitchOffsetY
 
     const grid: GridConfig = {
         originMm: { x: originX, y: originY},
-        pitchMm:  { x: props.pitch + props.pitch / 90, y: props.pitch + props.pitch / 90},
+        pitchMm:  { x: props.pitch, y: props.pitch},
     };
 
     const svgOverlayRef = React.useRef<SVGSVGElement | null>(null)
@@ -267,7 +239,7 @@ export function BoardDisplay(props: {
         const sp = pt.matrixTransform(ctm.inverse());
 
         const id = nextId.current++;
-        const snapped = snapToGrid(sp.x, sp.y, grid, { width: innerWmm, height: innerHmm });
+        const snapped = snapToGrid(sp.x, sp.y, grid, { width: frameWidthMm, height: frameHeightMm });
         if (!snapped) return;
 
         setMarkers(ms => [...ms, { id, xMm: +snapped.x.toFixed(2), yMm: +snapped.y.toFixed(2), port: "" }]);
@@ -322,7 +294,6 @@ export function BoardDisplay(props: {
 
         return {col: fx, row: fy}
     }
-
 
     const emptyStyle = {
         strokeDasharray: props.portDiameter / 5,
@@ -434,25 +405,6 @@ export function BoardDisplay(props: {
     >
 
     </rect>
-        {props.outputConnections !== undefined && Object.entries(connectionState.connections).map(([id]) => {
-            const connectionId = parseFloat(id)
-            if (props.outputConnections === undefined) {
-                return undefined
-            }
-            const outputConnection = props.outputConnections?.[connectionId]
-            if (outputConnection === undefined) {
-                return undefined
-            }
-            return <ConnectionDisplay
-                channelWidth={props.channelWidth}
-                connection={outputConnection}
-                connectionId={connectionId}
-                onClick={() => {
-                    connectionState.preview.loadConnection(connectionId)
-                }}
-            />
-        })}
-
         {
             ports.map(port => {
 
@@ -483,13 +435,15 @@ export function BoardDisplay(props: {
     )
 
     const draggableBoard = (
-        <Box ref={dragStageRef}
-             sx={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", zIndex: 2, pointerEvents: "none" }}>
+        <Box sx={{ position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none" }}>
             <Rnd
                 bounds="parent"
                 position={boardPos}
                 size={{ width: boardWidthPx, height: boardHeightPx }}
-                onDragStart={() => clearMarkers()}
+                onDragStart={() => {
+                    clearMarkers();
+                    props.clearOutputConnections?.();
+                }}
                 onDragStop={(_e, d) => {
                     const newPos = clamp(d.x, d.y)
                     setBoardPos(newPos)
@@ -511,6 +465,36 @@ export function BoardDisplay(props: {
         </Box>
     )
 
+
+    // CHANNELS OVERLAY TO VISUALIZE RESULTING CHANNELS (moved from initial place after the ports)
+
+    const { leftMm, topMm } = computeGaps({ x: boardPos.x, y: boardPos.y });
+
+    const channelsOverlay = (
+        <Box sx={{ position:'absolute', inset:0, zIndex:2, pointerEvents:'none' }}>
+            {props.outputConnections && (
+                <svg
+                    width="100%"
+                    height="100%"
+                    viewBox={`0 0 ${frameWidthMm} ${frameHeightMm}`}
+                    preserveAspectRatio="xMidYMid meet"
+                >
+                    <g transform={`translate(${leftMm} ${topMm})`}>
+                        {Object.entries(props.outputConnections).map(([id, conn]) => (
+                            <ConnectionDisplay
+                                key={id}
+                                channelWidth={props.channelWidth}
+                                connection={conn}
+                                connectionId={+id}
+                            />
+                        ))}
+                    </g>
+                </svg>
+            )}
+        </Box>
+    );
+
+
     // overlay with marked outside ports
     const outsidePortsOverlay = (
         <Box sx={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none" }}>
@@ -518,11 +502,11 @@ export function BoardDisplay(props: {
                 ref={svgOverlayRef}
                 width="100%"
                 height="100%"
-                viewBox={`0 0 ${innerWmm} ${innerHmm}`}
+                viewBox={`0 0 ${frameWidthMm} ${frameHeightMm}`}
                 preserveAspectRatio="xMidYMid meet"
             >
                 {/* debug frame */}
-                {/* <rect x="0" y="0" width={innerWmm} height={innerHmm}
+                {/* <rect x="0" y="0" width={frameWidthMm} height={frameHeightMm}
                       fill="none" stroke="magenta" strokeWidth={0.4} /> */}
                 {orderedMarkers.map((m, i) => (
                     <OutsidePortDisplay
@@ -533,8 +517,8 @@ export function BoardDisplay(props: {
                         diameterMm={props.portDiameter}
                         fontSizeMm={1.6}
                         labelSide="auto"
-                        frameWmm={innerWmm}
-                        frameHmm={innerHmm}
+                        frameWmm={frameWidthMm}
+                        frameHmm={frameHeightMm}
                         onClick={(e) => {
                             e?.stopPropagation();
                             setSelectedId(m.id);  // open/switch editor
@@ -545,70 +529,43 @@ export function BoardDisplay(props: {
         </Box>
     )
 
-    const gridOverlay = (
-        <Box sx={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none" }}>
-            <svg
-                width="100%" height="100%"
-                viewBox={`0 0 ${innerWmm} ${innerHmm}`}
-                preserveAspectRatio="xMidYMid meet"
-            >
-                <defs>
-                    {/* subtle repeating grid (mm units) */}
-                    <pattern id="mm-grid" width={props.pitch + props.pitch / 90} height={props.pitch + props.pitch / 90} patternUnits="userSpaceOnUse">
-                        <path d={`M ${props.pitch + props.pitch / 90} 0 L 0 0 0 ${props.pitch + props.pitch / 90}`} stroke="var(--joy-palette-neutral-400)"
-                              strokeOpacity="0.25" strokeWidth={0.2}/>
-                    </pattern>
-                </defs>
-                <rect x="0" y="0" width={innerWmm} height={innerHmm} fill="url(#mm-grid)" />
-            </svg>
-        </Box>
-    );
-
-    const contentLayer = (
-        <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
-            <Box
-                ref={clickLayerRef}
-                onPointerDown={createOutsidePortMarker}
-                sx={{
-                    position: "absolute",
-                    inset: 0,
-                    zIndex: 1,
-                }}
-            />
-            {gridOverlay}
-            {outsidePortsOverlay}
-            {draggableBoard}
-        </Box>
-    )
-
-
-    // Board with frame around
+    // framedBoard: mount content directly
     const framedBoard = (
-        <Box
-            ref={outerStageRef}
-            className="chip-frame"
-            sx={{
-                position: "relative",
-                width: "100%",
-                minHeight: 280,
-                boxSizing: "border-box",
-                overflow: "hidden",
-            }}
-        >
+        <Box className="chip-frame" sx={{ position: "relative", width: "100%" }}>
             <ChipFrame
-                minPadding={paddingPx}
-                frameSizePx={{width: frameWidthPx, height: frameHeightPx}}
-                defaultSize={{ width: frameWidthPx, height: frameHeightPx }}
-                minContentSizePx={{ width: boardWidthPx, height: boardHeightPx }}
                 className="chip-frame"
                 contentClassName="chip-frame-content"
             >
-                <Box className="board-stage" sx={{ width:"100%", height:"100%" }}>
-                    {contentLayer}
+                <Box
+                    ref={clickLayerRef}
+                    sx={{
+                        position: "relative",
+                        width: "100%",
+                        aspectRatio: `${frameWidthMm} / ${frameHeightMm}`,
+                        overflow: "hidden",
+                        display: "block",
+                    }}
+                    onPointerDown={createOutsidePortMarker}
+                >
+                    <Box sx={{ position: "absolute", inset: 0, zIndex: 1 }}>
+                        {/* gridOverlay */}
+                    </Box>
+
+                    <Box sx={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none" }}>
+                        {channelsOverlay}
+                    </Box>
+
+                    <Box sx={{ position: "absolute", inset: 0, zIndex: 2 }}>
+                        {outsidePortsOverlay}
+                    </Box>
+
+                    <Box sx={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none" }}>
+                        {draggableBoard}
+                    </Box>
                 </Box>
             </ChipFrame>
         </Box>
-    )
+    );
 
     // unframed board for the default solution without extra chip area around the routing board
     const plainBoard = (
@@ -625,8 +582,8 @@ export function BoardDisplay(props: {
                 marker={selectedMarker}
                 displayNumber={selectedIndex + 1}
                 gridConfig={grid}
-                innerWmm={innerWmm}
-                innerHmm={innerHmm}
+                innerWmm={frameWidthMm}
+                innerHmm={frameHeightMm}
                 onSave={(id, next) => handleEditorSave(id, next)}
                 onDelete={(id) => handleEditorDelete(id)}
             />

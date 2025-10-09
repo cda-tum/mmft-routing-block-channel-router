@@ -844,7 +844,7 @@ fn random_cases(options: &RandomGenerationOptions) -> Vec<(String, RouteInput)> 
             let r = random_port_connections_incremental(
                 &options,
                 |connections| {
-                    has_successful_result(&RouteInput {
+                    has_successful_result(&mut RouteInput {
                         board_width,
                         board_height,
                         pitch,
@@ -874,7 +874,7 @@ fn random_cases(options: &RandomGenerationOptions) -> Vec<(String, RouteInput)> 
             random_port_connections(&options)
         };
 
-        let input = RouteInput {
+        let mut input = RouteInput {
             board_width,
             board_height,
             pitch,
@@ -894,7 +894,7 @@ fn random_cases(options: &RandomGenerationOptions) -> Vec<(String, RouteInput)> 
             chip_frame: ChipFrame::WithFrame,
         };
 
-        if has_successful_result(&input) {
+        if has_successful_result(&mut input) {
             cases.push((nanoid!(), input));
         }
 
@@ -910,7 +910,7 @@ fn random_cases(options: &RandomGenerationOptions) -> Vec<(String, RouteInput)> 
     cases
 }
 
-fn has_successful_result(input: &RouteInput) -> bool {
+fn has_successful_result(input: &mut RouteInput) -> bool {
     let result = route(input);
     match result {
         Ok(_) => true,

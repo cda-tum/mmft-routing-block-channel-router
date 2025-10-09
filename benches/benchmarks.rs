@@ -43,11 +43,11 @@ fn criterion_benchmark(c: &mut Criterion) {
                     .unwrap()
                     .eq_ignore_ascii_case("json")
             {
-                let input = read_input_from_file(case.path()).expect("Error reading configuration");
+                let mut input = read_input_from_file(case.path()).expect("Error reading configuration");
 
                 benchmark_group.bench_function(case.path().to_str().unwrap(), |b| {
                     b.iter(|| {
-                        route(black_box(&input)).expect("No solution found");
+                        route(black_box(&mut input)).expect("No solution found");
                     })
                 });
             }

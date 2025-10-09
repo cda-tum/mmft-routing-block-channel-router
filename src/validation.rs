@@ -12,7 +12,6 @@ pub struct ValidateInput {
     pub port_diameter: Option<f64>,
     pub frame_height: Option<f64>,
     pub frame_width: Option<f64>,
-    pub frame_padding: Option<f64>,
     pub pitch: Option<f64>,
     pub pitch_offset_x: Option<f64>,
     pub pitch_offset_y: Option<f64>,
@@ -47,7 +46,6 @@ pub enum ValidationError {
     BoardHeightError(BoardHeightError),
     FrameHeightError(FrameHeightError),
     FrameWidthError(FrameWidthError),
-    FramePaddingError(FramePaddingError),
     PortDiameterError(PortDiameterError),
     PitchError(PitchError),
     PitchOffsetXError(PitchOffsetXError),
@@ -85,15 +83,6 @@ pub enum FrameHeightError {
     NotPositive,
     NotLargerThanBoardHeight,
 }
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum FramePaddingError {
-    Undefined,
-    NotPositive,
-    NotSmallerThanHalfFrameWidth,
-    NotSmallerThanHalfFrameHeight,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub enum PortDiameterError {
     Undefined,
@@ -210,16 +199,6 @@ pub fn validate(input: ValidateInput) -> Result<ValidationOk, ValidationErr> {
         errors.push(ValidationError::FrameHeightError(FrameHeightError::Undefined));
     }
 
-    if let Some(frame_padding) = input.frame_padding {
-        if frame_padding <= 0. {
-            errors.push(ValidationError::FramePaddingError(
-                FramePaddingError::NotPositive,
-            ));
-        }
-    } else {
-        errors.push(ValidationError::FramePaddingError(FramePaddingError::Undefined));
-    }
-
     if let Some(port_diameter) = input.port_diameter {
         if port_diameter <= 0. {
             errors.push(ValidationError::PortDiameterError(
@@ -304,18 +283,6 @@ pub fn validate(input: ValidateInput) -> Result<ValidationOk, ValidationErr> {
         if frame_width <= board_width {
             errors.push(ValidationError::FrameWidthError(
                 FrameWidthError::NotLargerThanBoardWidth,
-            ));
-        }
-    });
-
-    some!(input, frame_padding, board_width, board_height, frame_width, frame_height, {
-        if frame_padding > abs((frame_width / 2.) - board_width) {
-            errors.push(ValidationError::FramePaddingError(
-                FramePaddingError::NotSmallerThanHalfFrameWidth,
-            ));
-        } else if frame_padding > abs((frame_height / 2.) - board_height) {
-            errors.push(ValidationError::FramePaddingError(
-                FramePaddingError::NotSmallerThanHalfFrameHeight,
             ));
         }
     });

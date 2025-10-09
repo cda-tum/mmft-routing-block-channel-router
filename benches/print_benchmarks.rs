@@ -43,11 +43,11 @@ fn main() {
 
 fn print_benchmark_for_file(file_name: &str) {
     let file = Path::new(&file_name);
-    let input = match read_input_from_file(file) {
+    let mut input = match read_input_from_file(file) {
         Ok(r) => r,
         Err(e) => {println!("{:?}", e); return},
     };
-    let result = route(&input);
+    let result = route(&mut input);
     let connections = match result {
         Ok(r) => r,
         Err(BoardRouterOutputError::PartialResult(r)) => r,

@@ -257,12 +257,24 @@ pub fn compute_ports(
 
 
 pub fn log_outside_connections_json(outside: &RouteInputConnections) {
-    console::log_1(&JsValue::from_str("— outside_connections (JSON) —"));
+    console::log_1(&JsValue::from_str("— Outside connections (JSON) —"));
     let js_val = serde_wasm_bindgen::to_value(outside).expect("serialize outside_connections");
     console::log_1(&js_val);
 }
 
-pub fn route(input: &RouteInput) -> BoardRouterOutput {
+pub fn log_all_connections_json(outside: &RouteInputConnections) {
+    console::log_1(&JsValue::from_str("— All connections (JSON) —"));
+    let js_val = serde_wasm_bindgen::to_value(outside).expect("serialize connections");
+    console::log_1(&js_val);
+}
+
+pub fn log_output_connections_json(outside: &Vec<BoardRouterOutputConnection>) {
+    console::log_1(&JsValue::from_str("— All output connections (JSON) —"));
+    let js_val = serde_wasm_bindgen::to_value(outside).expect("serialize connections");
+    console::log_1(&js_val);
+}
+
+pub fn route(input: &mut RouteInput) -> BoardRouterOutput {
 
     // DEBUGGING ONLY
     // TODO: remove later
@@ -316,22 +328,78 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
         - half_spacing;
     let mut post_offset_cells_y = ((post_remaining_y / cell_size).max(0.)).floor() as usize;
 
-    if input.chip_frame == ChipFrame::WithFrame {
-        // How many cells fit into each gap (rounded down)
-        let gap_cells_left   = (input.board_frame_gap_left_mm   / cell_size).floor() as usize;
-        let gap_cells_right  = (input.board_frame_gap_right_mm  / cell_size).floor() as usize;
-        let gap_cells_top    = (input.board_frame_gap_top_mm    / cell_size).floor() as usize;
-        let gap_cells_bottom = (input.board_frame_gap_bottom_mm / cell_size).floor() as usize;
+    // DEBUGGING
+    console::log_1(&JsValue::from_str("Frame Value: "));
+    console::log_1(&JsValue::from_str(&format!("chip_frame: {:?}", input.chip_frame)));
 
-        // Add those cells *outside* the existing board.
+    let mut row_shift = 0;
+    let mut column_shift= 0;
+
+    // Additional logic for the frame that adds more cells to the routing board around (according to each gap)
+    if input.chip_frame == ChipFrame::WithFrame {
+
+        console::log_1(&JsValue::from_str("Branch for frame logic has been entered."));
+
+        // How many cells fit into each gap (rounded up)
+        let gap_cells_left   = (input.board_frame_gap_left_mm   / cell_size).ceil() as usize;
+        let gap_cells_right  = (input.board_frame_gap_right_mm  / cell_size).ceil() as usize;
+        let gap_cells_top    = (input.board_frame_gap_top_mm    / cell_size).ceil() as usize;
+        let gap_cells_bottom = (input.board_frame_gap_bottom_mm / cell_size).ceil() as usize;
+
+        // Add those cells outside the existing board.
         pre_offset_cells_x += gap_cells_left;
         post_offset_cells_x += gap_cells_right;
         pre_offset_cells_y += gap_cells_top;
         post_offset_cells_y += gap_cells_bottom;
+
+        // Shift the port indices of all connections by that number of additional cells (to the right and down)
+        // so that there are still only positive port indices -> (0,0) is the port on the left upper corner of the frame
+        row_shift = pre_offset_cells_y;
+        console::log_2(
+            &JsValue::from_str("Additional row cells:"),
+            &JsValue::from_f64(row_shift as f64)
+        );
+
+        column_shift = pre_offset_cells_x;
+        console::log_2(
+            &JsValue::from_str("Additional column cells:"),
+            &JsValue::from_f64(column_shift as f64)
+        );
+
+
+        for inside_connection in input.connections.iter_mut() {
+            inside_connection.ports[0].0 += column_shift;
+            inside_connection.ports[0].1 += row_shift;
+
+            inside_connection.ports[1].0 += column_shift;
+            inside_connection.ports[1].1 += row_shift;
+
+            for branch_port in inside_connection.branch_port.iter_mut() {
+                branch_port.0 += column_shift;
+                branch_port.1 += row_shift;
+            }
+        }
+
+        for outside_connection in input.outside_connections.iter_mut() {
+            outside_connection.ports[0].0 += column_shift;
+            outside_connection.ports[0].1 += row_shift;
+
+            outside_connection.ports[1].0 += column_shift;
+            outside_connection.ports[1].1 += row_shift;
+        }
+
     }
 
     let cells_x = main_grid_cells_x + pre_offset_cells_x + post_offset_cells_x;
+    console::log_2(
+        &JsValue::from_str("All cells on x-axis:"),
+        &JsValue::from_f64(cells_x as f64)
+    );
     let cells_y = main_grid_cells_y + pre_offset_cells_y + post_offset_cells_y;
+    console::log_2(
+        &JsValue::from_str("All cells on y-axis:"),
+        &JsValue::from_f64(cells_y as f64)
+    );
 
     let cell_offset_x = input.pitch_offset_x
         - ((cells_per_pitch / 2) as f64) * cell_size
@@ -351,6 +419,25 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
     let box_size = (port_influence_radius / cell_size).ceil();
 
     let mut nodes = Vec::<GridNode>::with_capacity(cells_x * cells_y);
+
+
+    // Add the outside connections to the vector of existing (inside) connections
+    // so that they can all be routed together in the following steps of the routing logic
+
+    let mut highest_id = input.connections.iter().map(|c| c.id).max();
+    let mut id = highest_id.unwrap_or(0);
+
+    for mut outside_connection in input.outside_connections.iter_mut() {
+        id += 1;
+        let connection = RouteInputConnection {
+            id,
+            ports: vec![(outside_connection.ports[0].0, outside_connection.ports[0].1), (outside_connection.ports[1].0, outside_connection.ports[1].1)],
+            branch_port: None // in the current implementation, outside connections do not yet offer branch ports
+        };
+        input.connections.push(connection);
+    }
+
+    log_all_connections_json(&input.connections);
 
     // Generate routing nodes/cells
     for _ in 0..cells_x {
@@ -839,9 +926,35 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
         }
     }
 
+    console::log_1(&JsValue::from_str("Output connections BEFORE shift: "));
+    log_output_connections_json(&output_connections);
+
+    // Shift all points back by the same number of cells that was previously shifted based on the
+    // additional gaps created by the frame around the routing board (only if frame was used)
+
+    if input.chip_frame == ChipFrame::WithFrame {
+        let mut x_shift : f64 = column_shift as f64;
+        x_shift = x_shift * cell_size;
+
+        let mut y_shift: f64 = row_shift as f64;
+        y_shift = y_shift * cell_size;
+
+        for output_connection in output_connections.iter_mut() {
+            let channels = &mut output_connection.1;
+            for channel in channels.iter_mut() {
+                for point in channel.iter_mut() {
+                    point[0] -= x_shift;
+                    point[1] -= y_shift;
+                }
+            }
+        }
+    }
+
     let output = BoardRouterOutputBoard {
         connections: output_connections,
     };
+
+    log_output_connections_json(&output.connections);
 
     if succesful_routings == 0 {
         Err(BoardRouterOutputError::NoConnectionsFound)

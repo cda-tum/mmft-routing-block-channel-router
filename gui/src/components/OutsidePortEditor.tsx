@@ -166,7 +166,6 @@ export function OutsidePortEditor({
                         slotProps={{ input: { "aria-invalid": portHasError || undefined } }}
                     />
                     <FormHelperText color="danger" sx={{ visibility: portHasError ? "visible" : "hidden" }}>
-                        {portHelp ?? "Required"}
                     </FormHelperText>
                 </FormControl>
 

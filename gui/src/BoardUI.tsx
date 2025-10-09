@@ -42,7 +42,6 @@ import { SxProps } from "@mui/joy/styles/types"
 import { BoardIcon } from "./icons/BoardIcon"
 import { MMFTIcon } from "./icons/MMFTIcon"
 import {ChipFrameChoice} from "./components/ChipFrameChoice.tsx";
-import {ChipFramePaddingIcon} from "./icons/ChipFramePaddingIcon.tsx";
 import {ChipFrameWidthIcon} from "./icons/ChipFrameWidthIcon.tsx";
 import {ChipFrameHeightIcon} from "./icons/ChipFrameHeightIcon.tsx";
 
@@ -462,15 +461,6 @@ export function BoardUI() {
                                 onChange={(fv, pv) => updateInputParameter('frameHeight', fv, pv)}
                                 description="Absolute height of the frame surrounding the routing board."
                             />
-                            <MicrometerInput
-                                label="Frame Padding"
-                                explainIcon={<ChipFramePaddingIcon width={50} height={50} />}
-                                value={input.parameters.framePadding.fieldValue}
-                                error={input.parameters.framePadding.error ? input.parameters.framePadding.errorMessage : undefined}
-                                warning={input.parameters.framePadding.warning}
-                                onChange={(fv, pv) => updateInputParameter('framePadding', fv, pv)}
-                                description="Padding between the routing board and the frame"
-                            />
                         </Stack>
                         )}
                     </AccordionDetails>
@@ -526,7 +516,6 @@ export function BoardUI() {
                             useChipFrame={input.parameters.chipFrame.value!}
                             frameWidth={input.parameters.frameWidth.value!}
                             frameHeight={input.parameters.frameHeight.value!}
-                            chipFramePadding={input.parameters.framePadding.value!}
                             onGapsChange={(gaps) => {
                                 const gapsAsParams = {
                                     boardFrameGapTopMm:   { error: false, value: gaps.topMm,    fieldValue: gaps.topMm.toString() },

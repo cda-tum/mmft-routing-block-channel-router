@@ -9,7 +9,7 @@ pub fn validate(input: JsValue) -> JsValue {
 
 #[wasm_bindgen]
 pub fn route(input: JsValue) -> JsValue {
-    JsValue::from_serde(&crate::board_router::route(&input.into_serde().unwrap())).unwrap()
+    JsValue::from_serde(&crate::board_router::route(&mut input.into_serde().unwrap())).unwrap()
 }
 
 

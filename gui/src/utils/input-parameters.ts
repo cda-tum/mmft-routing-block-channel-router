@@ -33,7 +33,6 @@ export const defaultInputParameterValues: InputParameterValues = {
     chipFrame: 'WithFrame',
     frameWidth: 120,
     frameHeight: 40,
-    framePadding: 2,
     boardFrameGapTopMm: 0,
     boardFrameGapRightMm: 11,
     boardFrameGapBottomMm: 21,
@@ -62,7 +61,6 @@ export type InputParameterValues = {
     chipFrame: string
     frameWidth: number
     frameHeight: number
-    framePadding: number
     boardFrameGapTopMm: number
     boardFrameGapRightMm: number
     boardFrameGapBottomMm: number
@@ -91,7 +89,6 @@ export function validate(parameters: InputParameters) {
         chip_frame: parameters.chipFrame.value,
         frame_width: parameters.frameWidth.value,
         frame_height: parameters.frameHeight.value,
-        frame_padding: parameters.framePadding.value,
         connections: [], // TODO
         board_frame_gap_top_mm: parameters.boardFrameGapTopMm.value,
         board_frame_gap_right_mm: parameters.boardFrameGapRightMm.value,
@@ -242,35 +239,6 @@ export function validate(parameters: InputParameters) {
                                 ...vp.frameHeight,
                                 error: true,
                                 errorMessage: 'Must be larger than the board height!'
-                            }
-                        } else {
-                            ge.push(`Unexpected Error: ${suberror}`)
-                        }
-                    } else if ('FramePaddingError' in error) {
-                        const suberror = error['FramePaddingError']
-                        if (suberror === 'Undefined') {
-                            vp.framePadding = {
-                                ...vp.framePadding,
-                                error: true,
-                                errorMessage: 'Please enter a valid number!'
-                            }
-                        } else if (suberror === 'NotPositive') {
-                            vp.framePadding = {
-                                ...vp.framePadding,
-                                error: true,
-                                errorMessage: 'Must be a positive number!'
-                            }
-                        } else if (suberror === 'NotSmallerThanHalfFrameWidth') {
-                            vp.framePadding = {
-                                ...vp.framePadding,
-                                error: true,
-                                errorMessage: 'Must be smaller to fit the board\'s width inside the frame!'
-                            }
-                        } else if (suberror === 'NotSmallerThanHalfFrameHeight') {
-                            vp.framePadding = {
-                                ...vp.framePadding,
-                                error: true,
-                                errorMessage: 'Must be smaller to fit the board\'s height inside the frame!'
                             }
                         } else {
                             ge.push(`Unexpected Error: ${suberror}`)
