@@ -18,7 +18,7 @@ export type InvalidValue<VALIDTYPE> = {
 }
 
 export const defaultInputParameterValues: InputParameterValues = {
-    boardWidth: 105,
+    boardWidth: 30,
     boardHeight: 15,
     pitch: 1.5,
     pitchOffsetX: 3,
