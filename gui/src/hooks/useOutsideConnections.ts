@@ -8,7 +8,7 @@ export type OutsideEndpoint = { markerId: number; xMm: number; yMm: number };
 export type OutsideConnection = {
     id: number;
     outside: OutsideEndpoint;
-    inside: { port: PortKey };        // the destination port inside board
+    inside: { port: PortKey }; // the destination port inside board
     outsideRowColumn?: { row: number; col: number };
     createdAt: number;
     updatedAt: number;

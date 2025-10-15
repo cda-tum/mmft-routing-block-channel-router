@@ -56,7 +56,6 @@ export function OutsidePortEditor({
         setPortHelp(null); // clear any previous error
     }, [marker.id]);
 
-    // Clear port error as the user types
     React.useEffect(() => {
         if (portHelp) setPortHelp(null);
     }, [portStr]);
@@ -90,7 +89,7 @@ export function OutsidePortEditor({
 
         const normalizedPort = portStr.trim().toUpperCase();
 
-        // Ask parent to upsert (validates duplicates, etc.)
+        // Ask parent to upsert (validates duplicates)
         const res = await Promise.resolve(onSave(
             marker.id,
             { xMm: snapped.x, yMm: snapped.y, port: normalizedPort }

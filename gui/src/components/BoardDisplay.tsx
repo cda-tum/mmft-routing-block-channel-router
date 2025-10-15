@@ -95,7 +95,7 @@ export function BoardDisplay(props: {
             const branch = c.branchPort ? `${c.branchPort[0]}:${c.branchPort[1]}` : "-";
             return `${id}#${ports}#${branch}`;
         });
-        rows.sort();                // stable order
+        rows.sort();
         return rows.join(",");
     }
 
@@ -258,6 +258,8 @@ export function BoardDisplay(props: {
             pitchOffsetYmm: props.pitchOffsetY,
         });
 
+        console.log(rowColumn);
+
         const res = outsideConnectionState.upsertFromEditor({ id, xMm: next.xMm, yMm: next.yMm }, next.port, rowColumn);
         if (!res.ok) return res;
 
@@ -383,7 +385,6 @@ export function BoardDisplay(props: {
                 }
             }
 
-
             return {
                 index: portIndex as PortKey,
                 position: [props.pitchOffsetX + x * props.pitch, props.pitchOffsetY + y * props.pitch] as [number, number],
@@ -420,6 +421,20 @@ export function BoardDisplay(props: {
 
             })
         }
+
+        {props.outputConnections &&
+            Object.entries(props.outputConnections).map(([id, outputConnection]) => {
+                const connectionId = Number(id);
+                return (
+                    <ConnectionDisplay
+                        key={connectionId}
+                        channelWidth={props.channelWidth}
+                        connection={outputConnection}
+                        connectionId={connectionId}
+                        onClick={() => connectionState.preview.loadConnection(connectionId)}
+                    />
+                );
+            })}
     </>
 
 
