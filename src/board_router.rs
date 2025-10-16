@@ -45,7 +45,7 @@ pub struct RouteInputConnection {
     pub ports: Vec<Port>,
     pub branch_port: Option<Port>
 }
-pub type Port = (usize, usize);
+pub type Port = (isize, isize);
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum Layout {
@@ -177,7 +177,7 @@ fn compute_extra_node(
     ports: &[Port],
     cells_x: usize,
     cells_y: usize,
-    port_cell: impl Fn(&(usize, usize)) -> (usize, usize)
+    port_cell: impl Fn(&Port) -> (usize, usize)
 ) -> Option<(usize, usize)> {
     // Compute centroid
     let s = ports.iter().copied().fold((0, 0), |a, p| {
@@ -276,17 +276,6 @@ pub fn log_output_connections_json(outside: &Vec<BoardRouterOutputConnection>) {
 
 pub fn route(input: &mut RouteInput) -> BoardRouterOutput {
 
-    // DEBUGGING ONLY
-    // TODO: remove later
-    console::log_1(&JsValue::from_str("Top-Gap: "));
-    console::log_1(&JsValue::from_f64(input.board_frame_gap_top_mm));
-    console::log_1(&JsValue::from_str("Right-Gap: "));
-    console::log_1(&JsValue::from_f64(input.board_frame_gap_right_mm));
-    console::log_1(&JsValue::from_str("Bottom-Gap: "));
-    console::log_1(&JsValue::from_f64(input.board_frame_gap_bottom_mm));
-    console::log_1(&JsValue::from_str("Left-Gap: "));
-    console::log_1(&JsValue::from_f64(input.board_frame_gap_left_mm));
-
     log_outside_connections_json(&input.outside_connections);
 
     let channel_distance = input.channel_width + input.channel_spacing;
@@ -328,9 +317,10 @@ pub fn route(input: &mut RouteInput) -> BoardRouterOutput {
         - half_spacing;
     let mut post_offset_cells_y = ((post_remaining_y / cell_size).max(0.)).floor() as usize;
 
-    // DEBUGGING
-    console::log_1(&JsValue::from_str("Frame Value: "));
-    console::log_1(&JsValue::from_str(&format!("chip_frame: {:?}", input.chip_frame)));
+    let mut gap_cells_left = 0;
+    let mut gap_cells_right = 0;
+    let mut gap_cells_top = 0;
+    let mut gap_cells_bottom = 0;
 
     // Additional logic for the frame that adds more cells to the routing board around (according to each gap)
     if input.chip_frame == ChipFrame::WithFrame {
@@ -338,70 +328,21 @@ pub fn route(input: &mut RouteInput) -> BoardRouterOutput {
         console::log_1(&JsValue::from_str("Branch for frame logic has been entered."));
 
         // How many cells fit into each gap (rounded up)
-        let gap_cells_left   = (input.board_frame_gap_left_mm / cell_size).ceil() as usize;
-        let gap_cells_right  = (input.board_frame_gap_right_mm / cell_size).ceil() as usize;
-        let gap_cells_top    = (input.board_frame_gap_top_mm / cell_size).ceil() as usize;
-        let gap_cells_bottom = (input.board_frame_gap_bottom_mm / cell_size).ceil() as usize;
+        gap_cells_left   = (input.board_frame_gap_left_mm / cell_size).ceil() as usize;
+        gap_cells_right  = (input.board_frame_gap_right_mm / cell_size).ceil() as usize;
+        gap_cells_top    = (input.board_frame_gap_top_mm / cell_size).ceil() as usize;
+        gap_cells_bottom = (input.board_frame_gap_bottom_mm / cell_size).ceil() as usize;
 
-        console::log_2(
-            &JsValue::from_str("Gap cells left:"),
-            &JsValue::from_f64(gap_cells_left as f64)
-        );
-
-        console::log_2(
-            &JsValue::from_str("Gap cells right:"),
-            &JsValue::from_f64(gap_cells_right as f64)
-        );
-
-        console::log_2(
-            &JsValue::from_str("Gap cells top:"),
-            &JsValue::from_f64(gap_cells_top as f64)
-        );
-
-        console::log_2(
-            &JsValue::from_str("Gap cells bottom:"),
-            &JsValue::from_f64(gap_cells_bottom as f64)
-        );
 
         // Add those additional cells outside the existing board
         pre_offset_cells_x += gap_cells_left;
         post_offset_cells_x += gap_cells_right;
         pre_offset_cells_y += gap_cells_top;
         post_offset_cells_y += gap_cells_bottom;
-
-        console::log_2(
-            &JsValue::from_str("Pre-Offset Cells X:"),
-            &JsValue::from_f64(pre_offset_cells_x as f64)
-        );
-
-        console::log_2(
-            &JsValue::from_str("Post-Offset Cells X:"),
-            &JsValue::from_f64(post_offset_cells_x as f64)
-        );
-
-        console::log_2(
-            &JsValue::from_str("Pre-Offset Cells Y:"),
-            &JsValue::from_f64(pre_offset_cells_y as f64)
-        );
-
-        console::log_2(
-            &JsValue::from_str("Post-Offset Cells Y:"),
-            &JsValue::from_f64(post_offset_cells_y as f64)
-        );
-
     }
 
     let cells_x = main_grid_cells_x + pre_offset_cells_x + post_offset_cells_x;
-    console::log_2(
-        &JsValue::from_str("All cells on x-axis:"),
-        &JsValue::from_f64(cells_x as f64)
-    );
-
     let cells_y = main_grid_cells_y + pre_offset_cells_y + post_offset_cells_y;
-    console::log_2(
-        &JsValue::from_str("All cells on y-axis:"),
-        &JsValue::from_f64(cells_y as f64)
-    );
 
     let cell_offset_x = input.pitch_offset_x
         - ((cells_per_pitch / 2) as f64) * cell_size
@@ -410,10 +351,15 @@ pub fn route(input: &mut RouteInput) -> BoardRouterOutput {
         - ((cells_per_pitch / 2) as f64) * cell_size
         - pre_offset_cells_y as f64 * cell_size;
 
-    let port_cell = |port: &Port| {
-        let cell_x = (cells_per_pitch / 2) + cells_per_pitch * port.0 + pre_offset_cells_x;
-        let cell_y = (cells_per_pitch / 2) + cells_per_pitch * port.1 + pre_offset_cells_y;
-        (cell_x, cell_y)
+    let port_cell = |port: &Port| -> (usize, usize) {
+        let cell_x = ((cells_per_pitch / 2) as isize)
+            + (cells_per_pitch as isize) * port.0
+            + pre_offset_cells_x as isize;
+        let cell_y = ((cells_per_pitch / 2) as isize)
+            + (cells_per_pitch as isize) * port.1
+            + pre_offset_cells_y as isize;
+
+        (cell_x as usize, cell_y as usize)
     };
 
     let port_radius = input.port_diameter / 2.;
@@ -421,7 +367,6 @@ pub fn route(input: &mut RouteInput) -> BoardRouterOutput {
     let box_size = (port_influence_radius / cell_size).ceil();
 
     let mut nodes = Vec::<GridNode>::with_capacity(cells_x * cells_y);
-
 
     // Add the outside connections to the vector of existing (inside) connections
     // so that they can all be routed together in the following steps of the routing logic
@@ -440,7 +385,6 @@ pub fn route(input: &mut RouteInput) -> BoardRouterOutput {
             };
             input.connections.push(connection);
         }
-
         log_all_connections_json(&input.connections);
     }
 
@@ -898,6 +842,10 @@ pub fn route(input: &mut RouteInput) -> BoardRouterOutput {
             None,
         );
 
+        // Shift amounts in mm
+        let translation_x = (gap_cells_left  as f64) * cell_size;
+        let translation_y = (gap_cells_top   as f64) * cell_size;
+
         // Block the cells of the resulting path so that no subsequent routings can interfere with it.
         match result {
             Some(path) => {
@@ -908,7 +856,10 @@ pub fn route(input: &mut RouteInput) -> BoardRouterOutput {
                         let node = &mut nodes[n.0];
                         node.blocked = true;
                         let (n0ix, n0iy) = (n.0 / cells_y, n.0 % cells_y);
-                        [cell_offset_x + n0ix as f64 * cell_size, cell_offset_y + n0iy as f64 * cell_size]
+                        [
+                            cell_offset_x + n0ix as f64 * cell_size,
+                            cell_offset_y + n0iy as f64 * cell_size,
+                        ]
                     })
                     .collect::<Channel>();
                 match &routing_connection {

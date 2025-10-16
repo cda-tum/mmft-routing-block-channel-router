@@ -1,7 +1,7 @@
 import {Box, Button, Menu, MenuItem, Modal, ModalClose, ModalDialog, Stack, Typography, useTheme} from "@mui/joy"
 import { PortDisplay } from "./PortDisplay"
-import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react"
-import { portIndexToString, PortKey } from "../utils/ports"
+import {useCallback, useEffect, useMemo, useRef, useState} from "react"
+import {portIndexToString, PortKey, portStringToIndex} from "../utils/ports"
 import {ConnectionsState, ConnectionStateConnection, useConnectionState} from "../hooks/useConnectionState"
 import { ConnectionEditor, minPorts } from "./ConnectionEditor"
 import { OutputConnections } from "../utils/connections"
@@ -153,19 +153,25 @@ export function BoardDisplay(props: {
     const boardWmm = props.boardWidth  // mm
     const boardHmm = props.boardHeight // mm
 
+    // top-left corner of the board
     const [boardPos, setBoardPos] = useState({ x: 0, y: 0 })
 
-    const [contentSize, setContentSize] = useState({ w: 800, h: 400 });
+    const [containerEl, setContainerEl] = React.useState<HTMLElement | null>(null);
+    const [contentSize, setContentSize] = React.useState({ w: 0, h: 0 });
 
-    useLayoutEffect(() => {
-        const el = clickLayerRef.current;
-        if (!el) return;
-        const update = () => setContentSize({ w: el.clientWidth, h: el.clientHeight });
+    const handleContainerRef = React.useCallback((el: HTMLElement | null) => {
+        setContainerEl(el);
+    }, []);
+
+    React.useLayoutEffect(() => {
+        if (!containerEl) return;
+        const update = () => setContentSize({ w: containerEl.clientWidth, h: containerEl.clientHeight });
         update();
         const ro = new ResizeObserver(update);
-        ro.observe(el);
+        ro.observe(containerEl);
         return () => ro.disconnect();
-    }, []);
+    }, [containerEl]);
+
 
     const pxPerMM = contentSize.w / frameWidthMm;
 
@@ -192,7 +198,7 @@ export function BoardDisplay(props: {
         const bottomMm = frameHeightMm - topMm  - boardHmm;
         return { leftMm, topMm, rightMm, bottomMm };
     };
-    
+
 
     /* OUTSIDE PORTS / MARKERS */
 
@@ -205,6 +211,7 @@ export function BoardDisplay(props: {
             setMarkers([])
             nextId.current = 1
             outsideConnectionState.clear();
+            props.clearOutputConnections?.()
         }, [])
 
     const markerResetButtonLabel = markers.length > 1 ? "Clear Outside Ports" : "Clear Outside Port"
@@ -247,7 +254,27 @@ export function BoardDisplay(props: {
     };
 
 
-    const handleEditorSave = (id: number, next: OutsidePortProps): SaveResult => {
+    const handleEditorSave = (
+        id: number,
+        next: OutsidePortProps
+    ): SaveResult => {
+        const pk = portStringToIndex(next.port);
+        if (!pk) {
+            return { ok: false, error: "Invalid port format." };
+        }
+
+        const [col, row] = pk;
+        const { rows, columns } = props;
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        if (row >= rows || col >= columns) {
+            return {
+                ok: false,
+                error: `Destination port is outside the board (${rows} rows × ${columns} columns).`,
+            };
+        }
+
         const gaps = computeGaps({ x: boardPos.x, y: boardPos.y });
         const rowColumn = outsideMmToRowColumn({
             xMm: next.xMm,
@@ -258,14 +285,22 @@ export function BoardDisplay(props: {
             pitchOffsetYmm: props.pitchOffsetY,
         });
 
-        console.log(rowColumn);
+        const res = outsideConnectionState.upsertFromEditor(
+            { id, xMm: next.xMm, yMm: next.yMm },
+            next.port,
+            rowColumn
+        );
 
-        const res = outsideConnectionState.upsertFromEditor({ id, xMm: next.xMm, yMm: next.yMm }, next.port, rowColumn);
         if (!res.ok) return res;
 
-        setMarkers(ms =>
-            ms.map(m => (m.id === id ? { ...m, xMm: next.xMm, yMm: next.yMm, port: next.port } : m))
+        setMarkers((ms) =>
+            ms.map((m) =>
+                m.id === id
+                    ? { ...m, xMm: next.xMm, yMm: next.yMm, port: next.port }
+                    : m
+            )
         );
+
         return { ok: true, connectionId: res.connectionId };
     };
 
@@ -544,9 +579,13 @@ export function BoardDisplay(props: {
         </Box>
     )
 
-    // framedBoard: mount content directly
+    // board with frame
     const framedBoard = (
-        <Box className="chip-frame" sx={{ position: "relative", width: "100%" }}>
+        <Box
+            className="chip-frame"
+            sx={{ position: "relative", width: "100%" }}
+            ref={handleContainerRef}
+        >
             <ChipFrame
                 className="chip-frame"
                 contentClassName="chip-frame-content"
@@ -563,7 +602,7 @@ export function BoardDisplay(props: {
                     onPointerDown={createOutsidePortMarker}
                 >
                     <Box sx={{ position: "absolute", inset: 0, zIndex: 1 }}>
-                        {/* gridOverlay */}
+                        {/* gridOverlay (if needed for debugging) */}
                     </Box>
 
                     <Box sx={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none" }}>
@@ -591,16 +630,21 @@ export function BoardDisplay(props: {
         </Box>
     )
 
+    const gaps = computeGaps({ x: boardPos.x, y: boardPos.y });
+
     const editOutsidePort = <>
         {selectedMarker && (
             <OutsidePortEditor
                 marker={selectedMarker}
                 displayNumber={selectedIndex + 1}
                 gridConfig={grid}
-                innerWmm={frameWidthMm}
-                innerHmm={frameHeightMm}
+                frameWmm={frameWidthMm}
+                frameHmm={frameHeightMm}
                 onSave={(id, next) => handleEditorSave(id, next)}
                 onDelete={(id) => handleEditorDelete(id)}
+                gapsMm={{topMm: gaps.topMm, bottomMm: gaps.bottomMm, rightMm: gaps.rightMm, leftMm: gaps.leftMm}}
+                boardWmm={boardWmm}
+                boardHmm={boardHmm}
             />
         )}
     </>

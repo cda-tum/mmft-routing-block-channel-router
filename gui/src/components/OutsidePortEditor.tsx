@@ -21,14 +21,17 @@ type OutsidePortEditorProps = {
     marker: OutsidePort;
     displayNumber: number;
     gridConfig: GridConfig;
-    innerWmm: number;
-    innerHmm: number;
+    frameWmm: number;
+    frameHmm: number;
+    gapsMm: {leftMm: number; topMm: number; rightMm: number; bottomMm: number;};
+    boardWmm: number;
+    boardHmm: number;
     onSave: (id: number, next: OutsidePortProps) => SaveResult | Promise<SaveResult>;
     onDelete: (id: number) => void;
 };
 
 export function OutsidePortEditor({
-                                      marker, displayNumber, gridConfig, innerWmm, innerHmm, onSave, onDelete,
+                                      marker, displayNumber, gridConfig, frameWmm, frameHmm, onSave, onDelete, gapsMm, boardWmm, boardHmm,
                                   }: OutsidePortEditorProps) {
 
     // editable strings
@@ -69,8 +72,8 @@ export function OutsidePortEditor({
     const yNaN = Number.isNaN(yNum);
     const portEmpty = portStr.trim() === "";
 
-    const xOut = !xNaN && !xEmpty && (xNum < 0 || xNum > innerWmm);
-    const yOut = !yNaN && !yEmpty && (yNum < 0 || yNum > innerHmm);
+    const xOut = !xNaN && !xEmpty && (xNum < 0 || xNum > frameWmm);
+    const yOut = !yNaN && !yEmpty && (yNum < 0 || yNum > frameHmm);
 
     // Only true input errors (bounds/empty) block the Save
     const hasError = xEmpty || yEmpty || xNaN || yNaN || xOut || yOut || portEmpty;
@@ -84,16 +87,16 @@ export function OutsidePortEditor({
         if (hasError) return;
 
         // Snap to nearest valid grid node inside bounds
-        const snapped = snapToGrid(xNum, yNum, gridConfig, { width: innerWmm, height: innerHmm });
+        const snapped = snapToGrid(xNum, yNum, gridConfig, { width: frameWmm, height: frameHmm });
         if (!snapped) return;
 
         const normalizedPort = portStr.trim().toUpperCase();
 
         // Ask parent to upsert (validates duplicates)
-        const res = await Promise.resolve(onSave(
+        const res = await onSave(
             marker.id,
-            { xMm: snapped.x, yMm: snapped.y, port: normalizedPort }
-        ));
+            {xMm: snapped.x, yMm: snapped.y, port: normalizedPort}
+        );
 
         if (!res.ok) {
             // Show parent-provided error (e.g., "Port already used")
@@ -114,46 +117,100 @@ export function OutsidePortEditor({
         setPortHelp(null);
     };
 
+    const leftEdge = gapsMm.leftMm;
+    const higherEdge = gapsMm.topMm;
+    const rightEdge = gapsMm.leftMm + boardWmm;
+    const lowerEdge = gapsMm.topMm + boardHmm;
+    const coordinatesWithinBoard = xNum >= leftEdge && xNum <= rightEdge && yNum >= higherEdge && yNum <= lowerEdge
     const portHasError = portEmpty || !!portHelp;
+
+    const xInvalid = xStr.trim() === "" || Number.isNaN(xNum) || xNum < 0 || xNum > frameWmm || coordinatesWithinBoard;
+    const xMsg = xInvalid ? `Must be between 0 and ${frameWmm} mm outside the board` : "X coordinate in millimeters";
+
+    const yInvalid = yStr.trim() === "" || Number.isNaN(xNum) || yNum < 0 || yNum > frameHmm || coordinatesWithinBoard;
+    const yMsg = yInvalid ? `Must be between 0 and ${frameHmm} mm outside the board` : "Y coordinate in millimeters";
+
+    let portMsg: string;
+
+    if (portEmpty) {
+        portMsg = "Please specify a valid port within bounds";
+    } else if (portHelp) {
+        portMsg = "Must be in bounds and correct format";
+    } else {
+        portMsg = "Destination port inside board";
+    }
 
     return (
         <Box>
             <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
-                <Typography level="title-sm" sx={{ m: 2, mr: 1, minWidth: 140 }}>
+                <Typography
+                    level="title-sm"
+                    sx={{
+                        m: 2,
+                        mr: 1,
+                        minWidth: 140,
+                        alignSelf: "center",
+                    }}
+                >
                     Outside Port #{displayNumber}
                 </Typography>
 
                 <FormControl size="sm" sx={{ minWidth: 160 }}>
-                    <FormLabel>X (mm)</FormLabel>
+                    <FormLabel sx={{ color: xInvalid ? "danger.600" : undefined }}>
+                        Horizontal Position
+                    </FormLabel>
+
                     <Input
                         type="number"
                         value={xStr}
                         onChange={(e) => setXStr(e.target.value)}
-                        slotProps={{ input: { step: 0.1, min: 0, max: innerWmm } }}
-                        endDecorator="mm"
+                        slotProps={{ input: { step: 0.1, min: 0, max: frameWmm, "aria-invalid": xInvalid || undefined } }}
+                        color={xInvalid ? "danger" : "neutral"}
+                        variant="outlined"
+                        sx={{
+                            minWidth: 270,
+                            minHeight: 38,
+                            height: 38 }}
                     />
-                    <FormHelperText sx={{ visibility: xOut ? "visible" : "hidden" }}>
-                        {xOut ? `0 – ${innerWmm} mm` : " "}
+
+                    <FormHelperText
+                        sx={{
+                            color: xInvalid ? "danger" : "neutral",
+                            fontSize: "0.75rem",
+                        }}
+                    >
+                        {xMsg}
                     </FormHelperText>
                 </FormControl>
 
                 <FormControl size="sm" sx={{ minWidth: 160 }}>
-                    <FormLabel>Y (mm)</FormLabel>
+                    <FormLabel sx={{ color: yInvalid ? "danger.600" : undefined }}>
+                        Vertical Position
+                    </FormLabel>
                     <Input
                         type="number"
                         value={yStr}
                         onChange={(e) => setYStr(e.target.value)}
-                        slotProps={{ input: { step: 0.1, min: 0, max: innerHmm } }}
+                        slotProps={{ input: { step: 0.1, min: 0, max: frameHmm, "aria-invalid": yInvalid || undefined } }}
+                        color={yInvalid ? "danger" : "neutral"}
                         endDecorator="mm"
+                        sx={{
+                            minWidth: 270,
+                            minHeight: 38,
+                            height: 38,
+                        }}
                     />
-                    <FormHelperText sx={{ visibility: yOut ? "visible" : "hidden" }}>
-                        {yOut ? `0 – ${innerHmm} mm` : " "}
+                    <FormHelperText sx={{
+                        color: xInvalid ? "danger" : "neutral",
+                        fontSize: "0.75rem",
+                    }}>
+                        {yMsg}
                     </FormHelperText>
                 </FormControl>
 
                 <FormControl size="sm" sx={{ minWidth: 200 }}>
                     <FormLabel sx={{ color: portHasError ? "danger.600" : undefined }}>
-                        Port On Routing Board
+                        Destination Port
                     </FormLabel>
                     <Input
                         type="text"
@@ -163,23 +220,40 @@ export function OutsidePortEditor({
                         color={portHasError ? "danger" : "neutral"}
                         variant="outlined"
                         slotProps={{ input: { "aria-invalid": portHasError || undefined } }}
+                        sx={{
+                            minWidth: 220,
+                            minHeight: 38,
+                            height: 38,
+                        }}
                     />
-                    <FormHelperText color="danger" sx={{ visibility: portHasError ? "visible" : "hidden" }}>
+                    <FormHelperText color={portHasError ? "danger" : "neutral"}>
+                        {portMsg}
                     </FormHelperText>
                 </FormControl>
 
                 <Stack direction="row" spacing={1}>
                     <Button
-                        sx={{ my: 2 }}
                         variant="solid"
                         color="primary"
                         disabled={!changed}
                         onClick={handleSave}
                         startDecorator={<CheckIcon />}
+                        sx={{
+                            minHeight: 38,
+                            height: 38,
+                        }}
                     >
                         Save
                     </Button>
-                    <Button sx={{ my: 2 }} variant="soft" color="danger" onClick={() => onDelete(marker.id)}>
+                    <Button
+                        variant="soft"
+                        color="danger"
+                        onClick={() => onDelete(marker.id)}
+                        sx={{
+                            minHeight: 38,
+                            height: 38,
+                        }}
+                    >
                         Delete
                     </Button>
                 </Stack>

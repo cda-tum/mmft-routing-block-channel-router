@@ -44,6 +44,7 @@ import { MMFTIcon } from "./icons/MMFTIcon"
 import {ChipFrameChoice} from "./components/ChipFrameChoice.tsx";
 import {ChipFrameWidthIcon} from "./icons/ChipFrameWidthIcon.tsx";
 import {ChipFrameHeightIcon} from "./icons/ChipFrameHeightIcon.tsx";
+import {ConfirmableMicrometerInput} from "./components/ConfirmableMicrometerInput.tsx";
 
 export type InputState = {
     parameters: InputParameters
@@ -409,6 +410,59 @@ export function BoardUI() {
 
                 <Accordion>
                     <AccordionSummary sx={input.parameters.channelCap.error || input.parameters.channelCapCustom.error ? accordionErrorSx : {}}>
+                        <Typography level="h4">
+                            <ChipFrameIcon sx={{ verticalAlign: "bottom" }} /> Chip Frame Settings
+                        </Typography>
+                    </AccordionSummary>
+
+                    <AccordionDetails>
+                        <ChipFrameChoice
+                            chipFrame={input.parameters.chipFrame.value}
+                            onChange={(chipFrame) => {
+                                updateInputParameter("chipFrame", chipFrame, chipFrame);
+                            }}
+                        />
+
+                        {showFrameInputFields && (
+                            <Stack direction="row" spacing={4} flexWrap="wrap" useFlexGap>
+                                <ConfirmableMicrometerInput
+                                    label="Frame Width"
+                                    explainIcon={<ChipFrameWidthIcon width={50} height={50} />}
+                                    value={input.parameters.frameWidth.fieldValue}
+                                    error={input.parameters.frameWidth.error ? input.parameters.frameWidth.errorMessage : undefined}
+                                    warning={input.parameters.frameWidth.warning}
+                                    description="Absolute width of the frame surrounding the routing board."
+                                    confirmLabel="OK"
+                                    onConfirm={(fv, pv) => updateInputParameter("frameWidth", fv, pv)}
+                                    requireChangeToConfirm
+                                    sx={{
+                                        minWidth: 240,
+                                        minHeight: 70
+                                    }}
+                                />
+
+                                <ConfirmableMicrometerInput
+                                    label="Frame Height"
+                                    explainIcon={<ChipFrameHeightIcon width={50} height={50} />}
+                                    value={input.parameters.frameHeight.fieldValue}
+                                    error={input.parameters.frameHeight.error ? input.parameters.frameHeight.errorMessage : undefined}
+                                    warning={input.parameters.frameHeight.warning}
+                                    description="Absolute height of the frame surrounding the routing board."
+                                    confirmLabel="OK"
+                                    onConfirm={(fv, pv) => updateInputParameter("frameHeight", fv, pv)}
+                                    requireChangeToConfirm
+                                    sx={{
+                                        minWidth: 240,
+                                        minHeight: 70
+                                    }}
+                                />
+                            </Stack>
+                        )}
+                    </AccordionDetails>
+                </Accordion>
+
+                <Accordion>
+                    <AccordionSummary sx={input.parameters.channelCap.error || input.parameters.channelCapCustom.error ? accordionErrorSx : {}}>
                         <Typography level="h4"><OutputIcon sx={{
                             verticalAlign: 'bottom'
                         }} /> DXF Output Settings</Typography>
@@ -420,49 +474,6 @@ export function BoardUI() {
                             onChangeChannelCap={channelCap => updateInputParameter('channelCap', channelCap, channelCap)}
                             onChangeChannelCapCustom={(fv, pv) => updateInputParameter('channelCapCustom', fv, pv)}
                         />
-                    </AccordionDetails>
-                </Accordion>
-
-                <Accordion>
-                    <AccordionSummary sx={input.parameters.channelCap.error || input.parameters.channelCapCustom.error ? accordionErrorSx : {}}>
-                        <Typography level="h4"><ChipFrameIcon sx={{
-                            verticalAlign: 'bottom'
-                        }} /> Chip Frame Settings</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <ChipFrameChoice
-                            chipFrame={input.parameters.chipFrame.value}
-                            onChange={(chipFrame) => {
-                                updateInputParameter("chipFrame", chipFrame, chipFrame)
-                            }}
-                        />
-                        {showFrameInputFields && (
-                        <Stack
-                            direction="row"
-                            spacing={4}
-                            flexWrap='wrap'
-                            useFlexGap
-                        >
-                            <MicrometerInput
-                                label="Frame Width"
-                                explainIcon={<ChipFrameWidthIcon width={50} height={50} />}
-                                value={input.parameters.frameWidth.fieldValue}
-                                error={input.parameters.frameWidth.error ? input.parameters.frameWidth.errorMessage : undefined}
-                                warning={input.parameters.frameWidth.warning}
-                                onChange={(fv, pv) => updateInputParameter('frameWidth', fv, pv)}
-                                description="Absolute width of the frame surrounding the routing board."
-                            />
-                            <MicrometerInput
-                                label="Frame Height"
-                                explainIcon={<ChipFrameHeightIcon width={50} height={50} />}
-                                value={input.parameters.frameHeight.fieldValue}
-                                error={input.parameters.frameHeight.error ? input.parameters.frameHeight.errorMessage : undefined}
-                                warning={input.parameters.frameHeight.warning}
-                                onChange={(fv, pv) => updateInputParameter('frameHeight', fv, pv)}
-                                description="Absolute height of the frame surrounding the routing board."
-                            />
-                        </Stack>
-                        )}
                     </AccordionDetails>
                 </Accordion>
             </AccordionGroup>
