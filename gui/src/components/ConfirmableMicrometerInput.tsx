@@ -20,16 +20,13 @@ export type MicrometerWithConfirmProps = {
     sx?: SxProps;
     marginY?: string | number;
 
-    /** fires on click OK (or Enter). Use this instead of onChange. */
     onConfirm?: (fieldValue: string, parsedValue: number | undefined) => void;
 
     /** optional: observe typing without committing */
     onDraftChange?: (fieldValue: string, parsedValue: number | undefined) => void;
 
-    /** disable OK unless draft actually differs from current value (default: true) */
+    /** disable OK unless draft actually differs from current value */
     requireChangeToConfirm?: boolean;
-    /** button label (default: "OK") */
-    confirmLabel?: string;
 };
 
 export function ConfirmableMicrometerInput(props: MicrometerWithConfirmProps) {
@@ -142,7 +139,7 @@ export function ConfirmableMicrometerInput(props: MicrometerWithConfirmProps) {
                         fontSize: "1.1rem",
                     }}
                 >
-                    {props.confirmLabel ?? "OK"}
+                    {"OK"}
                 </Button>
             </Box>
 

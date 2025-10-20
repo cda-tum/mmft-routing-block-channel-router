@@ -35,7 +35,7 @@ export function ChipFrameChoice(props: ChipFrameChoiceProps) {
             flexGrow: 1,
         }}
     >
-        <FormLabel htmlFor={id}>Frame Around Board</FormLabel>
+        <FormLabel htmlFor={id}>Board Layout</FormLabel>
         <RadioGroup
             id={id}
             aria-label="chipFrame"
@@ -75,7 +75,7 @@ export function ChipFrameChoice(props: ChipFrameChoiceProps) {
             >
                 <Radio id={'WithFrame'} value={'WithFrame'} checkedIcon={<CheckCircleRoundedIcon />} />
                 <LargeChipFrameIcon></LargeChipFrameIcon>
-                <FormLabel htmlFor={'WithFrame'} sx={labelShared}>With Frame</FormLabel>
+                <FormLabel htmlFor={'WithFrame'} sx={labelShared}>With FCB</FormLabel>
             </Sheet>
 
             <Sheet
@@ -85,7 +85,7 @@ export function ChipFrameChoice(props: ChipFrameChoiceProps) {
             >
                 <Radio id={'NoFrame'} value={'NoFrame'} checkedIcon={<CheckCircleRoundedIcon />} />
                 <LargeBoardIconNoFrame></LargeBoardIconNoFrame>
-                <FormLabel htmlFor={'NoFrame'} sx={labelShared}>No Frame</FormLabel>
+                <FormLabel htmlFor={'NoFrame'} sx={labelShared}>Routing Board Only</FormLabel>
             </Sheet>
         </RadioGroup>
     </FormControl>

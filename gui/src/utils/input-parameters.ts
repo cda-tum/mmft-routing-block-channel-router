@@ -30,7 +30,7 @@ export const defaultInputParameterValues: InputParameterValues = {
     channelCap: 'Square',
     channelCapCustom: 0.8,
     maxPorts: 5000,
-    chipFrame: 'WithFrame',
+    chipFrame: 'NoFrame',
     frameWidth: 120,
     frameHeight: 40,
     boardFrameGapTopMm: 0,

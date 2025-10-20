@@ -5,9 +5,12 @@ type ChipFrameProps = {
     children: React.ReactNode;
     className?: string;
     contentClassName?: string;
+    contentRef?: React.Ref<HTMLDivElement>;
+    contentSx?: any;
+    contentProps?: React.HTMLAttributes<HTMLDivElement>;
 };
 
-export function ChipFrame({ children, className, contentClassName }: ChipFrameProps) {
+export function ChipFrame({ children, className, contentClassName, contentRef, contentSx, contentProps }: ChipFrameProps) {
     return (
         <Box
             className={className}
@@ -22,12 +25,15 @@ export function ChipFrame({ children, className, contentClassName }: ChipFramePr
             }}
         >
             <Box
+                ref={contentRef}
                 className={contentClassName}
                 sx={{
                     position: "relative",
                     width: "100%",
                     boxSizing: "border-box",
+                    ...contentSx,
                 }}
+                {...contentProps}
             >
                 {children}
             </Box>

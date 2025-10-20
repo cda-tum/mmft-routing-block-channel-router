@@ -146,7 +146,7 @@ export function BoardDisplay(props: {
 
     const frameEnabled = props.useChipFrame === 'WithFrame'
 
-    const clickLayerRef = useRef<HTMLDivElement>(null)
+
 
     const frameWidthMm = props.frameWidth ?? 130  // mm
     const frameHeightMm = props.frameHeight ?? 30  // mm
@@ -159,9 +159,20 @@ export function BoardDisplay(props: {
     const [containerEl, setContainerEl] = React.useState<HTMLElement | null>(null);
     const [contentSize, setContentSize] = React.useState({ w: 0, h: 0 });
 
+    // clickLayer ref to offer clicking on the FCB to create outside ports
+    const clickLayerRef = useRef<HTMLDivElement>(null)
+
     const handleContainerRef = React.useCallback((el: HTMLElement | null) => {
         setContainerEl(el);
     }, []);
+
+    // The central content ref which is used for the ChipFrame element to align all children elements/layers
+    const contentRef = React.useCallback((el: HTMLDivElement | null) => {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        clickLayerRef.current = el;
+        handleContainerRef(el);
+    }, [handleContainerRef]);
 
     React.useLayoutEffect(() => {
         if (!containerEl) return;
@@ -172,7 +183,7 @@ export function BoardDisplay(props: {
         return () => ro.disconnect();
     }, [containerEl]);
 
-
+    // Most important measurement for correct scaling and display of components and channels
     const pxPerMM = contentSize.w / frameWidthMm;
 
     const boardWidthPx  = props.boardWidth  * pxPerMM;
@@ -191,6 +202,7 @@ export function BoardDisplay(props: {
         bottomMm: number;
     }
 
+    // gaps between the routing board and the edges of the FCB / Frame (in mm)
     const computeGaps = (pos: { x: number; y: number }): GapsMm => {
         const leftMm   = pos.x / pxPerMM;
         const topMm    = pos.y / pxPerMM;
@@ -202,6 +214,7 @@ export function BoardDisplay(props: {
 
     /* OUTSIDE PORTS / MARKERS */
 
+    // outside ports, also called markers here
     const [markers, setMarkers] = React.useState<OutsidePort[]>([]);
     const nextId = useRef(1)
     const [selectedId, setSelectedId] = React.useState<number | null>(null)
@@ -229,13 +242,17 @@ export function BoardDisplay(props: {
     const originX = computeGaps({ x: boardPos.x, y: boardPos.y }).leftMm + props.pitchOffsetX // position of the first top-left port on the board
     const originY = computeGaps({ x: boardPos.x, y: boardPos.y }).topMm + props.pitchOffsetY
 
+    // grid config -> refers to configuration of the port grid for the extension of ports exceeding the routing board
     const grid: GridConfig = {
         originMm: { x: originX, y: originY},
         pitchMm:  { x: props.pitch, y: props.pitch},
     };
 
+    // used for the outside ports overlay layer
     const svgOverlayRef = React.useRef<SVGSVGElement | null>(null)
 
+
+    // function to create an outside port (invoked by clicking layer when the user clicks on the FCB area)
     const createOutsidePortMarker: React.MouseEventHandler<HTMLDivElement> = (e) => {
         const svg = svgOverlayRef.current;
         if (!svg) return;
@@ -254,6 +271,7 @@ export function BoardDisplay(props: {
     };
 
 
+    // Function to save edited fields of the outside ports / connections
     const handleEditorSave = (
         id: number,
         next: OutsidePortProps
@@ -305,12 +323,14 @@ export function BoardDisplay(props: {
     };
 
 
+    // Function to remove a marker / outside port
     const handleEditorDelete = (id: number) => {
         setMarkers(ms => ms.filter(m => m.id !== id));
         outsideConnectionState.removeByMarker(id);
         if (selectedId === id) setSelectedId(null);
     };
 
+    // Helper function to convert mm positions of an outside port to a row and column index (which is used in the backend)
     function outsideMmToRowColumn(params: {
         xMm: number;
         yMm: number;
@@ -516,7 +536,7 @@ export function BoardDisplay(props: {
     )
 
 
-    // CHANNELS OVERLAY TO VISUALIZE RESULTING CHANNELS (moved from initial place after the ports)
+    // CHANNELS OVERLAY TO VISUALIZE RESULTING CHANNELS (in addition to the initial rendering of ports since they do not show channels outside the board)
 
     const { leftMm, topMm } = computeGaps({ x: boardPos.x, y: boardPos.y });
 
@@ -581,44 +601,34 @@ export function BoardDisplay(props: {
 
     // board with frame
     const framedBoard = (
-        <Box
+        <ChipFrame
             className="chip-frame"
-            sx={{ position: "relative", width: "100%" }}
-            ref={handleContainerRef}
+            contentClassName="chip-frame-content"
+            contentRef={contentRef}
+            contentSx={{
+                aspectRatio: `${frameWidthMm}/${frameHeightMm}`,
+                overflow: "hidden",
+            }}
+            contentProps={{
+                onPointerDown: createOutsidePortMarker
+            }}
         >
-            <ChipFrame
-                className="chip-frame"
-                contentClassName="chip-frame-content"
-            >
-                <Box
-                    ref={clickLayerRef}
-                    sx={{
-                        position: "relative",
-                        width: "100%",
-                        aspectRatio: `${frameWidthMm} / ${frameHeightMm}`,
-                        overflow: "hidden",
-                        display: "block",
-                    }}
-                    onPointerDown={createOutsidePortMarker}
-                >
-                    <Box sx={{ position: "absolute", inset: 0, zIndex: 1 }}>
-                        {/* gridOverlay (if needed for debugging) */}
-                    </Box>
+            <Box sx={{ position: "absolute", inset: 0, zIndex: 1 }}>
+                {/* gridOverlay (if needed for debugging) */}
+            </Box>
 
-                    <Box sx={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none" }}>
-                        {channelsOverlay}
-                    </Box>
+            <Box sx={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none" }}>
+                {channelsOverlay}
+            </Box>
 
-                    <Box sx={{ position: "absolute", inset: 0, zIndex: 2 }}>
-                        {outsidePortsOverlay}
-                    </Box>
+            <Box sx={{ position: "absolute", inset: 0, zIndex: 2 }}>
+                {outsidePortsOverlay}
+            </Box>
 
-                    <Box sx={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none" }}>
-                        {draggableBoard}
-                    </Box>
-                </Box>
-            </ChipFrame>
-        </Box>
+            <Box sx={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none" }}>
+                {draggableBoard}
+            </Box>
+        </ChipFrame>
     );
 
     // unframed board for the default solution without extra chip area around the routing board
@@ -632,6 +642,8 @@ export function BoardDisplay(props: {
 
     const gaps = computeGaps({ x: boardPos.x, y: boardPos.y });
 
+
+    // Editor for the outside ports and connections (pops up whenever a new outside port is created or edited)
     const editOutsidePort = <>
         {selectedMarker && (
             <OutsidePortEditor
@@ -794,7 +806,7 @@ export function BoardDisplay(props: {
             <Stack
                 direction="row"
                 spacing={1.5}
-                justifyContent="center"   // <- centers the whole row
+                justifyContent="center"
                 alignItems="center"
                 sx={{ mt: 1, flexWrap: "wrap", width: "100%" }}
                 paddingBottom={2}

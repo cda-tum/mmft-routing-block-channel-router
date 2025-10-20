@@ -4,7 +4,7 @@ use std::{
     path::Path,
 };
 
-use mmft_board_router::board_router::{compute_ports, route, ChipFrame, ComputePortsInput, ComputePortsOutput, ConnectionID, Layout, RouteInput, RouteInputConnection};
+use mmft_board_router::board_router::{compute_ports, route, ChipFrame, ComputePortsInput, ComputePortsOutput, ConnectionID, Layout, Port, RouteInput, RouteInputConnection};
 use threadpool::ThreadPool;
 
 use nanoid::nanoid;
@@ -662,16 +662,16 @@ struct RandomPortConnectionsOptions {
 fn random_port_connection(
     ports: usize,
     options: &RandomPortConnectionsOptions,
-    occupied_ports: &Vec<(usize, usize)>,
-) -> Vec<(usize, usize)> {
+    occupied_ports: &Vec<Port>,
+) -> Vec<Port> {
     let mut rng = rand::rng();
 
     let mut candidates = Vec::new();
 
     while candidates.len() < ports {
-        let mut candidate: Option<(usize, usize)> = None;
+        let mut candidate: Option<Port> = None;
         while candidate.is_none()
-            || candidates.iter().any(|c: &(usize, usize)| {
+            || candidates.iter().any(|c: &Port| {
                 c.0.abs_diff(candidate.unwrap().0) as f64 / options.ports_x as f64
                     > options.max_relative_distance_x
                     || c.1.abs_diff(candidate.unwrap().1) as f64 / options.ports_y as f64
@@ -679,10 +679,11 @@ fn random_port_connection(
             })
         {
             let port = loop {
-                let port = (
-                    rng.random_range(0..options.ports_x),
-                    rng.random_range(0..options.ports_y),
+                let port: Port = (
+                    rng.random_range(0..options.ports_x) as isize,
+                    rng.random_range(0..options.ports_y) as isize,
                 );
+
                 if occupied_ports.contains(&port) || candidates.contains(&port) {
                     continue;
                 } else {

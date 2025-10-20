@@ -294,12 +294,12 @@ export function BoardUI() {
                     <AccordionSummary sx={input.parameters.boardWidth.error || input.parameters.boardHeight.error ? accordionErrorSx : {}}>
                         <Typography level="h4"><BoardIcon sx={{
                             verticalAlign: 'bottom'
-                        }} /> Board Settings</Typography>
+                        }} /> Routing Board Settings</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <Stack direction="row" spacing={4} flexWrap='wrap' useFlexGap>
                             <MicrometerInput
-                                label="Board Width"
+                                label="Routing Board Width"
                                 explainIcon={<BoardWidthIcon width={50} height={50} />}
                                 value={input.parameters.boardWidth.fieldValue}
                                 error={input.parameters.boardWidth.error ? input.parameters.boardWidth.errorMessage : undefined}
@@ -308,7 +308,7 @@ export function BoardUI() {
                                 description="Absolute width of the routing board."
                             />
                             <MicrometerInput
-                                label="Board Height"
+                                label="Routing Board Height"
                                 explainIcon={<BoardHeightIcon width={50} height={50} />}
                                 value={input.parameters.boardHeight.fieldValue}
                                 error={input.parameters.boardHeight.error ? input.parameters.boardHeight.errorMessage : undefined}
@@ -411,7 +411,7 @@ export function BoardUI() {
                 <Accordion>
                     <AccordionSummary sx={input.parameters.channelCap.error || input.parameters.channelCapCustom.error ? accordionErrorSx : {}}>
                         <Typography level="h4">
-                            <ChipFrameIcon sx={{ verticalAlign: "bottom" }} /> Chip Frame Settings
+                            <ChipFrameIcon sx={{ verticalAlign: "bottom" }} /> Fluidic Circuit Board Settings
                         </Typography>
                     </AccordionSummary>
 
@@ -426,13 +426,12 @@ export function BoardUI() {
                         {showFrameInputFields && (
                             <Stack direction="row" spacing={4} flexWrap="wrap" useFlexGap>
                                 <ConfirmableMicrometerInput
-                                    label="Frame Width"
+                                    label="Fluidic Circuit Board Width"
                                     explainIcon={<ChipFrameWidthIcon width={50} height={50} />}
                                     value={input.parameters.frameWidth.fieldValue}
                                     error={input.parameters.frameWidth.error ? input.parameters.frameWidth.errorMessage : undefined}
                                     warning={input.parameters.frameWidth.warning}
-                                    description="Absolute width of the frame surrounding the routing board."
-                                    confirmLabel="OK"
+                                    description="Absolute width of the FCB in which the routing board is contained."
                                     onConfirm={(fv, pv) => updateInputParameter("frameWidth", fv, pv)}
                                     requireChangeToConfirm
                                     sx={{
@@ -442,13 +441,12 @@ export function BoardUI() {
                                 />
 
                                 <ConfirmableMicrometerInput
-                                    label="Frame Height"
+                                    label="Fluidic Circuit Board Height"
                                     explainIcon={<ChipFrameHeightIcon width={50} height={50} />}
                                     value={input.parameters.frameHeight.fieldValue}
                                     error={input.parameters.frameHeight.error ? input.parameters.frameHeight.errorMessage : undefined}
                                     warning={input.parameters.frameHeight.warning}
-                                    description="Absolute height of the frame surrounding the routing board."
-                                    confirmLabel="OK"
+                                    description="Absolute height of the FCB in which the routing board is contained."
                                     onConfirm={(fv, pv) => updateInputParameter("frameHeight", fv, pv)}
                                     requireChangeToConfirm
                                     sx={{
