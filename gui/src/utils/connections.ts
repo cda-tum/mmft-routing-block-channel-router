@@ -11,7 +11,38 @@ export type InputConnection = {
 
 export type InputConnections = Record<ConnectionID, InputConnection>
 
-export const defaultInputConnections: InputConnections = {}
+export const defaultInputConnections: InputConnections = {
+    0: {
+        color: "",
+        ports: [[0, 0], [2, 1]],
+        branchPort: undefined
+    },
+    1: {
+        color: "",
+        ports: [[2, 5], [4, 6]],
+        branchPort: undefined
+    },
+    2: {
+        color: "",
+        ports: [[4, 0], [6, 5]],
+        branchPort: undefined
+    },
+    3: {
+        color: "",
+        ports: [[0, 4], [14, 5]],
+        branchPort: undefined
+    },
+    4: {
+        color: "",
+        ports: [[10, 1], [14, 1]],
+        branchPort: undefined
+    },
+    5: {
+        color: "",
+        ports: [[12, 0], [10, 5]],
+        branchPort: undefined
+    },
+}
 
 
 export type Point = [number, number]
