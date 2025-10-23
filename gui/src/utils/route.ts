@@ -32,8 +32,6 @@ export function route(input: InputState) {
             layout: input.parameters.layout.value,
         }
 
-        console.log(args)
-
         console.time('timing')
         const result = wasm_route(args)
         console.timeEnd('timing')
