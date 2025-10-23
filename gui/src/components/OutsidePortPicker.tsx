@@ -37,7 +37,7 @@ export function OutsidePortPicker({
     const theme = useTheme()
 
     const buttonLabel = <Typography sx={{
-        color: theme.vars.palette.text.primary
+        color: theme.vars.palette.common.white
     }}>Select Outside Port</Typography>
 
     return (
