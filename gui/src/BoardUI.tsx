@@ -124,6 +124,7 @@ export function BoardUI() {
     }, [output, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.channelWidth, input.parameters.boardWidth, input.parameters.boardHeight])
 
     useEffect(() => {
+        setInitialInputConnections(defaultInputConnections)
         updateInputParameters(input.parameters)
     }, [])
 
