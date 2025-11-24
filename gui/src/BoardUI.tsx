@@ -515,8 +515,67 @@ export function BoardUI() {
                     }
                 </ContentBox>
 
-            </Box>
-        </main>
+        <Box sx={{ marginY: 2 }}>
+        <Accordion>
+            <AccordionSummary>
+            <Typography level="h4">How to Cite</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+            <Stack spacing={2}>
+                <Typography level="body-md">
+                In case you are using our tool in your work, we would be thankful if you referred to it by citing the following publication:
+                </Typography>
+
+                {/* FIRST BIBTEX BOX */}
+                <Box
+                sx={{
+                    backgroundColor: '#f5f5f5',
+                    padding: 2,
+                    borderRadius: 'md',
+                    fontFamily: 'monospace',
+                    whiteSpace: 'pre-wrap',
+                    textAlign: 'left',
+                }}
+                >
+        {`@INPROCEEDINGS{ebner2025automatic,
+            AUTHOR    = {P. Ebner and M. Emmerich and E. Safai and A. Paul and M. Odijk and J. Loessberg-Zahl and R. Wille},
+            TITLE     = {{Automatic Design for Modular Microfluidic Routing Blocks}},
+            BOOKTITLE = {International Conference on Computer Aided Design (ICCAD)},
+            YEAR      = {2025}
+        }`}
+                </Box>
+
+                <Typography
+                level="body-md">
+                This tool is part of the Munich Microfluidics Toolkit (MMFT):
+                </Typography>
+
+                {/* SECOND BIBTEX BOX */}
+                <Box
+                sx={{
+                    backgroundColor: '#f5f5f5',
+                    padding: 2,
+                    borderRadius: 'md',
+                    fontFamily: 'monospace',
+                    whiteSpace: 'pre-wrap',
+                    textAlign: 'left',
+                }}
+                >
+        {`@INPROCEEDINGS{iccad_2025_mmft,
+            AUTHOR        = {R. Wille and P. Ebner and M. Emmerich and M. Takken},
+            TITLE         = {{The Munich Microfluidics Toolkit: Design Automation and Simulation Tools for Microfluidic Devices}},
+            BOOKTITLE     = {International Conference on Computer Aided Design (ICCAD)},
+            YEAR          = {2025}
+            ADDENDUM	  = {A overview of the toolkit is available at \\url{https://www.cda.cit.tum.de/research/microfluidics/mmft/}}
+        }`}
+                </Box>
+            </Stack>
+            </AccordionDetails>
+        </Accordion>
+        </Box>
+                </Box>
+            </main>
+
         <footer
             style={{
                 backgroundColor: theme.vars.palette.primary[500],
