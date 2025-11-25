@@ -33,7 +33,7 @@ Runs the benchmarks.
 
 ## How to Cite
 
-In case you are using our tool in your work, we would be thankful if you referred to it by citing the following publication:
+In case you are using our tool in your work, we would be thankful if you referred to it by citing the following [publication](https://www.cda.cit.tum.de/files/eda/2025_iccad_automatic_design_for_modular_microfluidic_routing_blocks.pdf):
 
 ```bibtex
 @INPROCEEDINGS{ebner2025automatic,
@@ -44,7 +44,7 @@ In case you are using our tool in your work, we would be thankful if you referre
 }
 ```
 
-This tool is part of the Munich Microfluidics Toolkit (MMFT):
+This tool is part of the Munich Microfluidics Toolkit (MMFT), described in the following [publication](https://www.cda.cit.tum.de/files/eda/2025_iccad_munich_microfluidics_toolkit.pdf):
 ```bibtex
 @INPROCEEDINGS{iccad_2025_mmft,
     AUTHOR        = {R. Wille and P. Ebner and M. Emmerich and M. Takken},

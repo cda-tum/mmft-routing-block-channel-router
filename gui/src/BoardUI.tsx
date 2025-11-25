@@ -523,7 +523,9 @@ export function BoardUI() {
             <AccordionDetails>
             <Stack spacing={2}>
                 <Typography level="body-md">
-                In case you are using our tool in your work, we would be thankful if you referred to it by citing the following publication:
+                In case you are using our tool in your work, we would be thankful if you referred to it by citing the following <Link href="https://www.cda.cit.tum.de/files/eda/2025_iccad_automatic_design_for_modular_microfluidic_routing_blocks.pdf" sx={{
+                    color: theme.vars.palette.primary[500]
+                }}>publication</Link>:
                 </Typography>
 
                 {/* FIRST BIBTEX BOX */}
@@ -547,7 +549,9 @@ export function BoardUI() {
 
                 <Typography
                 level="body-md">
-                This tool is part of the Munich Microfluidics Toolkit (MMFT):
+                This tool is part of the Munich Microfluidics Toolkit (MMFT), described in the following <Link href="https://www.cda.cit.tum.de/files/eda/2025_iccad_munich_microfluidics_toolkit.pdf" sx={{
+                    color: theme.vars.palette.primary[500]
+                }}>publication</Link>:
                 </Typography>
 
                 {/* SECOND BIBTEX BOX */}
