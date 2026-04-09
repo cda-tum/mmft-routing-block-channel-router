@@ -19,6 +19,7 @@ export function BoardDisplay(props: {
     pitchOffsetX: number
     pitchOffsetY: number
     portDiameter: number
+    template: string,
     columns: number | undefined
     rows: number | undefined
     onChange?: (connections: ConnectionsState) => void
@@ -28,6 +29,9 @@ export function BoardDisplay(props: {
     closeDropdown: boolean
 }) {
     const theme = useTheme()
+
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
 
     const connectionState = useConnectionState({
         boundaries: {
@@ -47,7 +51,6 @@ export function BoardDisplay(props: {
     useEffect(() => {
         connectionState.replaceWith(props.initialInputConnections)
     }, [props.initialInputConnections])
-
 
     const strokeWidth = useMemo(() => props.portDiameter / 10, [props.portDiameter])
     const margin = useMemo(() => strokeWidth / 2, [strokeWidth])
@@ -151,18 +154,45 @@ export function BoardDisplay(props: {
             }
         }))
 
-    const contents = <><rect
-        x={0}
-        y={0}
-        width={props.boardWidth}
-        height={props.boardHeight}
-        fill="none"
-        strokeWidth={strokeWidth}
-        stroke={theme.vars.palette.text.primary}
-        rx={strokeWidth / 2}
-    >
+    const background = props.template === "STARTER" ? <>
+        <image
+            href={prefersDark ? '/assets/fcb_underlay_rb_only_stretched_dark.png' : '/assets/fcb_underlay_rb_only_stretched.png'}
+            x={0}
+            y={0}
+            opacity={0.5}
+            width={props.boardWidth}
+            height={props.boardHeight}
+            preserveAspectRatio="xMidYMid meet"
+        />
+        <rect
+            x={0}
+            y={0}
+            width={props.boardWidth}
+            height={props.boardHeight}
+            fill="none"
+            strokeWidth={strokeWidth}
+            stroke={theme.vars.palette.text.primary}
+            rx={strokeWidth / 2}
+        >
+        </rect>
+    </>
+        :
+        <rect
+            x={0}
+            y={0}
+            width={props.boardWidth}
+            height={props.boardHeight}
+            fill="none"
+            strokeWidth={strokeWidth}
+            stroke={theme.vars.palette.text.primary}
+            rx={strokeWidth / 2}
+        >
+        </rect>
 
-    </rect>
+
+    const contents = <>
+
+        {background}
 
         {props.outputConnections !== undefined && Object.entries(connectionState.connections).map(([id, _connection]) => {
             const connectionId = parseFloat(id)

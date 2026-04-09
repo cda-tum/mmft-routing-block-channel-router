@@ -28,7 +28,9 @@ import OutputIcon from '@mui/icons-material/Output';
 import { ChannelIcon } from "./icons/ChannelIcon"
 import { SxProps } from "@mui/joy/styles/types"
 import { BoardIcon } from "./icons/BoardIcon"
+import { FluidicCircuitBoardIcon } from "./icons/FluidicCircuitBoardIcon"
 import { MMFTIcon } from "./icons/MMFTIcon"
+import { TemplateChoice } from "./components/TemplateChoice"
 
 export type InputState = {
     parameters: InputParameters
@@ -200,6 +202,23 @@ export function BoardUI() {
 
     const accordionErrorSx: SxProps = { backgroundColor: `rgb(from ${theme.vars.palette.danger[500]} r g b / calc(alpha / 2))` }
 
+
+    const starterPlatformParams: InputParameters = {
+        boardWidth: { error: false, value: 105, fieldValue: "105" },
+        boardHeight: { error: false, value: 16.5, fieldValue: "16.5" },
+        pitch: { error: false, value: 1.5, fieldValue: "1.5" },
+        pitchOffsetX: { error: false, value: 4, fieldValue: "4" },
+        pitchOffsetY: { error: false, value: 3.7, fieldValue: "3.7" },
+        portDiameter: { error: false, value: 0.8, fieldValue: "0.8" },
+        channelWidth: { error: false, value: 0.4, fieldValue: "0.4" },
+        channelSpacing: { error: false, value: 0.4, fieldValue: "0.4" },
+        layout: { error: false, value: "Octilinear", fieldValue: "Octilinear" },
+        template: { error: false, value: "STARTER", fieldValue: "STARTER" },
+        channelCap: { error: false, value: "Square", fieldValue: "Square" },
+        channelCapCustom: { error: false, value: 0.8, fieldValue: "0.8" },
+        maxPorts: { error: false, value: 5000, fieldValue: "5000" },
+    }
+
     return <div
         style={{
             backgroundColor: theme.vars.palette.background.level1,
@@ -272,6 +291,32 @@ export function BoardUI() {
                         </Stack>
                     </AccordionDetails>
                 </Accordion>
+
+                <Accordion>
+                    <AccordionSummary>
+                        <Typography level="h4"><FluidicCircuitBoardIcon sx={{
+                            verticalAlign: 'bottom'
+                        }} /> Chip Template </Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <TemplateChoice
+                            template={input.parameters.template.value}
+                            onChange={(template) => {
+                                if (template === "STARTER") {
+                                    updateInputParameters(starterPlatformParams);
+                                    console.log("template is STARTER. Setting values.")
+                                }
+                                else if (template === "NoTemplate") {
+                                    updateInputParameters(defaultInputParameters)                       
+                                    console.log("template is None. Resetting to defaults. Default params:", defaultInputParameters)        
+                                }
+                                
+                                resetOutput();
+                            }}
+                        />
+                    </AccordionDetails>
+                </Accordion>
+
                 <Accordion>
                     <AccordionSummary sx={input.parameters.boardWidth.error || input.parameters.boardHeight.error ? accordionErrorSx : {}}>
                         <Typography level="h4"><BoardIcon sx={{
@@ -429,6 +474,7 @@ export function BoardUI() {
                             pitchOffsetY={input.parameters.pitchOffsetY.value!}
                             portDiameter={input.parameters.portDiameter.value!}
                             channelWidth={input.parameters.channelWidth.value!}
+                            template={input.parameters.template.value!}
                             columns={input.portsX}
                             rows={input.portsY}
                             onChange={c => setInput(s => ({
@@ -515,70 +561,70 @@ export function BoardUI() {
                     }
                 </ContentBox>
 
-        <Box sx={{ marginY: 2 }}>
-        <Accordion>
-            <AccordionSummary>
-            <Typography level="h4">How to Cite</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-            <Stack spacing={2}>
-                <Typography level="body-md">
-                In case you are using our tool in your work, we would be thankful if you referred to it by citing the following <Link href="https://www.cda.cit.tum.de/files/eda/2025_iccad_automatic_design_for_modular_microfluidic_routing_blocks.pdf" sx={{
-                    color: theme.vars.palette.primary[500]
-                }}>publication</Link>:
-                </Typography>
+                <Box sx={{ marginY: 2 }}>
+                    <Accordion>
+                        <AccordionSummary>
+                            <Typography level="h4">How to Cite</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Stack spacing={2}>
+                                <Typography level="body-md">
+                                    In case you are using our tool in your work, we would be thankful if you referred to it by citing the following <Link href="https://www.cda.cit.tum.de/files/eda/2025_iccad_automatic_design_for_modular_microfluidic_routing_blocks.pdf" sx={{
+                                        color: theme.vars.palette.primary[500]
+                                    }}>publication</Link>:
+                                </Typography>
 
-                {/* FIRST BIBTEX BOX */}
-                <Box
-                sx={{
-                    backgroundColor: '#f5f5f5',
-                    padding: 2,
-                    borderRadius: 'md',
-                    fontFamily: 'monospace',
-                    whiteSpace: 'pre-wrap',
-                    textAlign: 'left',
-                }}
-                >
-        {`@INPROCEEDINGS{ebner2025automatic,
+                                {/* FIRST BIBTEX BOX */}
+                                <Box
+                                    sx={{
+                                        backgroundColor: '#f5f5f5',
+                                        padding: 2,
+                                        borderRadius: 'md',
+                                        fontFamily: 'monospace',
+                                        whiteSpace: 'pre-wrap',
+                                        textAlign: 'left',
+                                    }}
+                                >
+                                    {`@INPROCEEDINGS{ebner2025automatic,
             AUTHOR    = {P. Ebner and M. Emmerich and E. Safai and A. Paul and M. Odijk and J. Loessberg-Zahl and R. Wille},
             TITLE     = {{Automatic Design for Modular Microfluidic Routing Blocks}},
             BOOKTITLE = {International Conference on Computer Aided Design (ICCAD)},
             YEAR      = {2025}
         }`}
-                </Box>
+                                </Box>
 
-                <Typography
-                level="body-md">
-                This tool is part of the Munich Microfluidics Toolkit (MMFT), described in the following <Link href="https://www.cda.cit.tum.de/files/eda/2025_iccad_munich_microfluidics_toolkit.pdf" sx={{
-                    color: theme.vars.palette.primary[500]
-                }}>publication</Link>:
-                </Typography>
+                                <Typography
+                                    level="body-md">
+                                    This tool is part of the Munich Microfluidics Toolkit (MMFT), described in the following <Link href="https://www.cda.cit.tum.de/files/eda/2025_iccad_munich_microfluidics_toolkit.pdf" sx={{
+                                        color: theme.vars.palette.primary[500]
+                                    }}>publication</Link>:
+                                </Typography>
 
-                {/* SECOND BIBTEX BOX */}
-                <Box
-                sx={{
-                    backgroundColor: '#f5f5f5',
-                    padding: 2,
-                    borderRadius: 'md',
-                    fontFamily: 'monospace',
-                    whiteSpace: 'pre-wrap',
-                    textAlign: 'left',
-                }}
-                >
-        {`@INPROCEEDINGS{iccad_2025_mmft,
+                                {/* SECOND BIBTEX BOX */}
+                                <Box
+                                    sx={{
+                                        backgroundColor: '#f5f5f5',
+                                        padding: 2,
+                                        borderRadius: 'md',
+                                        fontFamily: 'monospace',
+                                        whiteSpace: 'pre-wrap',
+                                        textAlign: 'left',
+                                    }}
+                                >
+                                    {`@INPROCEEDINGS{iccad_2025_mmft,
             AUTHOR        = {R. Wille and P. Ebner and M. Emmerich and M. Takken},
             TITLE         = {{The Munich Microfluidics Toolkit: Design Automation and Simulation Tools for Microfluidic Devices}},
             BOOKTITLE     = {International Conference on Computer Aided Design (ICCAD)},
             YEAR          = {2025}
             ADDENDUM	  = {A overview of the toolkit is available at \\url{https://www.cda.cit.tum.de/research/microfluidics/mmft/}}
         }`}
+                                </Box>
+                            </Stack>
+                        </AccordionDetails>
+                    </Accordion>
                 </Box>
-            </Stack>
-            </AccordionDetails>
-        </Accordion>
-        </Box>
-                </Box>
-            </main>
+            </Box>
+        </main>
 
         <footer
             style={{

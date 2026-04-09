@@ -27,6 +27,7 @@ export const defaultInputParameterValues: InputParameterValues = {
     channelWidth: 0.4,
     channelSpacing: 0.4,
     layout: 'Octilinear',
+    template: 'NoTemplate',
     channelCap: 'Square',
     channelCapCustom: 0.8,
     maxPorts: 5000
@@ -48,6 +49,7 @@ export type InputParameterValues = {
     channelWidth: number
     channelSpacing: number
     layout: string
+    template: string,
     channelCap: string
     channelCapCustom: number
     maxPorts: number
@@ -72,6 +74,7 @@ export function validate(parameters: InputParameters) {
         port_diameter: parameters.portDiameter.value,
         max_ports: parameters.maxPorts.value,
         layout: parameters.layout.value,
+        template: parameters.template.value,
         connections: [], // TODO
     }
 
