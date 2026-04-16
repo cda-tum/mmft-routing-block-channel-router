@@ -4,7 +4,7 @@ export type Value<VALIDTYPE> = ValidValue<VALIDTYPE> | InvalidValue<VALIDTYPE>
 
 export type ValidValue<VALIDTYPE> = {
     error: false
-    warning?: string | undefined 
+    warning?: string | undefined
     value: VALIDTYPE
     fieldValue: string
 }
@@ -12,7 +12,7 @@ export type ValidValue<VALIDTYPE> = {
 export type InvalidValue<VALIDTYPE> = {
     error: true
     errorMessage: string
-    warning?: string | undefined 
+    warning?: string | undefined
     value: VALIDTYPE | undefined
     fieldValue: string
 }
@@ -314,7 +314,7 @@ export function validate(parameters: InputParameters) {
             throw 'Invalid Response'
         }
 
-        
+
     } catch (e) {
         console.error('Validation failed due to an unknown error.', e)
         return { parameters: parameters as InputParameters, parameter_errors: [], general_errors: ['Validation failed due to an unknown error.'], connection_errors: [] }

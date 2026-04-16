@@ -9,6 +9,7 @@ import { ConnectionDisplay } from "./ConnectionDisplay"
 import { ArrowDropDown } from "@mui/icons-material"
 import { UploadButton } from "./UploadButton"
 import { readCSV } from "../utils/readCSV"
+import { isStarterPlatformPort } from "../utils/ports"
 
 export function BoardDisplay(props: {
     show: boolean
@@ -70,6 +71,7 @@ export function BoardDisplay(props: {
         fill: theme.vars.palette.primary[300],
         strokeDasharray: undefined,
     }
+
 
     const ports =
         [...Array(props.columns).keys()].flatMap(x => [...Array(props.rows).keys()].map(y => {
@@ -216,7 +218,18 @@ export function BoardDisplay(props: {
         {
             ports.map(port => {
 
-                return <PortDisplay
+                return props.template === "STARTER" ? 
+                <PortDisplay
+                    key={port.index[1] * (props.columns ?? 0) + port.index[0]}
+                    index={port.index}
+                    position={port.position}
+                    diameter={isStarterPlatformPort(port.index[0], port.index[1]) ? props.portDiameter : 0}
+                    onClick={isStarterPlatformPort(port.index[0], port.index[1]) ? port.onClick : undefined}
+                    clickable={isStarterPlatformPort(port.index[0], port.index[1]) ? port.clickable : false}
+                    style={port.style}
+                />
+                :
+                <PortDisplay
                     key={port.index[1] * (props.columns ?? 0) + port.index[0]}
                     index={port.index}
                     position={port.position}
@@ -225,7 +238,6 @@ export function BoardDisplay(props: {
                     clickable={port.clickable}
                     style={port.style}
                 />
-
             })
         }
     </>

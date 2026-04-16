@@ -31,12 +31,40 @@ export function generatePorts(parameters: InputParameters): { ports: InputPorts,
                 index: [ix, iy],
                 position: [pitchOffsetX + ix * pitch, pitchOffsetY + iy * pitch]
             }))),
-            portsX, 
+            portsX,
             portsY
         }
     } catch (e) {
         console.error('An unknown error occurred.')
     }
+}
+
+const fourPortColumns = [0, 4, 8, 12, 16, 24, 28, 32, 36, 40, 48, 52, 56, 60, 64]
+const threePortColumns = [2, 6, 10, 14, 26, 30, 34, 38, 50, 54, 58, 62]
+
+function getStarterPlatformPorts(portsX: number, portsY: number): Set<[number, number]> {
+    const result = new Set<[number, number]>()
+    for (let x = 0; x < portsX; x++) {
+        for (let y = 0; y < portsY; y++) {
+            
+            if (fourPortColumns.includes(x) && (y % 2 === 0)) {
+                result.add([x, y]);
+            }
+            else if (threePortColumns.includes(x) && (y % 2 === 1)) {
+                result.add([x, y]);
+            }
+        }
+    }
+    return result
+}
+
+const starterPlatformPorts = getStarterPlatformPorts(65, 7);
+
+export function isStarterPlatformPort(x: number, y: number): boolean {
+    for (const [px, py] of starterPlatformPorts) {
+        if (px === x && py === y) return true
+    }
+    return false
 }
 
 export function branchPortCSVStringToIndex(port: string): [number, number] | undefined {
