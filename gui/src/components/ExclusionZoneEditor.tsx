@@ -1,8 +1,10 @@
-import { Box, Button, FormControl, FormLabel, Input, Stack, Typography, useTheme } from "@mui/joy";
+import { Box, Button, Stack, Typography, useTheme } from "@mui/joy";
 import { ExclusionStateHandle } from "../hooks/useExclusionState";
 import CheckIcon from '@mui/icons-material/Check';
 import ClearIcon from '@mui/icons-material/Clear';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import { MicrometerInput } from "./MicrometerInput";
+import { useState } from "react";
 
 type Props = {
     exclusionState: ExclusionStateHandle;
@@ -10,6 +12,40 @@ type Props = {
 
 export function ExclusionZoneEditor({ exclusionState }: Props) {
     const theme = useTheme();
+
+    type FieldState = { fieldValue: string; parsedValue: number | undefined };
+
+    const empty: FieldState = { fieldValue: '', parsedValue: undefined };
+
+    const initFromNumber = (n: number | undefined): FieldState =>
+        n === undefined || Number.isNaN(n)
+            ? empty
+            : { fieldValue: String(n), parsedValue: n };
+
+    // inside the component
+    const [fields, setFields] = useState({
+        x_min: initFromNumber(exclusionState.preview?.x_min),
+        y_min: initFromNumber(exclusionState.preview?.y_min),
+        width: initFromNumber(exclusionState.preview?.width),
+        height: initFromNumber(exclusionState.preview?.height),
+    });
+
+    const updateField = (
+        key: keyof typeof fields,
+        fieldValue: string,
+        parsedValue: number | undefined,
+    ) => {
+        setFields(prev => ({ ...prev, [key]: { fieldValue, parsedValue } }));
+
+        if (exclusionState.preview && parsedValue !== undefined) {
+            exclusionState.updatePreview({
+                ...exclusionState.preview,
+                [key]: parsedValue,
+            });
+        }
+        // If you want the preview to clear when the field is emptied,
+        // decide on a sentinel (0? undefined?) and push that in the else branch.
+    };
 
     return (
         <Box
@@ -34,86 +70,30 @@ export function ExclusionZoneEditor({ exclusionState }: Props) {
                     flexWrap='wrap'
                     useFlexGap
                 >
-                    <FormControl>
-                        <FormLabel htmlFor="xMin">X (lower-left)</FormLabel>
-                        <Input
-                            value={exclusionState.preview?.x_min ?? ''}
-                            placeholder={'0.0'}
-                            id="xMin"
-                            onChange={e => {
-                                if (exclusionState.preview) {
-                                    exclusionState.updatePreview({
-                                        ...exclusionState.preview,
-                                        x_min: parseFloat(e.target.value),
-                                    });
-                                }
-                            }}
-                            sx={{
-                                '& input': { textAlign: 'center' },
-                                width: '10em',
-                            }}
-                        />
-                    </FormControl>
-                    <FormControl>
-                        <FormLabel htmlFor="yMin">Y (lower-left)</FormLabel>
-                        <Input
-                            value={exclusionState.preview?.y_min ?? ''}
-                            placeholder={'0.0'}
-                            id="yMin"
-                            onChange={e => {
-                                if (exclusionState.preview) {
-                                    exclusionState.updatePreview({
-                                        ...exclusionState.preview,
-                                        y_min: parseFloat(e.target.value),
-                                    });
-                                }
-                            }}
-                            sx={{
-                                '& input': { textAlign: 'center' },
-                                width: '10em',
-                            }}
-                        />
-                    </FormControl>
-                    <FormControl>
-                        <FormLabel htmlFor="width">Width</FormLabel>
-                        <Input
-                            value={exclusionState.preview?.width ?? ''}
-                            placeholder={'1.0'}
-                            id="width"
-                            onChange={e => {
-                                if (exclusionState.preview) {
-                                    exclusionState.updatePreview({
-                                        ...exclusionState.preview,
-                                        width: parseFloat(e.target.value),
-                                    });
-                                }
-                            }}
-                            sx={{
-                                '& input': { textAlign: 'center' },
-                                width: '10em',
-                            }}
-                        />
-                    </FormControl>
-                    <FormControl>
-                        <FormLabel htmlFor="height">Height</FormLabel>
-                        <Input
-                            value={exclusionState.preview?.height ?? ''}
-                            placeholder={'1.0'}
-                            id="height"
-                            onChange={e => {
-                                if (exclusionState.preview) {
-                                    exclusionState.updatePreview({
-                                        ...exclusionState.preview,
-                                        height: parseFloat(e.target.value),
-                                    });
-                                }
-                            }}
-                            sx={{
-                                '& input': { textAlign: 'center' },
-                                width: '10em',
-                            }}
-                        />
-                    </FormControl>
+                    <MicrometerInput
+                        label="X (Lower Left Corner)"
+                        placeholder="0.0"
+                        value={fields.x_min.fieldValue}
+                        onChange={(fv, pv) => updateField('x_min', fv, pv)}
+                    />
+                    <MicrometerInput
+                        label="Y (Lower Left Corner)"
+                        placeholder="0.0"
+                        value={fields.y_min.fieldValue}
+                        onChange={(fv, pv) => updateField('y_min', fv, pv)}
+                    />
+                    <MicrometerInput
+                        label="Width"
+                        placeholder="1.0"
+                        value={fields.width.fieldValue}
+                        onChange={(fv, pv) => updateField('width', fv, pv)}
+                    />
+                    <MicrometerInput
+                        label="Height"
+                        placeholder="1.0"
+                        value={fields.height.fieldValue}
+                        onChange={(fv, pv) => updateField('height', fv, pv)}
+                    />
                 </Stack>
 
                 <Stack

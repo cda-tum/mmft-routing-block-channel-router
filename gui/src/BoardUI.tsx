@@ -34,6 +34,7 @@ import { TemplateChoice } from "./components/TemplateChoice"
 import { ChannelHeightIcon } from "./icons/ChannelHeightIcon"
 import { RoutingExclusionIcon } from "./icons/RoutingExclusionIcon"
 import { useExclusionState } from "./hooks/useExclusionState"
+import { LowerLeftCornerIcon } from "./icons/LowerLeftCornerIcon"
 
 export type InputState = {
     parameters: InputParameters
@@ -470,8 +471,8 @@ export function BoardUI() {
                         <Stack direction="row" flexWrap='wrap' useFlexGap>
                             <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
                                 <MicrometerInput
-                                    label="Lower Left Offset X"
-                                    explainIcon={<ChannelSpacingIcon width={50} height={50} />}
+                                    label="Lower Left Corner X"
+                                    explainIcon={<LowerLeftCornerIcon width={50} height={50} />}
                                     value={input.parameters.exclusionX?.fieldValue}
                                     error={input.parameters.exclusionX?.error ? input.parameters.exclusionX?.errorMessage : undefined}
                                     warning={input.parameters.exclusionX?.warning}
@@ -479,8 +480,8 @@ export function BoardUI() {
                                     description="The X offset on the board for the lower left corner of the exclusion zone."
                                 />
                                 <MicrometerInput
-                                    label="Lower Left Offset Y"
-                                    explainIcon={<ChannelSpacingIcon width={50} height={50} />}
+                                    label="Lower Left Corner Y"
+                                    explainIcon={<LowerLeftCornerIcon width={50} height={50} />}
                                     value={input.parameters.exclusionY?.fieldValue}
                                     error={input.parameters.exclusionY?.error ? input.parameters.exclusionY?.errorMessage : undefined}
                                     warning={input.parameters.exclusionY?.warning}
@@ -491,7 +492,7 @@ export function BoardUI() {
                             <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
                                 <MicrometerInput
                                     label="Exclusion Zone Width"
-                                    explainIcon={<ChannelSpacingIcon width={50} height={50} />}
+                                    explainIcon={<BoardWidthIcon width={50} height={50} />}
                                     value={input.parameters.exclusionWidth?.fieldValue}
                                     error={input.parameters.exclusionWidth?.error ? input.parameters.exclusionWidth?.errorMessage : undefined}
                                     warning={input.parameters.exclusionWidth?.warning}
@@ -500,7 +501,7 @@ export function BoardUI() {
                                 />
                                 <MicrometerInput
                                     label="Exclusion Zone Height"
-                                    explainIcon={<ChannelSpacingIcon width={50} height={50} />}
+                                    explainIcon={<BoardHeightIcon width={50} height={50} />}
                                     value={input.parameters.exclusionHeight?.fieldValue}
                                     error={input.parameters.exclusionHeight?.error ? input.parameters.exclusionHeight?.errorMessage : undefined}
                                     warning={input.parameters.exclusionHeight?.warning}

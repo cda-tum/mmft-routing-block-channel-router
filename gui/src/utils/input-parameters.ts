@@ -33,10 +33,10 @@ export const defaultInputParameterValues: InputParameterValues = {
     channelCap: 'Square',
     channelCapCustom: 0.8,
     maxPorts: 5000,
-    exclusionX: 2,
-    exclusionY: 2,
-    exclusionWidth: 5,
-    exclusionHeight: 5
+    exclusionX: 2.0,
+    exclusionY: 2.0,
+    exclusionWidth: 5.0,
+    exclusionHeight: 5.0
 }
 
 
