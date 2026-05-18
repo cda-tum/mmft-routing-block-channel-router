@@ -2,10 +2,10 @@ import { useEffect, useState } from "react"
 import { MicrometerInput } from "./components/MicrometerInput"
 import { Accordion, AccordionDetails, AccordionGroup, AccordionSummary, Box, Button, Link, Stack, Typography, useTheme } from "@mui/joy"
 import { InfoOutlined } from "@mui/icons-material"
-import { defaultInputParameters, InputParameters, validate, validateAble } from "./utils/input-parameters"
+import { defaultInputParameters, getStarterPlatformParams, InputParameters, validate, validateAble } from "./utils/input-parameters"
 import { generatePorts, PortKey } from "./utils/ports"
 import ImportExportIcon from '@mui/icons-material/ImportExport';
-import { ConnectionID, defaultInputConnections, defaultOutputConnections, defaultOutputConnectionsRaw, generateDXF, OutputConnections, OutputConnectionsRaw } from "./utils/connections"
+import { ConnectionID, defaultInputConnections, defaultOutputConnections, defaultOutputConnectionsRaw, generateDXF, generateSTL, OutputConnections, OutputConnectionsRaw } from "./utils/connections"
 import { route } from "./utils/route"
 import { LayoutChoice } from "./components/LayoutChoice"
 import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
@@ -31,6 +31,9 @@ import { BoardIcon } from "./icons/BoardIcon"
 import { FluidicCircuitBoardIcon } from "./icons/FluidicCircuitBoardIcon"
 import { MMFTIcon } from "./icons/MMFTIcon"
 import { TemplateChoice } from "./components/TemplateChoice"
+import { ChannelHeightIcon } from "./icons/ChannelHeightIcon"
+import { RoutingExclusionIcon } from "./icons/RoutingExclusionIcon"
+import { useExclusionState } from "./hooks/useExclusionState"
 
 export type InputState = {
     parameters: InputParameters
@@ -89,10 +92,12 @@ enum BoardEditState {
 }
 
 export type DXFState = undefined | string
+export type STLState = undefined | number[]
 
 export function BoardUI() {
     const [initialInputConnections, setInitialInputConnections] = useState<ConnectionsState>({});
     const [dxfOutput, setDXFOutput] = useState<DXFState>(undefined)
+    const [stlOutput, setSTLOutput] = useState<STLState>(undefined)
     const [input, setInput] = useState<InputState>(defaultInputState)
     const [output, setOutput] = useState<OutputState>(defaultOutputState)
 
@@ -101,29 +106,41 @@ export function BoardUI() {
 
     const getState = () => ({
         dxfOutput,
+        stlOutput,
         input,
         output
     })
 
     const setState = (state: {
         dxfOutput: DXFState
+        stlOutput: STLState
         input: InputState
         output: OutputState
     }) => {
         setInitialInputConnections(state.input.connections)
         setDXFOutput(state.dxfOutput)
+        setSTLOutput(state.stlOutput)
         setInput(state.input)
         setOutput(state.output)
     }
 
+        // Exclusion zones
+    const exclusionState = useExclusionState();
+
+    // STARTER platform
+    const starterPlatformParams = getStarterPlatformParams()
+
     useEffect(() => {
-        if ((output.error === undefined || output.is_partial) && Object.keys(output.connectionsRaw).length > 0 && input.parameters.channelWidth.value !== undefined && input.parameters.channelCap.value !== undefined && input.parameters.channelCapCustom.value !== undefined && input.parameters.boardWidth.value !== undefined && input.parameters.boardHeight.value !== undefined) {
+        if ((output.error === undefined || output.is_partial) && Object.keys(output.connectionsRaw).length > 0 && input.parameters.channelWidth.value !== undefined && input.parameters.channelHeight.value !== undefined && input.parameters.channelCap.value !== undefined && input.parameters.channelCapCustom.value !== undefined && input.parameters.boardWidth.value !== undefined && input.parameters.boardHeight.value !== undefined && input.parameters.boardThickness.value !== undefined && input.parameters.portDiameter.value !== undefined) {
             const dxf = generateDXF(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.boardWidth.value, input.parameters.boardHeight.value)
             setDXFOutput(dxf)
+            const stl = generateSTL(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelHeight.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.boardWidth.value, input.parameters.boardHeight.value, input.parameters.boardThickness.value, input.parameters.portDiameter.value, true)
+            setSTLOutput(stl)
         } else {
             setDXFOutput(undefined)
+            setSTLOutput(undefined)
         }
-    }, [output, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.channelWidth, input.parameters.boardWidth, input.parameters.boardHeight])
+    }, [output, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.channelWidth, input.parameters.channelHeight, input.parameters.boardWidth, input.parameters.boardHeight, input.parameters.boardThickness, input.parameters.portDiameter.value])
 
     useEffect(() => {
         setInitialInputConnections(defaultInputConnections)
@@ -195,29 +212,22 @@ export function BoardUI() {
         })
     }
 
+    const switchToStarterTemplate = () => {
+        const state = getState()
+        state.input.portsX = 65 // STARTER platform needs one additional port on x-axis compared to the regular grid with the same settings
+        state.input.parameters = starterPlatformParams
+        // TODO: Reset all connections
+        state.input.connections = {}
+        setState(state)
+        console.log("template is STARTER. Setting values.")
+    }
+
     const theme = useTheme()
     const [closeDropdown, setCloseDropdown] = useState(false)
 
     const hasErrors = (input.parameter_errors !== undefined && input.parameter_errors.length > 0) || (input.general_errors !== undefined && input.general_errors.length > 0) || (input.connection_errors !== undefined && input.connection_errors.length > 0) || Object.values(input.parameters).some(p => p.error)
 
     const accordionErrorSx: SxProps = { backgroundColor: `rgb(from ${theme.vars.palette.danger[500]} r g b / calc(alpha / 2))` }
-
-
-    const starterPlatformParams: InputParameters = {
-        boardWidth: { error: false, value: 105, fieldValue: "105" },
-        boardHeight: { error: false, value: 16.5, fieldValue: "16.5" },
-        pitch: { error: false, value: 1.5, fieldValue: "1.5" },
-        pitchOffsetX: { error: false, value: 4, fieldValue: "4" },
-        pitchOffsetY: { error: false, value: 3.7, fieldValue: "3.7" },
-        portDiameter: { error: false, value: 0.8, fieldValue: "0.8" },
-        channelWidth: { error: false, value: 0.4, fieldValue: "0.4" },
-        channelSpacing: { error: false, value: 0.4, fieldValue: "0.4" },
-        layout: { error: false, value: "Octilinear", fieldValue: "Octilinear" },
-        template: { error: false, value: "STARTER", fieldValue: "STARTER" },
-        channelCap: { error: false, value: "Square", fieldValue: "Square" },
-        channelCapCustom: { error: false, value: 0.8, fieldValue: "0.8" },
-        maxPorts: { error: false, value: 5000, fieldValue: "5000" },
-    }
 
     return <div
         style={{
@@ -303,14 +313,11 @@ export function BoardUI() {
                             template={input.parameters.template.value}
                             onChange={(template) => {
                                 if (template === "STARTER") {
-                                    updateInputParameters(starterPlatformParams);
-                                    console.log("template is STARTER. Setting values.")
+                                    switchToStarterTemplate()
                                 }
                                 else if (template === "NoTemplate") {
-                                    updateInputParameters(defaultInputParameters)                       
-                                    console.log("template is None. Resetting to defaults. Default params:", defaultInputParameters)        
+                                    updateInputParameters(defaultInputParameters)
                                 }
-                                
                                 resetOutput();
                             }}
                         />
@@ -343,7 +350,15 @@ export function BoardUI() {
                                 onChange={(fv, pv) => updateInputParameter('boardHeight', fv, pv)}
                                 description="Absolute height of the routing board."
                             />
-
+                            <MicrometerInput
+                                label="Board Thickness"
+                                explainIcon={<ChannelHeightIcon width={50} height={50} />}
+                                value={input.parameters.boardThickness.fieldValue}
+                                error={input.parameters.boardThickness.error ? input.parameters.boardThickness.errorMessage : undefined}
+                                warning={input.parameters.boardThickness.warning}
+                                onChange={(fv, pv) => updateInputParameter('boardThickness', fv, pv)}
+                                description="Absolute thickness of the routing board for STL export."
+                            />
                         </Stack>
                     </AccordionDetails>
                 </Accordion>
@@ -417,6 +432,15 @@ export function BoardUI() {
                                 description="Width of channels' cross section."
                             />
                             <MicrometerInput
+                                label="Channel Height (Depth)"
+                                explainIcon={<ChannelHeightIcon width={50} height={50} />}
+                                value={input.parameters.channelHeight.fieldValue}
+                                error={input.parameters.channelHeight.error ? input.parameters.channelHeight.errorMessage : undefined}
+                                warning={input.parameters.channelHeight.warning}
+                                onChange={(fv, pv) => updateInputParameter('channelHeight', fv, pv)}
+                                description="Height/Depth of channels' cross section."
+                            />
+                            <MicrometerInput
                                 label="Channel Spacing"
                                 explainIcon={<ChannelSpacingIcon width={50} height={50} />}
                                 value={input.parameters.channelSpacing.fieldValue}
@@ -434,6 +458,84 @@ export function BoardUI() {
 
                     </AccordionDetails>
 
+                </Accordion>
+
+                <Accordion>
+                    <AccordionSummary sx={input.parameters.channelCap.error || input.parameters.channelCapCustom.error ? accordionErrorSx : {}}>
+                        <Typography level="h4"><RoutingExclusionIcon sx={{
+                            verticalAlign: 'bottom'
+                        }} /> Routing Exclusion Zone Settings</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <Stack direction="row" flexWrap='wrap' useFlexGap>
+                            <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
+                                <MicrometerInput
+                                    label="Lower Left Offset X"
+                                    explainIcon={<ChannelSpacingIcon width={50} height={50} />}
+                                    value={input.parameters.exclusionX?.fieldValue}
+                                    error={input.parameters.exclusionX?.error ? input.parameters.exclusionX?.errorMessage : undefined}
+                                    warning={input.parameters.exclusionX?.warning}
+                                    onChange={(fv, pv) => updateInputParameter('exclusionX', fv, pv)}
+                                    description="The X offset on the board for the lower left corner of the exclusion zone."
+                                />
+                                <MicrometerInput
+                                    label="Lower Left Offset Y"
+                                    explainIcon={<ChannelSpacingIcon width={50} height={50} />}
+                                    value={input.parameters.exclusionY?.fieldValue}
+                                    error={input.parameters.exclusionY?.error ? input.parameters.exclusionY?.errorMessage : undefined}
+                                    warning={input.parameters.exclusionY?.warning}
+                                    onChange={(fv, pv) => updateInputParameter('exclusionY', fv, pv)}
+                                    description="The Y offset on the board for the lower left corner of the exclusion zone."
+                                />
+                            </Stack>
+                            <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
+                                <MicrometerInput
+                                    label="Exclusion Zone Width"
+                                    explainIcon={<ChannelSpacingIcon width={50} height={50} />}
+                                    value={input.parameters.exclusionWidth?.fieldValue}
+                                    error={input.parameters.exclusionWidth?.error ? input.parameters.exclusionWidth?.errorMessage : undefined}
+                                    warning={input.parameters.exclusionWidth?.warning}
+                                    onChange={(fv, pv) => updateInputParameter('exclusionWidth', fv, pv)}
+                                    description="The width (x-axis) of the exclusion zone."
+                                />
+                                <MicrometerInput
+                                    label="Exclusion Zone Height"
+                                    explainIcon={<ChannelSpacingIcon width={50} height={50} />}
+                                    value={input.parameters.exclusionHeight?.fieldValue}
+                                    error={input.parameters.exclusionHeight?.error ? input.parameters.exclusionHeight?.errorMessage : undefined}
+                                    warning={input.parameters.exclusionHeight?.warning}
+                                    onChange={(fv, pv) => updateInputParameter('exclusionHeight', fv, pv)}
+                                    description="The height (y-axis) of the exclusion zone."
+                                />
+                            </Stack>
+                        </Stack>
+                        <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
+                            <Button
+                                onClick={e => {
+                                    e.stopPropagation()
+                                    const x = input.parameters.exclusionX?.value
+                                    const y = input.parameters.exclusionY?.value
+                                    const w = input.parameters.exclusionWidth?.value
+                                    const h = input.parameters.exclusionHeight?.value
+                                    if (x == undefined || y == undefined || w == undefined || h == undefined) {
+                                        return;
+                                    } else {
+                                        exclusionState.addExclusionFromParams(x, y, w, h)
+                                        console.log("Exclusion zone added with parameters: X: ", x, ", Y: ", y, ", W: ", w, ", H: ", h)
+                                    }
+                                    
+                                }}
+                                sx={{
+                                    marginX: 2,
+                                    marginY: 2,
+                                }}
+                            >
+                                <Typography sx={{ color: theme.vars.palette.common.white }}>
+                                    <>Add Exclusion Zone</>
+                                </Typography>
+                            </Button>
+                        </Stack>
+                    </AccordionDetails>
                 </Accordion>
 
                 <Accordion>
@@ -474,6 +576,7 @@ export function BoardUI() {
                             pitchOffsetY={input.parameters.pitchOffsetY.value!}
                             portDiameter={input.parameters.portDiameter.value!}
                             channelWidth={input.parameters.channelWidth.value!}
+                            channelHeight={input.parameters.channelHeight.value!}
                             template={input.parameters.template.value!}
                             columns={input.portsX}
                             rows={input.portsY}
@@ -492,6 +595,7 @@ export function BoardUI() {
                                 }))
                             }}
                             initialInputConnections={initialInputConnections}
+                            exclusionState={exclusionState}
                         />
 
                         {hasErrors && <Typography
@@ -519,12 +623,12 @@ export function BoardUI() {
                     <Button
                         disabled={!((input.parameter_errors === undefined || input.parameter_errors.length === 0) && (input.general_errors === undefined || input.general_errors.length === 0) && (input.connection_errors === undefined || input.connection_errors.length === 0))}
                         onClick={_ => {
-                            const r = route(input)
+                            const r = route(input, exclusionState.exclusionState)
                             setOutput(r)
                         }}
                         sx={{
                             margin: 1,
-                            marginX: 2,
+                            marginX: 1,
                         }}
                     >
                         <Typography sx={{ color: theme.vars.palette.common.white }}>
@@ -540,6 +644,17 @@ export function BoardUI() {
                         content={dxfOutput !== undefined ? () => {
                             setNonce2(n => n + 1)
                             return dxfOutput
+                        } : undefined}
+                        noContentMessage={"There is no valid routing. Click 'Generate Design' to generate a routing."}
+                    />
+
+                    <DownloadButton
+                        label="Download STL"
+                        fileName={`chip_${nonce2}.stl`}
+                        mime={'model/stl'}
+                        content={stlOutput !== undefined ? () => {
+                            setNonce2(n => n + 1)
+                            return new Uint8Array(stlOutput)
                         } : undefined}
                         noContentMessage={"There is no valid routing. Click 'Generate Design' to generate a routing."}
                     />

@@ -9,6 +9,8 @@ use crate::board_router::{
 pub struct ValidateInput {
     pub board_width: Option<f64>,
     pub board_height: Option<f64>,
+    pub board_thickness: Option<f64>,
+    pub channel_height: Option<f64>,
     pub port_diameter: Option<f64>,
     pub pitch: Option<f64>,
     pub pitch_offset_x: Option<f64>,
@@ -39,11 +41,13 @@ pub enum ValidationError {
     BoardWidthError(BoardWidthError),
     BoardHeightError(BoardHeightError),
     PortDiameterError(PortDiameterError),
+    BoardThicknessError(BoardThicknessError),
     PitchError(PitchError),
     PitchOffsetXError(PitchOffsetXError),
     PitchOffsetYError(PitchOffsetYError),
     ChannelWidthError(ChannelWidthError),
     ChannelSpacingError(ChannelSpacingError),
+    ChannelHeightError(ChannelHeightError),
     ChannelDimensionsTooLarge,
     MaxPortsExceeded(ActualPorts, MaxPorts),
     InvalidConnectionPortX(ConnectionID, Port),
@@ -60,6 +64,13 @@ pub enum BoardWidthError {
 pub enum BoardHeightError {
     Undefined,
     NotPositive,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum BoardThicknessError {
+    Undefined,
+    NotPositive,
+    SmallerThanChannelHeight,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -90,6 +101,12 @@ pub enum PitchOffsetYError {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ChannelWidthError {
+    Undefined,
+    NotPositive,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ChannelHeightError {
     Undefined,
     NotPositive,
 }
@@ -152,6 +169,22 @@ pub fn validate(input: ValidateInput) -> Result<ValidationOk, ValidationErr> {
         ));
     }
 
+    if let Some(board_thickness) = input.board_thickness {
+        if board_thickness <= 0. {
+            errors.push(ValidationError::BoardThicknessError(
+                BoardThicknessError::NotPositive,
+            ));
+        } else if (input.channel_height.is_some() && board_thickness <= input.channel_height.unwrap()) {
+            errors.push(ValidationError::BoardThicknessError(
+                BoardThicknessError::SmallerThanChannelHeight,
+            ));
+        }
+    } else {
+        errors.push(ValidationError::BoardThicknessError(
+            BoardThicknessError::Undefined,
+        ));
+    }
+
     if let Some(port_diameter) = input.port_diameter {
         if port_diameter <= 0. {
             errors.push(ValidationError::PortDiameterError(
@@ -209,6 +242,18 @@ pub fn validate(input: ValidateInput) -> Result<ValidationOk, ValidationErr> {
     } else {
         errors.push(ValidationError::ChannelWidthError(
             ChannelWidthError::Undefined,
+        ));
+    }
+
+    if let Some(channel_height) = input.channel_height {
+        if channel_height <= 0. {
+            errors.push(ValidationError::ChannelHeightError(
+                ChannelHeightError::NotPositive,
+            ));
+        }
+    } else {
+        errors.push(ValidationError::ChannelHeightError(
+            ChannelHeightError::Undefined,
         ));
     }
 

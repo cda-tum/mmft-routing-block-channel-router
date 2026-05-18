@@ -40,7 +40,7 @@ export function generatePorts(parameters: InputParameters): { ports: InputPorts,
 }
 
 const fourPortColumns = [0, 4, 8, 12, 16, 24, 28, 32, 36, 40, 48, 52, 56, 60, 64]
-const threePortColumns = [2, 6, 10, 14, 26, 30, 34, 38, 50, 54, 58, 62]
+const threePortColumns = [2, 6, 10, 14, 26, 30, 34, 38, 50, 54, 58, 62, 66]
 
 function getStarterPlatformPorts(portsX: number, portsY: number): Set<[number, number]> {
     const result = new Set<[number, number]>()

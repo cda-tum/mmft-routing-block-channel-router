@@ -20,17 +20,44 @@ export type InvalidValue<VALIDTYPE> = {
 export const defaultInputParameterValues: InputParameterValues = {
     boardWidth: 30,
     boardHeight: 15,
+    boardThickness: 1.5,
     pitch: 1.5,
     pitchOffsetX: 3,
     pitchOffsetY: 3,
     portDiameter: 0.7,
     channelWidth: 0.4,
+    channelHeight: 0.4,
     channelSpacing: 0.4,
     layout: 'Octilinear',
     template: 'NoTemplate',
     channelCap: 'Square',
     channelCapCustom: 0.8,
-    maxPorts: 5000
+    maxPorts: 5000,
+    exclusionX: 2,
+    exclusionY: 2,
+    exclusionWidth: 5,
+    exclusionHeight: 5
+}
+
+
+export function getStarterPlatformParams(): InputParameters {
+    return {
+        boardWidth: { error: false, value: 105, fieldValue: "105" },
+        boardHeight: { error: false, value: 15, fieldValue: "15" },
+        boardThickness: { error: false, value: 1.5, fieldValue: "1.5" },
+        pitch: { error: false, value: 1.5, fieldValue: "1.5" },
+        pitchOffsetX: { error: false, value: 6, fieldValue: "6" },
+        pitchOffsetY: { error: false, value: 3, fieldValue: "3" },
+        portDiameter: { error: false, value: 1, fieldValue: "1" },
+        channelWidth: { error: false, value: 0.4, fieldValue: "0.4" },
+        channelHeight: { error: false, value: 0.4, fieldValue: "0.4" },
+        channelSpacing: { error: false, value: 0.4, fieldValue: "0.4" },
+        layout: { error: false, value: "Octilinear", fieldValue: "Octilinear" },
+        template: { error: false, value: "STARTER", fieldValue: "STARTER" },
+        channelCap: { error: false, value: "Square", fieldValue: "Square" },
+        channelCapCustom: { error: false, value: 0.8, fieldValue: "0.8" },
+        maxPorts: { error: false, value: 5000, fieldValue: "5000" },
+    }
 }
 
 export function generateInputParametersFromConfig(v: InputParameterValues): InputParameters {
@@ -42,17 +69,23 @@ export const defaultInputParameters = generateInputParametersFromConfig(defaultI
 export type InputParameterValues = {
     boardWidth: number
     boardHeight: number
+    boardThickness: number
     pitch: number
     pitchOffsetX: number
     pitchOffsetY: number
     portDiameter: number
     channelWidth: number
+    channelHeight: number
     channelSpacing: number
     layout: string
     template: string,
     channelCap: string
     channelCapCustom: number
     maxPorts: number
+    exclusionX?: number
+    exclusionY?: number
+    exclusionWidth?: number
+    exclusionHeight?: number
 }
 
 export type InputParameters = { [K in keyof InputParameterValues]: Value<InputParameterValues[K]> }
@@ -65,9 +98,11 @@ export function validate(parameters: InputParameters) {
 
     const rawParams = {
         channel_width: parameters.channelWidth.value,
+        channel_height: parameters.channelHeight.value,
         channel_spacing: parameters.channelSpacing.value,
         board_width: parameters.boardWidth.value,
         board_height: parameters.boardHeight.value,
+        board_thickness: parameters.boardThickness.value,
         pitch: parameters.pitch.value,
         pitch_offset_x: parameters.pitchOffsetX.value,
         pitch_offset_y: parameters.pitchOffsetY.value,
@@ -76,6 +111,10 @@ export function validate(parameters: InputParameters) {
         layout: parameters.layout.value,
         template: parameters.template.value,
         connections: [], // TODO
+        exclusion_x: parameters.exclusionX,
+        exclusion_y: parameters.exclusionY,
+        exclusion_width: parameters.exclusionWidth,
+        exclusion_height: parameters.exclusionHeight
     }
 
     try {
@@ -98,7 +137,13 @@ export function validate(parameters: InputParameters) {
                             error: true,
                             errorMessage: 'Must be a positive integer!'
                         }
-                    } else if (error === 'MissingChannelSpacing' || error === 'InvalidChannelSpacing' || error === 'ChannelHeightNotPositive') {
+                    } else if (error === 'MissingChannelHeight' || error === 'InvalidChannelHeight' || error === 'ChannelHeightNotPositive') {
+                        vp.channelHeight = {
+                            ...vp.channelHeight,
+                            error: true,
+                            errorMessage: 'Must be a positive integer!'
+                        }
+                    } else if (error === 'MissingChannelSpacing' || error === 'InvalidChannelSpacing' || error === 'ChannelSpacingNotPositive') {
                         vp.channelSpacing = {
                             ...vp.channelSpacing,
                             error: true,
@@ -113,6 +158,12 @@ export function validate(parameters: InputParameters) {
                     } else if (error === 'MissingBoardHeight' || error === 'InvalidBoardHeight' || error === 'BoardHeightNotPositive') {
                         vp.boardHeight = {
                             ...vp.boardHeight,
+                            error: true,
+                            errorMessage: 'Must be a positive integer!'
+                        }
+                    } else if (error === 'MissingBoardThickness' || error === 'InvalidBoardThickness' || error === 'BoardThicknessNotPositive') {
+                        vp.boardThickness = {
+                            ...vp.boardThickness,
                             error: true,
                             errorMessage: 'Must be a positive integer!'
                         }
@@ -173,6 +224,23 @@ export function validate(parameters: InputParameters) {
                         } else if (suberror === 'NotPositive') {
                             vp.boardHeight = {
                                 ...vp.boardHeight,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('BoardThicknessError' in error) {
+                        const suberror = error['BoardThicknessError']
+                        if (suberror === 'Undefined') {
+                            vp.boardThickness = {
+                                ...vp.boardThickness,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'NotPositive') {
+                            vp.boardThickness = {
+                                ...vp.boardThickness,
                                 error: true,
                                 errorMessage: 'Must be a positive number!'
                             }
@@ -287,6 +355,23 @@ export function validate(parameters: InputParameters) {
                         } else if (suberror === 'NotPositive') {
                             vp.channelSpacing = {
                                 ...vp.channelSpacing,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('ChannelHeightError' in error) {
+                        const suberror = error['ChannelHeightError']
+                        if (suberror === 'Undefined') {
+                            vp.channelHeight = {
+                                ...vp.channelHeight,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'NotPositive') {
+                            vp.channelHeight = {
+                                ...vp.channelHeight,
                                 error: true,
                                 errorMessage: 'Must be a positive number!'
                             }
