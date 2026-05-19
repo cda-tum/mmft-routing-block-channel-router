@@ -16,6 +16,7 @@ clap = { version = "4.5.29", features = ["derive"] }
 walkdir = "2.5.0"
 convert_case = "0.7.1"
 statistical = "1.0.0"
+earcutr = "0.4"
 threadpool = "1.8.1"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]

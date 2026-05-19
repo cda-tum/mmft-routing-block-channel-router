@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { ConnectionID } from "../utils/connections"
 import { portIndexToString, PortKey, portStringToIndex } from "../utils/ports"
+import { isStarterPlatformPort } from "../utils/ports"
 
 export type PortConnectionMap = Record<number, undefined | Record<number, ConnectionID | undefined>>
 export type ConnectionStateConnection = {
@@ -15,7 +16,8 @@ export const ERROR_MESSAGES = {
     OUT_OF_BOUNDS: 'Out of bounds',
     DUPLICATE_PORT: 'Duplicate port',
     ALREADY_TAKEN: 'Port is taken by other connection',
-    ALREADY_TAKEN_BRANCH: 'Port is branch point of other connection'
+    ALREADY_TAKEN_BRANCH: 'Port is branch point of other connection',
+    DISABLED_PORT: 'Port is not available'
 }
 
 export type PortField = {
@@ -52,6 +54,10 @@ export function portError(index: number, portKey: PortKey | undefined, boundarie
         return ERROR_MESSAGES.INVALID_PORT
     }
 
+    if (!isStarterPlatformPort(portKey[0], portKey[1])) {
+        return ERROR_MESSAGES.DISABLED_PORT
+    }
+
     if (portKey[0] < 0 || portKey[0] >= boundaries.columns) {
         return ERROR_MESSAGES.OUT_OF_BOUNDS
     }
@@ -66,7 +72,7 @@ export function portError(index: number, portKey: PortKey | undefined, boundarie
         return ERROR_MESSAGES.DUPLICATE_PORT
     }
 
-    if(branchPort.index !== undefined && portKey[0] === branchPort.index[0] && portKey[1] === branchPort.index[1]) {
+    if (branchPort.index !== undefined && portKey[0] === branchPort.index[0] && portKey[1] === branchPort.index[1]) {
         return ERROR_MESSAGES.DUPLICATE_PORT
     }
 
@@ -191,7 +197,7 @@ export function useConnectionState(props: {
         setConnectionPreviewState(connectionPreviewStateDefault)
         const map: PortConnectionMap = {}
         Object.entries(connections).forEach(([connection, ports]) => ports.ports.forEach(port => {
-            if(!(port[0] in map)) {
+            if (!(port[0] in map)) {
                 map[port[0]] = {}
             }
 

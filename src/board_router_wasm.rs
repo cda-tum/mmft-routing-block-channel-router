@@ -22,3 +22,9 @@ pub fn compute_ports(input: JsValue) -> JsValue {
 pub fn generate_dxf(input: JsValue) -> JsValue {
     JsValue::from_serde(&crate::dxf::generate_dxf(input.into_serde().unwrap())).unwrap()
 }
+
+#[wasm_bindgen]
+pub fn generate_stl(input: JsValue) -> JsValue {
+    JsValue::from_serde(&crate::stl::generate_stl(input.into_serde().unwrap())).unwrap()
+}
+

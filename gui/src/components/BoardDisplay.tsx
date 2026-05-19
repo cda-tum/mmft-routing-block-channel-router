@@ -9,16 +9,22 @@ import { ConnectionDisplay } from "./ConnectionDisplay"
 import { ArrowDropDown } from "@mui/icons-material"
 import { UploadButton } from "./UploadButton"
 import { readCSV } from "../utils/readCSV"
+import { isStarterPlatformPort } from "../utils/ports"
+import { ExclusionZoneEditor } from "./ExclusionZoneEditor"
+import { ExclusionStateHandle } from "../hooks/useExclusionState"
+import { ExclusionZoneDisplay } from "./ExclusionZoneDisplay"
 
 export function BoardDisplay(props: {
     show: boolean
     boardWidth: number
     boardHeight: number
     channelWidth: number
+    channelHeight: number
     pitch: number
     pitchOffsetX: number
     pitchOffsetY: number
     portDiameter: number
+    template: string,
     columns: number | undefined
     rows: number | undefined
     onChange?: (connections: ConnectionsState) => void
@@ -26,8 +32,12 @@ export function BoardDisplay(props: {
     outputConnections?: OutputConnections
     clearOutputConnections?: () => void
     closeDropdown: boolean
+    exclusionState: ExclusionStateHandle;
+    onUpdate: () => void
 }) {
     const theme = useTheme()
+
+    // const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
     const connectionState = useConnectionState({
         boundaries: {
@@ -35,6 +45,9 @@ export function BoardDisplay(props: {
             rows: props.rows ?? 0
         }
     })
+
+    const exclusionState = props.exclusionState
+    const zones = Object.values(exclusionState.exclusionState);
 
     useEffect(() => {
         setSelectConnectionDropdownOpen(false)
@@ -47,7 +60,6 @@ export function BoardDisplay(props: {
     useEffect(() => {
         connectionState.replaceWith(props.initialInputConnections)
     }, [props.initialInputConnections])
-
 
     const strokeWidth = useMemo(() => props.portDiameter / 10, [props.portDiameter])
     const margin = useMemo(() => strokeWidth / 2, [strokeWidth])
@@ -67,6 +79,7 @@ export function BoardDisplay(props: {
         fill: theme.vars.palette.primary[300],
         strokeDasharray: undefined,
     }
+
 
     const ports =
         [...Array(props.columns).keys()].flatMap(x => [...Array(props.rows).keys()].map(y => {
@@ -151,18 +164,50 @@ export function BoardDisplay(props: {
             }
         }))
 
-    const contents = <><rect
-        x={0}
-        y={0}
-        width={props.boardWidth}
-        height={props.boardHeight}
-        fill="none"
-        strokeWidth={strokeWidth}
-        stroke={theme.vars.palette.text.primary}
-        rx={strokeWidth / 2}
-    >
+    const background = props.template === "STARTER" ? <>
+        <image
+            href={'/assets/STARTER_Template_cropped.png'}
+            x={0}
+            y={0}
+            opacity={0.5}
+            width={props.boardWidth}
+            height={props.boardHeight}
+            preserveAspectRatio="xMidYMid meet"
+        />
+        <rect
+            x={0}
+            y={0}
+            width={props.boardWidth}
+            height={props.boardHeight}
+            fill="none"
+            strokeWidth={strokeWidth}
+            stroke={theme.vars.palette.text.primary}
+            rx={strokeWidth / 2}
+        >
+        </rect>
+    </>
+        :
+        <rect
+            x={0}
+            y={0}
+            width={props.boardWidth}
+            height={props.boardHeight}
+            fill="none"
+            strokeWidth={strokeWidth}
+            stroke={theme.vars.palette.text.primary}
+            rx={strokeWidth / 2}
+        >
+        </rect>
 
-    </rect>
+
+    const contents = <>
+
+        {background}
+
+        <ExclusionZoneDisplay
+            exclusionState={exclusionState.exclusionState}
+            boardHeight={props.boardHeight}
+        />
 
         {props.outputConnections !== undefined && Object.entries(connectionState.connections).map(([id, _connection]) => {
             const connectionId = parseFloat(id)
@@ -175,6 +220,7 @@ export function BoardDisplay(props: {
             }
             return <ConnectionDisplay
                 channelWidth={props.channelWidth}
+                channelHeight={props.channelHeight}
                 connection={outputConnection}
                 connectionId={connectionId}
                 onClick={() => {
@@ -186,16 +232,26 @@ export function BoardDisplay(props: {
         {
             ports.map(port => {
 
-                return <PortDisplay
-                    key={port.index[1] * (props.columns ?? 0) + port.index[0]}
-                    index={port.index}
-                    position={port.position}
-                    diameter={props.portDiameter}
-                    onClick={port.onClick}
-                    clickable={port.clickable}
-                    style={port.style}
-                />
-
+                return props.template === "STARTER" ?
+                    <PortDisplay
+                        key={port.index[1] * (props.columns ?? 0) + port.index[0]}
+                        index={port.index}
+                        position={port.position}
+                        diameter={isStarterPlatformPort(port.index[0], port.index[1]) ? props.portDiameter : 0}
+                        onClick={isStarterPlatformPort(port.index[0], port.index[1]) ? port.onClick : undefined}
+                        clickable={isStarterPlatformPort(port.index[0], port.index[1]) ? port.clickable : false}
+                        style={port.style}
+                    />
+                    :
+                    <PortDisplay
+                        key={port.index[1] * (props.columns ?? 0) + port.index[0]}
+                        index={port.index}
+                        position={port.position}
+                        diameter={props.portDiameter}
+                        onClick={port.onClick}
+                        clickable={port.clickable}
+                        style={port.style}
+                    />
             })
         }
     </>
@@ -203,6 +259,55 @@ export function BoardDisplay(props: {
     const editConnection = connectionState.preview.active ? <ConnectionEditor
         connectionState={connectionState}
     /> : undefined
+
+    const editExclusionZone = <>
+        {exclusionState.preview !== null && (
+            <ExclusionZoneEditor exclusionState={exclusionState} boardWidth={props.boardWidth} boardHeight={props.boardHeight}/>
+        )}
+    </>
+
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLButtonElement>(null);
+
+    const selectExclusionZone = <>
+        <Button
+            ref={dropdownRef}
+            disabled={zones.length === 0}
+            onClick={e => {
+                setDropdownOpen(!dropdownOpen);
+                e.stopPropagation();
+            }}
+            sx={{ marginY: 2 }}
+        >
+            <Typography sx={{ color: theme.vars.palette.common.white }}>
+                {exclusionState.preview !== null
+                    ? <>Zone {exclusionState.preview.id}</>
+                    : <>Select Exclusion Zone</>
+                }
+                <ArrowDropDown sx={{ verticalAlign: 'bottom' }} />
+            </Typography>
+        </Button>
+        <Menu
+            open={dropdownOpen}
+            onClose={() => setDropdownOpen(false)}
+            anchorEl={dropdownRef.current}
+            sx={{ maxHeight: 300 }}
+        >
+            {zones.map(zone => (
+                <MenuItem
+                    key={zone.id}
+                    onClick={() => {
+                        exclusionState.selectForEditing(zone.id);
+                        setDropdownOpen(false);
+                    }}
+                >
+                    <Typography sx={{ color: theme.vars.palette.text.primary }}>
+                        Zone {zone.id}
+                    </Typography>
+                </MenuItem>
+            ))}
+        </Menu>
+    </>
 
     const [selectConnectionDropdownOpen, setSelectConnectionDropdownOpen] = useState<boolean>(false)
     const selectConnectionDropdownRef = useRef(null);
@@ -216,6 +321,7 @@ export function BoardDisplay(props: {
             }}
             sx={{
                 marginY: 2,
+                marginX: 2
             }}
         >
             <Typography sx={{ color: theme.vars.palette.common.white }}>{connectionState.preview.active &&
@@ -263,10 +369,31 @@ export function BoardDisplay(props: {
 
     const [csvMessage, setCSVMessage] = useState<string | undefined>(undefined)
 
+
+    const clearAllConnections = <>
+        <Button
+            onClick={e => {
+                connectionState.clear()
+                e.stopPropagation()
+            }}
+            sx={{
+                marginX: 2,
+                marginY: 2,
+            }}
+        >
+            <Typography sx={{ color: theme.vars.palette.common.white }}>{connectionState.preview.active &&
+                <>Connection {connectionState.preview.connection}</>
+            }{!connectionState.preview.active &&
+                <>Clear Connections</>
+                }
+            </Typography>
+        </Button>
+    </>
+
     const uploadCSV = <>
         <UploadButton
             sx={{
-                marginX: 2
+                marginY: 2
             }}
             label={"Load CSV"}
             onSuccess={(content) => {
@@ -299,6 +426,7 @@ export function BoardDisplay(props: {
         }
     </>
 
+
     const displayContent = <>
         <svg
             width="100%"
@@ -308,8 +436,11 @@ export function BoardDisplay(props: {
         </svg>
         {isBlank && <Typography>Click on ports to define connection ends, then generate the channel design in the section below.</Typography>}
         {selectConnection}
+        {selectExclusionZone}
+        {clearAllConnections}
         {uploadCSV}
         {editConnection}
+        {editExclusionZone}
     </>
 
     const hasOutOfBoundsConnections = connectionState.hasOutOfBoundsConnections()
@@ -320,7 +451,10 @@ export function BoardDisplay(props: {
         </Typography>
         <Button
             color="warning"
-            onClick={_ => connectionState.removeOutOfBoundsConnections()}
+            onClick={_ => {
+                connectionState.removeOutOfBoundsConnections()
+                props.onUpdate()
+            }}
             sx={{
                 marginY: 2
             }}
