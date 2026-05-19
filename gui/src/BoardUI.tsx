@@ -125,7 +125,7 @@ export function BoardUI() {
         setOutput(state.output)
     }
 
-        // Exclusion zones
+    // Exclusion zones
     const exclusionState = useExclusionState();
 
     // STARTER platform
@@ -220,7 +220,6 @@ export function BoardUI() {
         // TODO: Reset all connections
         state.input.connections = {}
         setState(state)
-        console.log("template is STARTER. Setting values.")
     }
 
     const theme = useTheme()
@@ -477,7 +476,7 @@ export function BoardUI() {
                                     error={input.parameters.exclusionX?.error ? input.parameters.exclusionX?.errorMessage : undefined}
                                     warning={input.parameters.exclusionX?.warning}
                                     onChange={(fv, pv) => updateInputParameter('exclusionX', fv, pv)}
-                                    description="The X offset on the board for the lower left corner of the exclusion zone."
+                                    description="The X value of the exclusion zone's corner."
                                 />
                                 <MicrometerInput
                                     label="Lower Left Corner Y"
@@ -486,7 +485,7 @@ export function BoardUI() {
                                     error={input.parameters.exclusionY?.error ? input.parameters.exclusionY?.errorMessage : undefined}
                                     warning={input.parameters.exclusionY?.warning}
                                     onChange={(fv, pv) => updateInputParameter('exclusionY', fv, pv)}
-                                    description="The Y offset on the board for the lower left corner of the exclusion zone."
+                                    description="The Y value of the exclusion zone's corner."
                                 />
                             </Stack>
                             <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
@@ -524,12 +523,13 @@ export function BoardUI() {
                                         exclusionState.addExclusionFromParams(x, y, w, h)
                                         console.log("Exclusion zone added with parameters: X: ", x, ", Y: ", y, ", W: ", w, ", H: ", h)
                                     }
-                                    
+
                                 }}
                                 sx={{
                                     marginX: 2,
                                     marginY: 2,
                                 }}
+                                disabled={hasErrors!}
                             >
                                 <Typography sx={{ color: theme.vars.palette.common.white }}>
                                     <>Add Exclusion Zone</>
@@ -597,6 +597,11 @@ export function BoardUI() {
                             }}
                             initialInputConnections={initialInputConnections}
                             exclusionState={exclusionState}
+                            onUpdate={() => {
+                                if (input.parameters.template.value == "STARTER") {
+                                    switchToStarterTemplate();
+                                }
+                            }}
                         />
 
                         {hasErrors && <Typography

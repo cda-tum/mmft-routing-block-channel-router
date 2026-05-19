@@ -8,9 +8,11 @@ import { useState } from "react";
 
 type Props = {
     exclusionState: ExclusionStateHandle;
+    boardWidth: number;
+    boardHeight: number;
 };
 
-export function ExclusionZoneEditor({ exclusionState }: Props) {
+export function ExclusionZoneEditor({ exclusionState, boardWidth, boardHeight }: Props) {
     const theme = useTheme();
 
     type FieldState = { fieldValue: string; parsedValue: number | undefined };
@@ -22,7 +24,6 @@ export function ExclusionZoneEditor({ exclusionState }: Props) {
             ? empty
             : { fieldValue: String(n), parsedValue: n };
 
-    // inside the component
     const [fields, setFields] = useState({
         x_min: initFromNumber(exclusionState.preview?.x_min),
         y_min: initFromNumber(exclusionState.preview?.y_min),
@@ -43,9 +44,52 @@ export function ExclusionZoneEditor({ exclusionState }: Props) {
                 [key]: parsedValue,
             });
         }
-        // If you want the preview to clear when the field is emptied,
-        // decide on a sentinel (0? undefined?) and push that in the else branch.
     };
+
+    const fmt = (n: number) => parseFloat(n.toFixed(4));
+
+    const { x_min: xv, y_min: yv, width: wv, height: hv } = {
+        x_min: fields.x_min.parsedValue,
+        y_min: fields.y_min.parsedValue,
+        width:  fields.width.parsedValue,
+        height: fields.height.parsedValue,
+    };
+
+    const errors = {
+        x_min: xv === undefined
+            ? 'Please enter a valid number.'
+            : xv < 0
+                ? 'Must be non-negative.'
+                : xv > boardWidth
+                    ? `Must not exceed board width.`
+                    : undefined,
+
+        y_min: yv === undefined
+            ? 'Please enter a valid number.'
+            : yv < 0
+                ? 'Must be non-negative.'
+                : yv > boardHeight
+                    ? `Must not exceed board height.`
+                    : undefined,
+
+        width: wv === undefined
+            ? 'Please enter a valid number.'
+            : wv <= 0
+                ? 'Must be greater than 0.'
+                : xv !== undefined && fmt(xv + wv) > boardWidth
+                    ? `X + Width exceeds board width.`
+                    : undefined,
+
+        height: hv === undefined
+            ? 'Please enter a valid number.'
+            : hv <= 0
+                ? 'Must be greater than 0.'
+                : yv !== undefined && fmt(yv + hv) > boardHeight
+                    ? `Y + Height exceeds board height.`
+                    : undefined,
+    };
+
+    const allValid = Object.values(errors).every(e => e === undefined);
 
     return (
         <Box
@@ -64,36 +108,39 @@ export function ExclusionZoneEditor({ exclusionState }: Props) {
                 useFlexGap
                 alignItems='center'
             >
-                <Stack
-                    direction="row"
-                    spacing={4}
-                    flexWrap='wrap'
-                    useFlexGap
-                >
-                    <MicrometerInput
-                        label="X (Lower Left Corner)"
-                        placeholder="0.0"
-                        value={fields.x_min.fieldValue}
-                        onChange={(fv, pv) => updateField('x_min', fv, pv)}
-                    />
-                    <MicrometerInput
-                        label="Y (Lower Left Corner)"
-                        placeholder="0.0"
-                        value={fields.y_min.fieldValue}
-                        onChange={(fv, pv) => updateField('y_min', fv, pv)}
-                    />
-                    <MicrometerInput
-                        label="Width"
-                        placeholder="1.0"
-                        value={fields.width.fieldValue}
-                        onChange={(fv, pv) => updateField('width', fv, pv)}
-                    />
-                    <MicrometerInput
-                        label="Height"
-                        placeholder="1.0"
-                        value={fields.height.fieldValue}
-                        onChange={(fv, pv) => updateField('height', fv, pv)}
-                    />
+                <Stack direction="row" spacing={4} flexWrap='wrap' useFlexGap>
+                    <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
+                        <MicrometerInput
+                            label="X (Lower Left Corner)"
+                            placeholder="0.0"
+                            value={fields.x_min.fieldValue}
+                            error={errors.x_min}
+                            onChange={(fv, pv) => updateField('x_min', fv, pv)}
+                        />
+                        <MicrometerInput
+                            label="Y (Lower Left Corner)"
+                            placeholder="0.0"
+                            value={fields.y_min.fieldValue}
+                            error={errors.y_min}
+                            onChange={(fv, pv) => updateField('y_min', fv, pv)}
+                        />
+                    </Stack>
+                    <Stack direction="row" spacing={4} flexGrow={1} flexWrap='wrap' useFlexGap>
+                        <MicrometerInput
+                            label="Width"
+                            placeholder="1.0"
+                            value={fields.width.fieldValue}
+                            error={errors.width}
+                            onChange={(fv, pv) => updateField('width', fv, pv)}
+                        />
+                        <MicrometerInput
+                            label="Height"
+                            placeholder="1.0"
+                            value={fields.height.fieldValue}
+                            error={errors.height}
+                            onChange={(fv, pv) => updateField('height', fv, pv)}
+                        />
+                    </Stack>
                 </Stack>
 
                 <Stack
@@ -103,7 +150,7 @@ export function ExclusionZoneEditor({ exclusionState }: Props) {
                     useFlexGap
                 >
                     <Button
-                        disabled={!exclusionState.preview}
+                        disabled={!exclusionState.preview || !allValid}
                         onClick={_ => {
                             exclusionState.acceptPreview();
                         }}

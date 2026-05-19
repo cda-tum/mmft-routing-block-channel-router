@@ -57,6 +57,10 @@ export function getStarterPlatformParams(): InputParameters {
         channelCap: { error: false, value: "Square", fieldValue: "Square" },
         channelCapCustom: { error: false, value: 0.8, fieldValue: "0.8" },
         maxPorts: { error: false, value: 5000, fieldValue: "5000" },
+        exclusionX: { error: false, value: 2.0, fieldValue: "2.0" },
+        exclusionY: { error: false, value: 2.0, fieldValue: "2.0" },
+        exclusionWidth: { error: false, value: 5.0, fieldValue: "5.0" },
+        exclusionHeight: { error: false, value: 5.0, fieldValue: "5.0" },
     }
 }
 
@@ -82,10 +86,10 @@ export type InputParameterValues = {
     channelCap: string
     channelCapCustom: number
     maxPorts: number
-    exclusionX?: number
-    exclusionY?: number
-    exclusionWidth?: number
-    exclusionHeight?: number
+    exclusionX: number
+    exclusionY: number
+    exclusionWidth: number
+    exclusionHeight: number
 }
 
 export type InputParameters = { [K in keyof InputParameterValues]: Value<InputParameterValues[K]> }
@@ -111,10 +115,10 @@ export function validate(parameters: InputParameters) {
         layout: parameters.layout.value,
         template: parameters.template.value,
         connections: [], // TODO
-        exclusion_x: parameters.exclusionX,
-        exclusion_y: parameters.exclusionY,
-        exclusion_width: parameters.exclusionWidth,
-        exclusion_height: parameters.exclusionHeight
+        exclusion_x: parameters.exclusionX?.value ?? null,
+        exclusion_y: parameters.exclusionY?.value ?? null,
+        exclusion_width: parameters.exclusionWidth?.value ?? null,
+        exclusion_height: parameters.exclusionHeight?.value ?? null
     }
 
     try {
@@ -357,6 +361,98 @@ export function validate(parameters: InputParameters) {
                                 ...vp.channelSpacing,
                                 error: true,
                                 errorMessage: 'Must be a positive number!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('ExclusionXError' in error) {
+                        const suberror = error['ExclusionXError']
+                        if (suberror === 'NotPositive') {
+                            vp.exclusionX = {
+                                ...vp.exclusionX,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else if (suberror === 'Undefined') {
+                            vp.exclusionX = {
+                                ...vp.exclusionX,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'OutOfBounds') {
+                            vp.exclusionX = {
+                                ...vp.exclusionX,
+                                error: true,
+                                errorMessage: 'Must be inside the routing board!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('ExclusionYError' in error) {
+                        const suberror = error['ExclusionYError']
+                        if (suberror === 'NotPositive') {
+                            vp.exclusionY = {
+                                ...vp.exclusionY,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else if (suberror === 'Undefined') {
+                            vp.exclusionY = {
+                                ...vp.exclusionY,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'OutOfBounds') {
+                            vp.exclusionY = {
+                                ...vp.exclusionY,
+                                error: true,
+                                errorMessage: 'Must be inside the routing board!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('ExclusionWidthError' in error) {
+                        const suberror = error['ExclusionWidthError']
+                        if (suberror === 'NotPositive') {
+                            vp.exclusionWidth = {
+                                ...vp.exclusionWidth,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else if (suberror === 'Undefined') {
+                            vp.exclusionWidth = {
+                                ...vp.exclusionWidth,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'LargerThanBoard') {
+                            vp.exclusionWidth = {
+                                ...vp.exclusionWidth,
+                                error: true,
+                                errorMessage: 'Must be inside the routing board!'
+                            }
+                        } else {
+                            ge.push(`Unexpected Error: ${suberror}`)
+                        }
+                    } else if ('ExclusionHeightError' in error) {
+                        const suberror = error['ExclusionHeightError']
+                        if (suberror === 'NotPositive') {
+                            vp.exclusionHeight = {
+                                ...vp.exclusionHeight,
+                                error: true,
+                                errorMessage: 'Must be a positive number!'
+                            }
+                        } else if (suberror === 'Undefined') {
+                            vp.exclusionHeight = {
+                                ...vp.exclusionHeight,
+                                error: true,
+                                errorMessage: 'Please enter a valid number!'
+                            }
+                        } else if (suberror === 'LargerThanBoard') {
+                            vp.exclusionHeight = {
+                                ...vp.exclusionHeight,
+                                error: true,
+                                errorMessage: 'Must be inside the routing board!'
                             }
                         } else {
                             ge.push(`Unexpected Error: ${suberror}`)

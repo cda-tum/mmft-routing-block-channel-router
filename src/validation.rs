@@ -20,6 +20,10 @@ pub struct ValidateInput {
     pub max_ports: Option<usize>,
     pub layout: Option<Layout>,
     pub connections: Option<RouteInputConnections>,
+    pub exclusion_x: Option<f64>,
+    pub exclusion_y: Option<f64>,
+    pub exclusion_width: Option<f64>,
+    pub exclusion_height: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -52,6 +56,10 @@ pub enum ValidationError {
     MaxPortsExceeded(ActualPorts, MaxPorts),
     InvalidConnectionPortX(ConnectionID, Port),
     InvalidConnectionPortY(ConnectionID, Port),
+    ExclusionXError(ExclusionXError),
+    ExclusionYError(ExclusionYError),
+    ExclusionWidthError(ExclusionWidthError),
+    ExclusionHeightError(ExclusionHeightError),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -115,6 +123,34 @@ pub enum ChannelHeightError {
 pub enum ChannelSpacingError {
     Undefined,
     NotPositive,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ExclusionXError {
+    Undefined,
+    NotPositive,
+    OutOfBounds,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ExclusionYError {
+    Undefined,
+    NotPositive,
+    OutOfBounds,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ExclusionWidthError {
+    Undefined,
+    NotPositive,
+    LargerThanBoard,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ExclusionHeightError {
+    Undefined,
+    NotPositive,
+    LargerThanBoard,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -269,6 +305,54 @@ pub fn validate(input: ValidateInput) -> Result<ValidationOk, ValidationErr> {
         ));
     }
 
+    if let Some(exclusion_x) = input.exclusion_x {
+        if exclusion_x <= 0. {
+            errors.push(ValidationError::ExclusionXError(
+                ExclusionXError::NotPositive,
+            ));
+        }
+    } else {
+        errors.push(ValidationError::ExclusionXError(
+            ExclusionXError::Undefined,
+        ));
+    }
+
+    if let Some(exclusion_y) = input.exclusion_y {
+        if exclusion_y <= 0. {
+            errors.push(ValidationError::ExclusionYError(
+                ExclusionYError::NotPositive,
+            ));
+        }
+    } else {
+        errors.push(ValidationError::ExclusionYError(
+            ExclusionYError::Undefined,
+        ));
+    }
+
+    if let Some(exclusion_width) = input.exclusion_width {
+        if exclusion_width <= 0. {
+            errors.push(ValidationError::ExclusionWidthError(
+                ExclusionWidthError::NotPositive,
+            ));
+        }
+    } else {
+        errors.push(ValidationError::ExclusionWidthError(
+            ExclusionWidthError::Undefined,
+        ));
+    }
+
+    if let Some(exclusion_height) = input.exclusion_height {
+        if exclusion_height <= 0. {
+            errors.push(ValidationError::ExclusionHeightError(
+                ExclusionHeightError::NotPositive,
+            ));
+        }
+    } else {
+        errors.push(ValidationError::ExclusionHeightError(
+            ExclusionHeightError::Undefined,
+        ));
+    }
+
     some!(input, pitch, pitch_offset_x, {
         if pitch_offset_x < pitch {
             errors.push(ValidationError::PitchOffsetXError(
@@ -281,6 +365,38 @@ pub fn validate(input: ValidateInput) -> Result<ValidationOk, ValidationErr> {
         if pitch_offset_y < pitch {
             errors.push(ValidationError::PitchOffsetYError(
                 PitchOffsetYError::SmallerThanPitch,
+            ))
+        }
+    });
+
+    some!(input, board_width, exclusion_x, {
+        if board_width < exclusion_x {
+            errors.push(ValidationError::ExclusionXError(
+                ExclusionXError::OutOfBounds,
+            ))
+        }
+    });
+
+    some!(input, board_height, exclusion_y, {
+        if board_height < exclusion_y {
+            errors.push(ValidationError::ExclusionXError(
+                ExclusionXError::OutOfBounds,
+            ))
+        }
+    });
+
+    some!(input, board_width, exclusion_x, exclusion_width, {
+        if board_width < (exclusion_x + exclusion_width) {
+            errors.push(ValidationError::ExclusionWidthError(
+                ExclusionWidthError::LargerThanBoard,
+            ))
+        }
+    });
+
+    some!(input, board_height, exclusion_y, exclusion_height, {
+        if board_height < (exclusion_y + exclusion_height) {
+            errors.push(ValidationError::ExclusionHeightError(
+                ExclusionHeightError::LargerThanBoard,
             ))
         }
     });

@@ -59,6 +59,7 @@ export function ChannelDisplay(props: {
     return <Tooltip
         title={
             <>
+                Channel {props.connectionId} <br />
                 Length: {computePathLength(points).toFixed(3)} mm <br />
                 Resistance: {formatResistance(resistance)} = {formatResistanceConverted(resistance)}
             </>

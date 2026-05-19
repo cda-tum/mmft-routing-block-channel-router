@@ -33,6 +33,7 @@ export function BoardDisplay(props: {
     clearOutputConnections?: () => void
     closeDropdown: boolean
     exclusionState: ExclusionStateHandle;
+    onUpdate: () => void
 }) {
     const theme = useTheme()
 
@@ -261,7 +262,7 @@ export function BoardDisplay(props: {
 
     const editExclusionZone = <>
         {exclusionState.preview !== null && (
-            <ExclusionZoneEditor exclusionState={exclusionState} />
+            <ExclusionZoneEditor exclusionState={exclusionState} boardWidth={props.boardWidth} boardHeight={props.boardHeight}/>
         )}
     </>
 
@@ -450,7 +451,10 @@ export function BoardDisplay(props: {
         </Typography>
         <Button
             color="warning"
-            onClick={_ => connectionState.removeOutOfBoundsConnections()}
+            onClick={_ => {
+                connectionState.removeOutOfBoundsConnections()
+                props.onUpdate()
+            }}
             sx={{
                 marginY: 2
             }}
