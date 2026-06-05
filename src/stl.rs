@@ -2,6 +2,15 @@ use std::f64::consts::PI;
 
 use serde::{Deserialize, Serialize};
 
+use i_overlay::core::fill_rule::FillRule;
+use i_overlay::core::overlay::ShapeType;
+use i_overlay::core::overlay_rule::OverlayRule;
+use i_overlay::core::solver::Solver;
+use i_overlay::float::overlay::{FloatOverlay, OverlayOptions};
+use i_overlay::i_float::adapter::FloatPointAdapter;
+use i_overlay::i_float::float::rect::FloatRect;
+use i_overlay::i_shape::base::data::{Shape, Shapes};
+
 use crate::board_router::BoardRouterOutputBoard;
 use crate::dxf::{ChannelCap, Polyline, octilinear_outline};
 
@@ -101,18 +110,37 @@ fn transform_y(pts: Vec<[f64; 2]>, board_height: f64) -> Vec<[f64; 2]> {
     pts.into_iter().map(|[x, y]| [x, board_height - y]).collect()
 }
 
-fn earcut_flat(data: &[f64], hole_indices: &[usize]) -> Vec<usize> {
-    earcutr::earcut(data, hole_indices, 2).unwrap_or_default()
-}
-
-// Returns a CW circle polygon (for use as an earcutr hole inside a CCW outer contour).
-fn circle_cw(cx: f64, cy: f64, r: f64) -> Vec<[f64; 2]> {
+// Returns a CCW circle polygon, used as a boolean-operation input contour.
+fn circle_ccw(cx: f64, cy: f64, r: f64) -> Vec<[f64; 2]> {
     (0..CIRCLE_SEGS)
         .map(|i| {
-            let theta = -2.0 * PI * (i as f64) / (CIRCLE_SEGS as f64);
+            let theta = 2.0 * PI * (i as f64) / (CIRCLE_SEGS as f64);
             [cx + r * theta.cos(), cy + r * theta.sin()]
         })
         .collect()
+}
+
+// Diagnose wrong winding direction
+// Returns the sign, which tells the orientation of the circle: >0 -> counter-clockwise, <0 -> clockwise, == 0 -> degenerate.‚
+// Signed area (with shoelace formula); positive when the ring is wound counter-clockwise in a Y-up frame.
+fn signed_area(ring: &[[f64; 2]]) -> f64 {
+    let n = ring.len();
+    let mut a = 0.0;
+    for i in 0..n {
+        let p = ring[i];
+        let q = ring[(i + 1) % n];
+        a += p[0] * q[1] - q[0] * p[1];
+    }
+    a * 0.5
+}
+
+// Fix wrong winding direction
+// Normalizes a ring to counter-clockwise winding
+fn as_ccw(mut ring: Vec<[f64; 2]>) -> Vec<[f64; 2]> {
+    if signed_area(&ring) < 0.0 {
+        ring.reverse();
+    }
+    ring
 }
 
 // Generates n_total-1 evenly spaced arc points from start_deg (exclusive) to end_deg
@@ -129,7 +157,7 @@ fn arc_pts(cx: f64, cy: f64, r: f64, start_deg: f64, end_deg: f64, n_total: usiz
 }
 
 // Builds the CCW outline polygon of the 105×15 mm STARTER template board in Y-up
-// board-relative coordinates. The outline includes the mounting tab protrusions.
+// board-relative coordinates. The outline includes the mounting tab outlines.
 //
 // Tracing order: start at top-left (0,15), then down the left edge + left tab,
 // right along the bottom + bottom tabs + corner tab, up the right edge,
@@ -140,11 +168,11 @@ fn template_board_outline() -> Vec<[f64; 2]> {
 
     let mut pts: Vec<[f64; 2]> = Vec::new();
 
-    // ── Left edge: top → junction above left tab ────────────────────────────
+    // Left edge: top → junction above left tab
     pts.push([0.0, 15.0]);
     pts.push([0.0, 4.0]);
 
-    // ── Left tab ────────────────────────────────────────────────────────────
+    // Left tab
     // Rectangular section: go left to the tab rect, then arc CCW 90°→270°
     // (through 180° = leftmost point), then return right to the board edge.
     // Arc center (-3, 2), r=2. At 90°: (-3, 4). At 270°: (-3, 0).
@@ -152,7 +180,7 @@ fn template_board_outline() -> Vec<[f64; 2]> {
     pts.extend(arc_pts(-3.0, 2.0, r, 90.0, 270.0, 9)); // ends at (-3, 0)
     pts.push([0.0, 0.0]);
 
-    // ── Bottom edge + bottom tabs (going right) ──────────────────────────────
+    // Bottom edge + bottom tabs (going right)
     // Tab at X=33
     pts.push([31.0, 0.0]);
     pts.push([31.0, -rh]);
@@ -172,10 +200,10 @@ fn template_board_outline() -> Vec<[f64; 2]> {
     pts.push([103.0, -rh]);
     pts.extend(arc_pts(105.0, -rh, r, 180.0, 450.0, 13)); // ends at (105, -rh+r) = (105, -0.125)
 
-    // ── Right edge: bottom → top ─────────────────────────────────────────────
+    // Right edge: bottom → top
     pts.push([105.0, 15.0]);
 
-    // ── Top edge + top tabs (going left) ────────────────────────────────────
+    // Top edge + top tabs (going left)
     // Tab arc centers at (cx, 15+rh), r=2. Arc CCW from 0° to 180° (right → top → left).
     // Going right-to-left so encounter tabs at cx = 96, 78, 60, 42, 24, 6.
     for &cx in &[96.0_f64, 78.0, 60.0, 42.0, 24.0, 6.0] {
@@ -187,57 +215,129 @@ fn template_board_outline() -> Vec<[f64; 2]> {
         pts.extend(arc_pts(cx, arc_y, r, 0.0, 180.0, 9)); // ends at (xl, arc_y)
         pts.push([xl, 15.0]);
     }
-    // Polygon closes implicitly: earcutr connects last point (4, 15) back to (0, 15). ✓
-
+    // Polygon closes implicitly: earcutr connects last point (4, 15) back to (0, 15).
     pts
 }
 
-// Triangulates a 2D polygon with holes at a fixed Z, using earcutr.
-// outer must be CCW (in Y-up). holes must be CW (opposite winding).
-// flip=true reverses each triangle's winding, yielding a -Z outward normal instead of +Z.
-fn add_flat_face(
-    tris: &mut Vec<Triangle>,
-    outer: &[[f64; 2]],
-    holes: &[Vec<[f64; 2]>],
-    z: f64,
-    flip: bool,
-) {
-    let mut data: Vec<f64> = outer.iter().flat_map(|p| [p[0], p[1]]).collect();
-    let mut hole_indices: Vec<usize> = Vec::new();
-    for hole in holes {
-        hole_indices.push(data.len() / 2);
-        data.extend(hole.iter().flat_map(|p| [p[0], p[1]]));
+// Builds a float<->int adapter whose bounding box encloses every input ring (plus a margin).
+// Every boolean op shares this one adapter so that identical geometry snaps to identical 
+// integers and therefore yields vertices -> guarantees that independently triangulated caps,
+// edges and walls meet without cracks -> watertight mesh without holes
+fn make_adapter(groups: &[&[Vec<[f64; 2]>]]) -> FloatPointAdapter<[f64; 2], i32> {
+    let (mut min_x, mut min_y) = (f64::INFINITY, f64::INFINITY);
+    let (mut max_x, mut max_y) = (f64::NEG_INFINITY, f64::NEG_INFINITY);
+    for group in groups {
+        for ring in *group {
+            for &[x, y] in ring {
+                min_x = min_x.min(x);
+                min_y = min_y.min(y);
+                max_x = max_x.max(x);
+                max_y = max_y.max(y);
+            }
+        }
     }
-    let all_pts: Vec<[f64; 2]> = data.chunks(2).map(|c| [c[0], c[1]]).collect();
-    for t in earcut_flat(&data, &hole_indices).chunks(3) {
-        tris.push(if flip {
-            Triangle::new(xy(all_pts[t[0]], z), xy(all_pts[t[2]], z), xy(all_pts[t[1]], z))
+    if !min_x.is_finite() {
+        return FloatPointAdapter::new(FloatRect::new(-1.0, 1.0, -1.0, 1.0));
+    }
+    let m = 1.0;
+    FloatPointAdapter::new(FloatRect::new(min_x - m, max_x + m, min_y - m, max_y + m))
+}
+
+// Runs one 2D boolean operation through the shared adapter and returns the resulting shapes
+// (each shape = one CCW outer contour followed by its CW hole contours).
+fn boolean(
+    adapter: &FloatPointAdapter<[f64; 2], i32>,
+    subj: &[Vec<[f64; 2]>],
+    clip: &[Vec<[f64; 2]>],
+    rule: OverlayRule,
+) -> Shapes<[f64; 2]> {
+    let mut options = OverlayOptions::<f64, i32>::default();
+    // Keep collinear output vertices: a channel edge crossing a port circle lands mid-chord on
+    // the circle (collinear with its two segment endpoints), and that split point must survive
+    // in every operation's output so the port wall in slab B matches the arc in slab A,
+    // genuinely degenerate spikes/duplicates are still removed by clean_result.
+    options.preserve_output_collinear = true;
+    options.clean_result = true;
+
+    let capacity = subj.iter().chain(clip).map(|c| c.len()).sum::<usize>().max(4);
+    let mut overlay = FloatOverlay::<[f64; 2], i32>::new_custom(
+        adapter.clone(),
+        options,
+        Solver::default(),
+        capacity,
+    );
+    for c in subj {
+        overlay = overlay.unsafe_add_contour(c, ShapeType::Subject);
+    }
+    for c in clip {
+        overlay = overlay.unsafe_add_contour(c, ShapeType::Clip);
+    }
+    overlay.overlay(rule, FillRule::NonZero)
+}
+
+// Triangulates one shape (outer CCW + CW holes, as emitted by i_overlay) into a horizontal
+// face at height z. flip=true reverses the winding so the normal points toward -Z (used for
+// the board's bottom cap) instead of +Z.
+fn add_cap(tris: &mut Vec<Triangle>, shape: &Shape<[f64; 2]>, z: f64, flip: bool) {
+    if shape.is_empty() {
+        return;
+    }
+    let mut data: Vec<f64> = Vec::new();
+    let mut hole_indices: Vec<usize> = Vec::new();
+    for (i, contour) in shape.iter().enumerate() {
+        if i > 0 {
+            hole_indices.push(data.len() / 2);
+        }
+        for p in contour {
+            data.push(p[0]);
+            data.push(p[1]);
+        }
+    }
+    let pts: Vec<[f64; 2]> = data.chunks(2).map(|c| [c[0], c[1]]).collect();
+    for t in earcutr::earcut(&data, &hole_indices, 2).unwrap_or_default().chunks(3) {
+        let (a, b, c) = (pts[t[0]], pts[t[1]], pts[t[2]]);
+        if flip {
+            tris.push(Triangle::new(xy(a, z), xy(c, z), xy(b, z)));
         } else {
-            Triangle::new(xy(all_pts[t[0]], z), xy(all_pts[t[1]], z), xy(all_pts[t[2]], z))
-        });
+            tris.push(Triangle::new(xy(a, z), xy(b, z), xy(c, z)));
+        }
     }
 }
 
-// Adds the lateral surface of a cylinder. The outward normal points inward toward the
-// axis (the cylinder is a void, so the solid faces the inside of the hole).
-fn add_cylinder_walls(
-    tris: &mut Vec<Triangle>,
-    cx: f64,
-    cy: f64,
-    r: f64,
-    z_top: f64,
-    z_bot: f64,
-) {
-    for i in 0..CIRCLE_SEGS {
-        let theta0 = 2.0 * PI * (i as f64) / (CIRCLE_SEGS as f64);
-        let theta1 = 2.0 * PI * ((i + 1) as f64) / (CIRCLE_SEGS as f64);
-        let a = [cx + r * theta0.cos(), cy + r * theta0.sin()];
-        let b = [cx + r * theta1.cos(), cy + r * theta1.sin()];
-        // Winding [A@top, B@top, B@bot] gives normal pointing toward cylinder axis (inward). ✓
-        tris.push(Triangle::new(xy(a, z_top), xy(b, z_top), xy(b, z_bot)));
-        tris.push(Triangle::new(xy(a, z_top), xy(b, z_bot), xy(a, z_bot)));
+// Extrudes every contour of a shape into vertical walls from z_top down to z_bot. i_overlay
+// emits contours with the solid region on the left of each directed edge (CCW outer, CW
+// holes), so this single fixed winding always produces an outward-facing wall.
+fn add_walls(tris: &mut Vec<Triangle>, shape: &Shape<[f64; 2]>, z_top: f64, z_bot: f64) {
+    for contour in shape {
+        let n = contour.len();
+        if n < 2 {
+            continue;
+        }
+        for i in 0..n {
+            let p0 = contour[i];
+            let p1 = contour[(i + 1) % n];
+            tris.push(Triangle::new(xy(p0, z_top), xy(p0, z_bot), xy(p1, z_bot)));
+            tris.push(Triangle::new(xy(p0, z_top), xy(p1, z_bot), xy(p1, z_top)));
+        }
     }
 }
+
+// Generates the final, watertight, two-manifold binary STL of the routing board (bt = board thickness)
+//
+// The model is the board − channel pockets − through holes (ports + screw holes).
+// It is built as two stacked slabs that share a horizontal interface at Z = −channel_height (ch):
+//   
+//   * top slab has Z-coords in [−ch, 0]  = board − channels − ports − screws
+//   * bottom slab has Z-coords in [−bt, −ch] = board − ports − screws
+// 
+// from which the exposed surfaces are:
+//   * top cap    = A at Z = 0       (normal +Z)
+//   * bottom cap = B at Z = −bt      (normal −Z)
+//   * ledge      = (B − A) at Z = −ch = the channel floors with ports punched through (+Z)
+//   * walls      = vertical extrusions of every contour of A (0 -> −ch) and of B (−ch -> −bt)
+//
+// A port (which is typically wider than the channel) is therefore a full-depth through hole whose wall
+// is the channel-side arc only down to the floor and the full circle below it
 
 pub fn generate_stl(input: GenerateSTLInput) -> GenerateSTLOutput {
     let bw = input.board_width;
@@ -246,188 +346,95 @@ pub fn generate_stl(input: GenerateSTLInput) -> GenerateSTLOutput {
     let ch = input.channel_height;
     let pr = input.port_diameter / 2.0;
 
-    // Per-connection: combined channel outline + port positions (all in Y-up coords).
-    let conn_data: Vec<(Vec<[f64; 2]>, Vec<[f64; 2]>)> = input
-        .connections
-        .connections
-        .iter()
-        .map(|(_, connection)| {
-            let outline = match octilinear_outline(connection, input.channel_width, &input.channel_cap)
-            {
-                Polyline::Closed(pts) | Polyline::Open(pts) => transform_y(pts, bh),
-            };
+    // Channel outlines (CCW, Y-up) and the port positions at their endpoints.
+    let mut channels: Vec<Vec<[f64; 2]>> = Vec::new();
+    let mut all_ports: Vec<[f64; 2]> = Vec::new();
+    for (_, connection) in &input.connections.connections {
+        let outline = match octilinear_outline(connection, input.channel_width, &input.channel_cap) {
+            Polyline::Closed(pts) | Polyline::Open(pts) => transform_y(pts, bh),
+        };
+        channels.push(as_ccw(outline));
 
-            let mut ports: Vec<[f64; 2]> = Vec::new();
-            if connection.len() == 1 {
-                let ch_pts = &connection[0];
-                if let Some(&[x, y]) = ch_pts.first() {
-                    ports.push([x, bh - y]);
-                }
-                if ch_pts.len() > 1 {
-                    if let Some(&[x, y]) = ch_pts.last() {
-                        ports.push([x, bh - y]);
-                    }
-                }
-            } else {
-                // Star/tree: the shared base point + each branch endpoint.
-                if let Some(first_ch) = connection.first() {
-                    if let Some(&[x, y]) = first_ch.first() {
-                        ports.push([x, bh - y]);
-                    }
-                }
-                for branch in connection.iter() {
-                    if let Some(&[x, y]) = branch.last() {
-                        ports.push([x, bh - y]);
-                    }
+        if connection.len() == 1 {
+            let ch_pts = &connection[0];
+            if let Some(&[x, y]) = ch_pts.first() {
+                all_ports.push([x, bh - y]);
+            }
+            if ch_pts.len() > 1 {
+                if let Some(&[x, y]) = ch_pts.last() {
+                    all_ports.push([x, bh - y]);
                 }
             }
+        } else {
+            if let Some(first_ch) = connection.first() {
+                if let Some(&[x, y]) = first_ch.first() {
+                    all_ports.push([x, bh - y]);
+                }
+            }
+            for branch in connection.iter() {
+                if let Some(&[x, y]) = branch.last() {
+                    all_ports.push([x, bh - y]);
+                }
+            }
+        }
+    }
 
-            (outline, ports)
-        })
-        .collect();
-
-    // Collect and deduplicate all port positions across connections.
-    let mut all_ports: Vec<[f64; 2]> = conn_data
-        .iter()
-        .flat_map(|(_, ports)| ports.iter().cloned())
-        .collect();
+    // Deduplicate coincident ports, then turn each into a CCW circle contour.
     all_ports.sort_by(|a, b| {
         a[0].partial_cmp(&b[0])
             .unwrap()
             .then(a[1].partial_cmp(&b[1]).unwrap())
     });
     all_ports.dedup_by(|a, b| (a[0] - b[0]).abs() < 1e-6 && (a[1] - b[1]).abs() < 1e-6);
-
-    // CW circles for every port (used as holes in the flat faces).
-    let all_port_holes: Vec<Vec<[f64; 2]>> = all_ports
+    let ports: Vec<Vec<[f64; 2]>> = all_ports
         .iter()
-        .map(|&[cx, cy]| circle_cw(cx, cy, pr))
+        .map(|&[cx, cy]| circle_ccw(cx, cy, pr))
         .collect();
 
-    let mut tris: Vec<Triangle> = Vec::new();
-
-    if input.is_template {
-        let board_outline = template_board_outline();
-        let sr = TEMPLATE_SCREW_HOLE_RADIUS;
-
-        // CW circles for each screw hole (used as holes in the flat faces).
-        let screw_holes: Vec<Vec<[f64; 2]>> = TEMPLATE_SCREW_HOLE_CENTERS
+    // Board outline (CCW) and the screw holes (template only).
+    let (board_outline, screws): (Vec<[f64; 2]>, Vec<Vec<[f64; 2]>>) = if input.is_template {
+        let screws = TEMPLATE_SCREW_HOLE_CENTERS
             .iter()
-            .map(|&[cx, cy]| circle_cw(cx, cy, sr))
+            .map(|&[cx, cy]| circle_ccw(cx, cy, TEMPLATE_SCREW_HOLE_RADIUS))
             .collect();
-
-        // Board side walls: extrude each polygon edge from Z=0 to Z=-bt.
-        // Winding [p0@top, p0@bot, p1@bot] gives outward normal for a CCW outer polygon.
-        let n = board_outline.len();
-        for i in 0..n {
-            let p0 = board_outline[i];
-            let p1 = board_outline[(i + 1) % n];
-            tris.push(Triangle::new(xy(p0, 0.), xy(p0, -bt), xy(p1, -bt)));
-            tris.push(Triangle::new(xy(p0, 0.), xy(p1, -bt), xy(p1, 0.)));
-        }
-
-        // Screw hole cylinder walls: full board thickness.
-        for &[cx, cy] in &TEMPLATE_SCREW_HOLE_CENTERS {
-            add_cylinder_walls(&mut tris, cx, cy, sr, 0., -bt);
-        }
-
-        // Top face (Z=0): channel holes + screw holes.
-        {
-            let mut holes: Vec<Vec<[f64; 2]>> =
-                conn_data.iter().map(|(outline, _)| outline.clone()).collect();
-            holes.extend(screw_holes.iter().cloned());
-            add_flat_face(&mut tris, &board_outline, &holes, 0., false);
-        }
-
-        // Bottom face (Z=-bt): port holes + screw holes.
-        {
-            let mut holes = all_port_holes.clone();
-            holes.extend(screw_holes.iter().cloned());
-            add_flat_face(&mut tris, &board_outline, &holes, -bt, true);
-        }
+        (as_ccw(template_board_outline()), screws)
     } else {
-        // Board front (Y=0, outward normal (0,-1,0))
-        tris.push(Triangle::new([0., 0., 0.], [0., 0., -bt], [bw, 0., -bt]));
-        tris.push(Triangle::new([0., 0., 0.], [bw, 0., -bt], [bw, 0., 0.]));
+        (vec![[0., 0.], [bw, 0.], [bw, bh], [0., bh]], Vec::new())
+    };
 
-        // Board back (Y=bh, outward normal (0,+1,0))
-        tris.push(Triangle::new([bw, bh, 0.], [bw, bh, -bt], [0., bh, -bt]));
-        tris.push(Triangle::new([bw, bh, 0.], [0., bh, -bt], [0., bh, 0.]));
+    let board = [board_outline];
+    let adapter = make_adapter(&[&board, &channels, &ports, &screws]);
 
-        // Board left (X=0, outward normal (-1,0,0))
-        tris.push(Triangle::new([0., bh, 0.], [0., bh, -bt], [0., 0., -bt]));
-        tris.push(Triangle::new([0., bh, 0.], [0., 0., -bt], [0., 0., 0.]));
+    // Through-going holes (ports + screw holes) are removed from both slabs.
+    let mut through: Vec<Vec<[f64; 2]>> = ports.clone();
+    through.extend(screws.iter().cloned());
 
-        // Board right (X=bw, outward normal (+1,0,0))
-        tris.push(Triangle::new([bw, 0., 0.], [bw, 0., -bt], [bw, bh, -bt]));
-        tris.push(Triangle::new([bw, 0., 0.], [bw, bh, -bt], [bw, bh, 0.]));
+    // Top slab A = board − channels − through.
+    let mut clip_a = channels.clone();
+    clip_a.extend(through.iter().cloned());
+    let shape_a = boolean(&adapter, &board, &clip_a, OverlayRule::Difference);
 
-        // Board top face (Z=0, outward normal (0,0,+1)).
-        // Only channel outline holes — port circles overlap with channel outlines near endpoints
-        // and cause earcutr to fail, so they are omitted here. The port positions are already
-        // exposed from the top through the channel opening that covers each endpoint.
-        {
-            let outer = [[0., 0.], [bw, 0.], [bw, bh], [0., bh]];
-            let holes: Vec<Vec<[f64; 2]>> =
-                conn_data.iter().map(|(outline, _)| outline.clone()).collect();
-            add_flat_face(&mut tris, &outer, &holes, 0., false);
-        }
+    // Bottom slab B = (board union channels) − through. Channels are added to the subject (they are
+    // solid material this far down) only so that the port circles get split at the channel
+    // crossings exactly as they are in A.
+    let mut subj_b = board.to_vec();
+    subj_b.extend(channels.iter().cloned());
+    let shape_b = boolean(&adapter, &subj_b, &through, OverlayRule::Difference);
 
-        // Board bottom face (Z=-bt, outward normal (0,0,-1)).
-        // Holes: port circles only (channels don't reach the bottom face).
-        {
-            let outer = [[0., 0.], [bw, 0.], [bw, bh], [0., bh]];
-            add_flat_face(&mut tris, &outer, &all_port_holes, -bt, true);
-        }
+    // Ledge = channels − ports: the channel floors at Z = −ch with the ports punched through.
+    let shape_l = boolean(&adapter, &channels, &ports, OverlayRule::Difference);
+
+    let mut tris: Vec<Triangle> = Vec::new();
+    for shape in &shape_a {
+        add_cap(&mut tris, shape, 0., false);
+        add_walls(&mut tris, shape, 0., -ch);
     }
-
-    // Port cylinder walls: full board thickness (Z=0 to Z=-bt).
-    for &[cx, cy] in &all_ports {
-        add_cylinder_walls(&mut tris, cx, cy, pr, 0., -bt);
+    for shape in &shape_b {
+        add_cap(&mut tris, shape, -bt, true);
+        add_walls(&mut tris, shape, -ch, -bt);
     }
-
-    // Per-connection: channel walls + channel floor.
-    for (outline, ports) in &conn_data {
-        let n = outline.len();
-        if n < 3 {
-            continue;
-        }
-
-        // Channel walls: each outline edge extruded from Z=0 down to Z=-ch.
-        // Winding [p0@top, p0@bot, p1@bot] gives inward normal (into channel cavity). ✓
-        for i in 0..n {
-            let p0 = outline[i];
-            let p1 = outline[(i + 1) % n];
-            tris.push(Triangle::new(xy(p0, 0.), xy(p0, -ch), xy(p1, -ch)));
-            tris.push(Triangle::new(xy(p0, 0.), xy(p1, -ch), xy(p1, 0.)));
-        }
-
-        // Channel floor (Z=-ch, outward normal (0,0,+1) pointing up into cavity).
-        // Reverse outline CW→CCW so the cross product gives +Z, then triangulate without
-        // holes. Port circle centers lie ON the boundary of the outline (at channel
-        // endpoints), so half the circle is outside the polygon — earcutr would fail with
-        // them as holes. Instead, filter out every triangle whose centroid or any vertex
-        // falls inside a port circle; the remaining triangles form an open floor at each
-        // port position, letting the full-thickness port cylinder pass through.
-        let floor_outer: Vec<[f64; 2]> = outline.iter().rev().cloned().collect();
-        let data: Vec<f64> = floor_outer.iter().flat_map(|p| [p[0], p[1]]).collect();
-        let floor_pts: Vec<[f64; 2]> = data.chunks(2).map(|c| [c[0], c[1]]).collect();
-        let pr2 = pr * pr;
-        for t in earcut_flat(&data, &[]).chunks(3) {
-            let v0 = floor_pts[t[0]];
-            let v1 = floor_pts[t[1]];
-            let v2 = floor_pts[t[2]];
-            let cx = (v0[0] + v1[0] + v2[0]) / 3.0;
-            let cy = (v0[1] + v1[1] + v2[1]) / 3.0;
-            let d2 = |a: [f64; 2], b: [f64; 2]| (a[0]-b[0]).powi(2) + (a[1]-b[1]).powi(2);
-            let near_port = ports.iter().any(|&p| {
-                d2(v0, p) < pr2 || d2(v1, p) < pr2 || d2(v2, p) < pr2 || d2([cx, cy], p) < pr2
-            });
-            if !near_port {
-                tris.push(Triangle::new(xy(v0, -ch), xy(v1, -ch), xy(v2, -ch)));
-            }
-        }
+    for shape in &shape_l {
+        add_cap(&mut tris, shape, -ch, false);
     }
-
     GenerateSTLOutput(write_binary_stl(&tris))
 }

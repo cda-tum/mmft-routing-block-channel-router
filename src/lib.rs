@@ -26,6 +26,7 @@ mod tests {
             channel_height: Some(100.0),
             board_width: Some(10000.0),
             board_height: Some(5000.0),
+            board_thickness: Some(100.0),
             pitch: Some(500.0),
             pitch_offset_x: Some(500.0),
             pitch_offset_y: Some(500.0),
@@ -33,6 +34,10 @@ mod tests {
             max_ports: Some(20000),
             layout: Some(Layout::Rectilinear),
             connections: Some(Vec::new()),
+            exclusion_x: None,
+            exclusion_y: None,
+            exclusion_width: None,
+            exclusion_height: None,
         });
 
         println!("{:?}", result)
