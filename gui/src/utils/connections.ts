@@ -1,5 +1,6 @@
 import { PortKey } from "./ports";
 import { generate_dxf } from '../../../pkg/mmft_board_router';
+import { generate_stl } from '../../../pkg/mmft_board_router';
 
 export type ConnectionID = number
 
@@ -57,8 +58,8 @@ export const defaultOutputConnectionsRaw: OutputConnectionsRaw = []
 export function computePathLength(points: Point[]) {
     let previous = undefined
     let length = 0
-    for(let point of points) {
-        if(previous !== undefined) {
+    for (let point of points) {
+        if (previous !== undefined) {
             const [dx, dy] = [point[0] - previous[0], point[1] - previous[1]]
             length += Math.hypot(dx, dy)
         }
@@ -67,10 +68,24 @@ export function computePathLength(points: Point[]) {
     return length
 }
 
+export function computePathResistance(points: Point[], channelWidth: number, channelHeight: number) {
+    let length = computePathLength(points);
+    const fluidViscosity = 0.001; // Viscosity of water at room temperature (20°C) in Pa·s (= 1 mPa·s)
+
+    // Convert width, height and length from mm to m first
+    channelWidth /= 1000;
+    channelHeight /= 1000;
+    length /= 1000;
+
+    const correctionFactor = (1 - ((192 * channelHeight) / (Math.PI ** 5 * channelWidth)) * Math.tanh((Math.PI * channelWidth) / (2 * channelHeight))) ** (-1);
+    const resistance = 12 * correctionFactor * ((fluidViscosity * length) / (channelWidth * channelHeight ** 3));
+    return resistance;
+}
+
 export function generateDXF(output: OutputConnectionsRaw, channelWidth: number, channelCap: string, channelCustom: number, boardWidth: number, boardHeight: number) {
     try {
         let channelCapArg
-        if(channelCap === "Butt" || channelCap === "Square") {
+        if (channelCap === "Butt" || channelCap === "Square") {
             channelCapArg = channelCap
         } else {
             channelCapArg = {
@@ -87,6 +102,37 @@ export function generateDXF(output: OutputConnectionsRaw, channelWidth: number, 
             board_height: boardHeight
         }
         const result = generate_dxf(args)
+        return result
+    } catch (e) {
+        console.error('An unknown error occurred.')
+        return undefined
+    }
+}
+
+export function generateSTL(output: OutputConnectionsRaw, channelWidth: number, channelHeight: number, channelCap: string, channelCustom: number, boardWidth: number, boardHeight: number, boardThickness: number, portDiameter: number, isTemplate: boolean = false) {
+    try {
+        let channelCapArg
+        if (channelCap === "Butt" || channelCap === "Square") {
+            channelCapArg = channelCap
+        } else {
+            channelCapArg = {
+                "Custom": channelCustom
+            }
+        }
+        const args = {
+            connections: {
+                connections: output
+            },
+            channel_width: channelWidth,
+            channel_height: channelHeight,
+            channel_cap: channelCapArg,
+            board_width: boardWidth,
+            board_height: boardHeight,
+            board_thickness: boardThickness,
+            port_diameter: portDiameter,
+            is_template: isTemplate
+        }
+        const result = generate_stl(args)
         return result
     } catch (e) {
         console.error('An unknown error occurred.')

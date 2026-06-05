@@ -31,6 +31,11 @@ Builds the (optimized) app for production to the `build` folder.
 
 Runs the benchmarks.
 
+
+## Remarks
+
+The tool is currently in an active extension process, and the STL export feature is currently in beta and may not produce correct or production-ready results in all cases.
+
 ## How to Cite
 
 In case you are using our tool in your work, we would be thankful if you referred to it by citing the following [publication](https://www.cda.cit.tum.de/files/eda/2025_iccad_automatic_design_for_modular_microfluidic_routing_blocks.pdf):

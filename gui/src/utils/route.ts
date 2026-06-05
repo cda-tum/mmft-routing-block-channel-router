@@ -1,6 +1,7 @@
 import { InputState } from "../BoardUI";
 import { route as wasm_route } from '../../../pkg/mmft_board_router';
 import { Channel, ConnectionID, OutputConnections } from "./connections";
+import { ExclusionZoneState } from "./exclusions";
 
 
 function connections(resultConnections: [number, Channel[]][]) {
@@ -11,10 +12,11 @@ function connections(resultConnections: [number, Channel[]][]) {
     return connections
 }
 
-export function route(input: InputState) {
+export function route(input: InputState, exclusionZones: ExclusionZoneState) {
     try {
         const args = {
             channel_width: input.parameters.channelWidth.value,
+            channel_height: input.parameters.channelHeight.value,
             channel_spacing: input.parameters.channelSpacing.value,
             board_width: input.parameters.boardWidth.value,
             board_height: input.parameters.boardHeight.value,
@@ -24,10 +26,11 @@ export function route(input: InputState) {
             port_diameter: input.parameters.portDiameter.value,
             max_ports: input.parameters.maxPorts.value,
             connections: Object.entries(input.connections).filter(([_, connection]) => connection.ports.length > 1).map(([c_id, connection]) => ({
-                id: parseInt(c_id), 
+                id: parseInt(c_id),
                 ports: connection.ports,
                 branch_port: connection.branchPort
             })),
+            exclusion_zones: Object.values(exclusionZones),
             min_grid_size: 0,
             layout: input.parameters.layout.value,
         }
@@ -53,6 +56,10 @@ export function route(input: InputState) {
             } else if (typeof error === 'object') {
                 if ('PartialResult' in error) {
                     return { connections: connections(result['Err']['PartialResult']['connections']), connectionsRaw: result['Err']['PartialResult']['connections'], error: 'A partial solution has been found.', is_partial: true }
+                } else if ('ExclusionZoneBlocked' in error) {
+                    const { board, blocked_connection_ids } = error['ExclusionZoneBlocked'] as { board: { connections: [number, Channel[]][] }, blocked_connection_ids: number[] }
+                    const ids = blocked_connection_ids.map(id => `#${id}`).join(', ')
+                    return { connections: connections(board.connections), connectionsRaw: board.connections, error: `Connection(s) ${ids} could not be routed due to an exclusion zone.`, is_partial: true }
                 } else {
                     error_message = 'Unexpected error'
                     console.error('Unexpected error')

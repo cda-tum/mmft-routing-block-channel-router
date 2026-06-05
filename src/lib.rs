@@ -1,6 +1,7 @@
 pub mod board_router;
 mod board_router_wasm;
 pub mod dxf;
+pub mod stl;
 mod graph_search;
 mod port_nomenclature;
 mod validation;
@@ -22,8 +23,10 @@ mod tests {
         let result = validate(ValidateInput {
             channel_width: Some(100.0),
             channel_spacing: Some(100.0),
+            channel_height: Some(100.0),
             board_width: Some(10000.0),
             board_height: Some(5000.0),
+            board_thickness: Some(100.0),
             pitch: Some(500.0),
             pitch_offset_x: Some(500.0),
             pitch_offset_y: Some(500.0),
@@ -31,6 +34,10 @@ mod tests {
             max_ports: Some(20000),
             layout: Some(Layout::Rectilinear),
             connections: Some(Vec::new()),
+            exclusion_x: None,
+            exclusion_y: None,
+            exclusion_width: None,
+            exclusion_height: None,
         });
 
         println!("{:?}", result)
@@ -39,9 +46,11 @@ mod tests {
     #[test]
     fn it_routes() {
         let channel_width: f64 = 100.;
+        let channel_height: f64 = 100.;
         let result = route(&RouteInput {
             channel_width: channel_width,
             channel_spacing: 100.,
+            channel_height: channel_height,
             board_width: 10000.,
             board_height: 5000.,
             pitch: 500.,
@@ -82,6 +91,7 @@ mod tests {
                     branch_port: None,
                 },
             ]),
+            exclusion_zones: None,
         });
 
         println!("{:?}", result);
@@ -101,6 +111,7 @@ mod tests {
         let result = route(&RouteInput {
             channel_width: 100.,
             channel_spacing: 100.,
+            channel_height: 100.,
             board_width: 2000.,
             board_height: 2000.,
             pitch: 500.,
@@ -121,6 +132,7 @@ mod tests {
                     branch_port: None,
                 },
             ]),
+            exclusion_zones: None,
         });
 
         println!("{:?}", result);
@@ -140,6 +152,7 @@ mod tests {
         let result = route(&RouteInput {
             channel_width: 100.,
             channel_spacing: 100.,
+            channel_height: 100.,
             board_width: 10000.,
             board_height: 5000.,
             pitch: 500.,
@@ -153,6 +166,7 @@ mod tests {
                 ports: vec![(5, 5), (11, 5), (8, 2), (8, 8)],
                 branch_port: None,
             }]),
+            exclusion_zones: None,
         });
     }
 
@@ -161,6 +175,7 @@ mod tests {
         let result = route(&RouteInput {
             channel_width: 100.,
             channel_spacing: 100.,
+            channel_height: 100.,
             board_width: 10000.,
             board_height: 5000.,
             pitch: 500.,
@@ -174,6 +189,7 @@ mod tests {
                 ports: vec![(5, 5), (11, 5), (8, 2), (8, 8)],
                 branch_port: None,
             }]),
+            exclusion_zones: None,
         });
     }
 
@@ -182,6 +198,7 @@ mod tests {
         let result = route(&RouteInput {
             channel_width: 0.375,
             channel_spacing: 0.375,
+            channel_height: 0.375,
             board_width: 105.,
             board_height: 15.,
             pitch: 1.5,
@@ -195,6 +212,7 @@ mod tests {
                 ports: vec![(0, 0), (5, 5)],
                 branch_port: None,
             }]),
+            exclusion_zones: None,
         });
     }
 
@@ -203,6 +221,7 @@ mod tests {
         let result = route(&RouteInput {
             channel_width: 0.4,
             channel_spacing: 0.3,
+            channel_height: 0.4,
             board_width: 105.,
             board_height: 15.,
             pitch: 1.5,
@@ -216,6 +235,7 @@ mod tests {
                 ports: vec![(19, 4), (27, 5)],
                 branch_port: Some((23, 0)),
             }]),
+            exclusion_zones: None,
         });
     }
 }

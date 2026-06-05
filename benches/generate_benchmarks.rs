@@ -854,10 +854,12 @@ fn random_cases(options: &RandomGenerationOptions) -> Vec<(String, RouteInput)> 
                         pitch_offset_y,
                         port_diameter,
                         channel_width,
+                        channel_height: channel_width,
                         channel_spacing,
                         layout,
                         max_ports: MAX_PORTS,
                         connections: connections.clone(),
+                        exclusion_zones: None,
                     })
                 },
                 incremental_tries_per_connection,
@@ -878,10 +880,12 @@ fn random_cases(options: &RandomGenerationOptions) -> Vec<(String, RouteInput)> 
             pitch_offset_y,
             port_diameter,
             channel_width,
+            channel_height: channel_width,
             channel_spacing,
             layout,
             max_ports: MAX_PORTS,
             connections,
+            exclusion_zones: None,
         };
 
         if has_successful_result(&input) {

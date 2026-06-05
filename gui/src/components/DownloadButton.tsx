@@ -1,18 +1,28 @@
 import { Button, Tooltip, Typography, useTheme } from "@mui/joy"
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
-export function download(output: string, fileName: string, mime: string) {
-    const dataStr = `data:${mime};charset=utf-8,` + encodeURIComponent(output)
-    const downloadAnchorNode = document.createElement('a')
-    downloadAnchorNode.setAttribute("href", dataStr)
-    downloadAnchorNode.setAttribute("download", fileName)
-    document.body.appendChild(downloadAnchorNode)
-    downloadAnchorNode.click()
-    downloadAnchorNode.remove()
+export function download(output: string | Uint8Array, fileName: string, mime: string) {
+    const a = document.createElement('a')
+    if (output instanceof Uint8Array) {
+        const url = URL.createObjectURL(new Blob([new Uint8Array(output)], { type: mime }))
+        a.href = url
+        a.setAttribute("download", fileName)
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+    } else {
+        const dataStr = `data:${mime};charset=utf-8,` + encodeURIComponent(output)
+        a.setAttribute("href", dataStr)
+        a.setAttribute("download", fileName)
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+    }
 }
 
 type DownloadButtonProps = { label: string } & ({
-    content: string | (() => string)
+    content: string | Uint8Array | (() => string | Uint8Array)
     mime: string
     fileName: string
 } | {
@@ -29,6 +39,10 @@ export function DownloadButton(props: DownloadButtonProps) {
 
     const button = <span><Button
         disabled={disabled}
+        sx={{
+            margin: 1,
+            marginX: 1,
+        }}
         onClick={_ => {
             if (!disabled) {
                 if (typeof props.content === 'function') {

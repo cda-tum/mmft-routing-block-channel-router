@@ -10,6 +10,7 @@ use crate::graph_search::{a_star, AStarNode};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RouteInput {
     pub channel_width: f64,
+    pub channel_height: f64,
     pub channel_spacing: f64,
     pub layout: Layout,
     pub board_width: f64,
@@ -20,10 +21,13 @@ pub struct RouteInput {
     pub port_diameter: f64,
     pub max_ports: usize,
     pub connections: RouteInputConnections,
+    #[serde(default)]
+    pub exclusion_zones: Option<RoutingExclusionZones>,
 }
 
 pub type ConnectionID = usize;
 pub type RouteInputConnections = Vec<RouteInputConnection>;
+pub type RoutingExclusionZones = Vec<ExclusionZone>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RouteInputConnection {
@@ -46,11 +50,24 @@ pub enum BoardRouterOutputError {
     NoInputConnections,
     PartialResult(BoardRouterOutputBoard),
     NoConnectionsFound,
+    ExclusionZoneBlocked {
+        board: BoardRouterOutputBoard,
+        blocked_connection_ids: Vec<ConnectionID>,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BoardRouterOutputBoard {
     pub connections: Vec<BoardRouterOutputConnection>, // this is the output -- a vector of the channel connections on the routing board
+}
+
+// Define the ExclusionZone structure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExclusionZone {
+    x_min: f64,
+    y_min: f64,
+    width: f64,
+    height: f64,
 }
 
 pub type BoardRouterOutputConnection = (ConnectionID, Vec<Channel>); // tuple of connection ID (unsigned integer) and channel(s), the channel consists of a vector of points
@@ -388,6 +405,36 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
         }
     }
 
+    let mut exclusion_blocked_cells = HashSet::<usize>::new();
+    // Block every cell whose centre falls within an exclusion zone
+    // Exclusion zones use lower-left origin, routing grid uses top-left origin,
+    // so the y-axis is flipped before the comparison
+    if let Some(zones) = &input.exclusion_zones {
+        for zone in zones {
+            let zone_x_max = zone.x_min + zone.width;
+            let zone_svg_y_top = input.board_height - zone.y_min - zone.height;
+            let zone_svg_y_bot = input.board_height - zone.y_min;
+
+            for ix in 0..cells_x {
+                let cell_mm_x = cell_offset_x + ix as f64 * cell_size;
+                if cell_mm_x < zone.x_min || cell_mm_x > zone_x_max {
+                    continue;
+                }
+                for iy in 0..cells_y {
+                    let cell_mm_y = cell_offset_y + iy as f64 * cell_size;
+                    if cell_mm_y < zone_svg_y_top || cell_mm_y > zone_svg_y_bot {
+                        continue;
+                    }
+                    let cell_id = ix * cells_y + iy;
+                    exclusion_blocked_cells.insert(cell_id);
+                    let node = &mut nodes[cell_id];
+                    node.blocked = true;
+                    node.connection = None;
+                }
+            }
+        }
+    }
+
     enum RoutingConnection {
         PortToPort(PortToPort),
         StarBranch(StarBranch),
@@ -515,6 +562,7 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
     }
 
     let mut succesful_routings = 0;
+    let mut failed_routings: Vec<(ConnectionID, usize, usize)> = Vec::new();
 
     // Route connections sequentially
     for routing_connection in routing_connections {
@@ -786,7 +834,9 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
                     }
                 }
             }
-            _ => (),
+            _ => {
+                failed_routings.push((c_id, start_node_id, target_node_id));
+            }
         }
     }
 
@@ -794,10 +844,27 @@ pub fn route(input: &RouteInput) -> BoardRouterOutput {
         connections: output_connections,
     };
 
-    if succesful_routings == 0 {
-        Err(BoardRouterOutputError::NoConnectionsFound)
-    } else if succesful_routings == n_routing_connections {
+    let exclusion_blocked_connection_ids: Vec<ConnectionID> = {
+        let mut seen = HashSet::<ConnectionID>::new();
+        failed_routings
+            .iter()
+            .filter(|(_, start, target)| {
+                exclusion_blocked_cells.contains(start) || exclusion_blocked_cells.contains(target)
+            })
+            .map(|(c_id, _, _)| *c_id)
+            .filter(|id| seen.insert(*id))
+            .collect()
+    };
+
+    if succesful_routings == n_routing_connections {
         Ok(output)
+    } else if !exclusion_blocked_connection_ids.is_empty() {
+        Err(BoardRouterOutputError::ExclusionZoneBlocked {
+            board: output,
+            blocked_connection_ids: exclusion_blocked_connection_ids,
+        })
+    } else if succesful_routings == 0 {
+        Err(BoardRouterOutputError::NoConnectionsFound)
     } else {
         Err(BoardRouterOutputError::PartialResult(output))
     }
