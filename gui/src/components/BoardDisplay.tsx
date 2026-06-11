@@ -13,6 +13,8 @@ import { isStarterPlatformPort } from "../utils/ports"
 import { ExclusionZoneEditor } from "./ExclusionZoneEditor"
 import { ExclusionStateHandle } from "../hooks/useExclusionState"
 import { ExclusionZoneDisplay } from "./ExclusionZoneDisplay"
+import starterTemplate from '/assets/STARTER_Template_cropped.png'
+
 
 export function BoardDisplay(props: {
     show: boolean
@@ -166,7 +168,7 @@ export function BoardDisplay(props: {
 
     const background = props.template === "STARTER" ? <>
         <image
-            href={'/assets/STARTER_Template_cropped.png'}
+            href={starterTemplate}
             x={0}
             y={0}
             opacity={0.5}
