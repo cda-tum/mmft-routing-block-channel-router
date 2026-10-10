@@ -104,10 +104,13 @@ fn xy(p: [f64; 2], z: f64) -> [f64; 3] {
     [p[0], p[1], z]
 }
 
-// The octilinear outline uses Y-down internally. Apply the same transform as DXF
-// (invert Y, shift by board_height) to get a standard right-hand Y-up coordinate system.
-fn transform_y(pts: Vec<[f64; 2]>, board_height: f64) -> Vec<[f64; 2]> {
-    pts.into_iter().map(|[x, y]| [x, board_height - y]).collect()
+// Maps a routed point (Y-down) into the STL's Y-up board frame, with the channel side at +Z.
+// Like DXF, Y is inverted and shifted by board_height. The STARTER port map in the UI shows the
+// routing block from below, while the channel side faces up when mounted under the fluidic circuit
+// board, so template designs are additionally mirrored in X to place the channels on the top face.
+fn to_board_frame(p: [f64; 2], board_width: f64, board_height: f64, mirror_x: bool) -> [f64; 2] {
+    let x = if mirror_x { board_width - p[0] } else { p[0] };
+    [x, board_height - p[1]]
 }
 
 // Returns a CCW circle polygon, used as a boolean-operation input contour.
@@ -346,34 +349,37 @@ pub fn generate_stl(input: GenerateSTLInput) -> GenerateSTLOutput {
     let ch = input.channel_height;
     let pr = input.port_diameter / 2.0;
 
+    let to_board = |p: [f64; 2]| to_board_frame(p, bw, bh, input.is_template);
+
     // Channel outlines (CCW, Y-up) and the port positions at their endpoints.
     let mut channels: Vec<Vec<[f64; 2]>> = Vec::new();
     let mut all_ports: Vec<[f64; 2]> = Vec::new();
     for (_, connection) in &input.connections.connections {
-        let outline = match octilinear_outline(connection, input.channel_width, &input.channel_cap) {
-            Polyline::Closed(pts) | Polyline::Open(pts) => transform_y(pts, bh),
+        let outline: Vec<[f64; 2]> = match octilinear_outline(connection, input.channel_width, &input.channel_cap) {
+            Polyline::Closed(pts) | Polyline::Open(pts) => pts.into_iter().map(to_board).collect(),
         };
+        // as_ccw also restores the winding that the X mirror reverses.
         channels.push(as_ccw(outline));
 
         if connection.len() == 1 {
             let ch_pts = &connection[0];
-            if let Some(&[x, y]) = ch_pts.first() {
-                all_ports.push([x, bh - y]);
+            if let Some(&p) = ch_pts.first() {
+                all_ports.push(to_board(p));
             }
             if ch_pts.len() > 1 {
-                if let Some(&[x, y]) = ch_pts.last() {
-                    all_ports.push([x, bh - y]);
+                if let Some(&p) = ch_pts.last() {
+                    all_ports.push(to_board(p));
                 }
             }
         } else {
             if let Some(first_ch) = connection.first() {
-                if let Some(&[x, y]) = first_ch.first() {
-                    all_ports.push([x, bh - y]);
+                if let Some(&p) = first_ch.first() {
+                    all_ports.push(to_board(p));
                 }
             }
             for branch in connection.iter() {
-                if let Some(&[x, y]) = branch.last() {
-                    all_ports.push([x, bh - y]);
+                if let Some(&p) = branch.last() {
+                    all_ports.push(to_board(p));
                 }
             }
         }
@@ -437,4 +443,112 @@ pub fn generate_stl(input: GenerateSTLInput) -> GenerateSTLOutput {
         add_cap(&mut tris, shape, -ch, false);
     }
     GenerateSTLOutput(write_binary_stl(&tris))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use super::*;
+
+    // Ray-casting point-in-polygon test.
+    fn inside(poly: &[[f64; 2]], p: [f64; 2]) -> bool {
+        let mut result = false;
+        let n = poly.len();
+        for i in 0..n {
+            let a = poly[i];
+            let b = poly[(i + 1) % n];
+            if (a[1] > p[1]) != (b[1] > p[1]) {
+                let x = a[0] + (p[1] - a[1]) / (b[1] - a[1]) * (b[0] - a[0]);
+                if p[0] < x {
+                    result = !result;
+                }
+            }
+        }
+        result
+    }
+
+    // Each screw hole must sit at the arc center of its tab: a circle just smaller than the
+    // tab radius around every hole center has to lie completely inside the board outline.
+    #[test]
+    fn template_screw_holes_are_centered_in_tabs() {
+        let outline = template_board_outline();
+        assert!(signed_area(&outline) > 0.0);
+        for &[cx, cy] in &TEMPLATE_SCREW_HOLE_CENTERS {
+            for p in circle_ccw(cx, cy, TEMPLATE_TAB_R - 0.05) {
+                assert!(inside(&outline, p), "hole ({cx}, {cy}) not covered by a tab at {p:?}");
+            }
+        }
+    }
+
+    // STARTER board with A1 -> B3 in routed Y-down coordinates (pitch 1.5, offsets 6/3).
+    fn starter_a1_b3_stl() -> Vec<u8> {
+        let connections = BoardRouterOutputBoard {
+            connections: vec![(0, vec![vec![[6.0, 3.0], [7.5, 4.5], [9.0, 4.5]]])],
+        };
+        generate_stl(GenerateSTLInput {
+            connections,
+            channel_width: 0.4,
+            channel_cap: ChannelCap::Square,
+            channel_height: 0.4,
+            board_width: 105.0,
+            board_height: 15.0,
+            board_thickness: 1.5,
+            port_diameter: 1.0,
+            is_template: true,
+        })
+        .0
+    }
+
+    // Triangles of a binary STL as raw vertex coordinates.
+    fn stl_triangles(stl: &[u8]) -> Vec<[[f32; 3]; 3]> {
+        let count = u32::from_le_bytes(stl[80..84].try_into().unwrap()) as usize;
+        assert_eq!(stl.len(), 84 + count * 50);
+        (0..count)
+            .map(|t| {
+                let base = 84 + t * 50 + 12;
+                [0, 1, 2].map(|i| {
+                    let o = base + i * 12;
+                    [0, 4, 8].map(|k| f32::from_le_bytes(stl[o + k..o + k + 4].try_into().unwrap()))
+                })
+            })
+            .collect()
+    }
+
+    #[test]
+    fn template_designs_are_mirrored_into_the_board_frame() {
+        // A1 / A65 of the UI port map (view from below) land on the opposite ends of the board.
+        assert_eq!(to_board_frame([6.0, 3.0], 105.0, 15.0, true), [99.0, 12.0]);
+        assert_eq!(to_board_frame([102.0, 3.0], 105.0, 15.0, true), [3.0, 12.0]);
+        assert_eq!(to_board_frame([6.0, 3.0], 105.0, 15.0, false), [6.0, 12.0]);
+    }
+
+    // The port holes of A1 and B3 must appear at the mirrored positions in the mesh.
+    #[test]
+    fn template_stl_places_ports_mirrored() {
+        let tris = stl_triangles(&starter_a1_b3_stl());
+        // True if any mesh vertex lies on a port circle (radius 0.5) around (cx, cy).
+        let on_port = |cx: f32, cy: f32| {
+            tris.iter().flatten().any(|v| ((v[0] - cx).hypot(v[1] - cy) - 0.5).abs() < 1e-3)
+        };
+        assert!(on_port(99.0, 12.0), "no port hole at mirrored A1");
+        assert!(on_port(96.0, 10.5), "no port hole at mirrored B3");
+        assert!(!on_port(6.0, 12.0), "port hole at unmirrored A1");
+    }
+
+    // Every directed edge of the mesh must be matched by exactly one reversed edge.
+    #[test]
+    fn template_stl_is_watertight() {
+        let mut edges: HashMap<([u32; 3], [u32; 3]), i32> = HashMap::new();
+        for tri in stl_triangles(&starter_a1_b3_stl()) {
+            let v = tri.map(|p| p.map(f32::to_bits));
+            for i in 0..3 {
+                *edges.entry((v[i], v[(i + 1) % 3])).or_insert(0) += 1;
+            }
+        }
+        for (&(a, b), &n) in &edges {
+            assert_eq!(n, 1, "directed edge used {n} times");
+            assert_eq!(edges.get(&(b, a)), Some(&1), "unmatched edge");
+        }
+    }
 }
