@@ -7,6 +7,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::board_router::{BoardRouterOutputBoard, Channel, Point};
+use crate::stl::{template_board_outline, TEMPLATE_SCREW_HOLE_CENTERS, TEMPLATE_SCREW_HOLE_RADIUS};
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct ExceedBy(f64);
@@ -573,10 +574,25 @@ fn write_dxf_entities<W: Write>(out: &mut W, entities: &[GeometricEntity]) -> Re
         match entity {
             GeometricEntity::Polyline(polyline) => write_dxf_polyline(out, polyline)?,
             GeometricEntity::Line(line) => write_dxf_line(out, line)?,
+            GeometricEntity::Circle(circle) => write_dxf_circle(out, circle)?,
             _ => (),
         }
     }
 
+    Ok(())
+}
+
+fn write_dxf_circle<W: Write>(out: &mut W, circle: &Circle) -> Result<()> {
+    out.write_all(b"CIRCLE\n")?;
+    out.write_all(b"8\n")?;
+    out.write_all(b"0\n")?;
+    out.write_all(b"10\n")?;
+    out.write_all(format!("{}\n", circle.center[0]).as_bytes())?;
+    out.write_all(b"20\n")?;
+    out.write_all(format!("{}\n", circle.center[1]).as_bytes())?;
+    out.write_all(b"40\n")?;
+    out.write_all(format!("{}\n", circle.radius).as_bytes())?;
+    out.write_all(b"0\n")?;
     Ok(())
 }
 
@@ -693,43 +709,55 @@ pub struct GenerateDXFInput {
     board_height: f64,
     #[serde(default)]
     is_template: bool,
+    // Only used for template designs: draw the template outline and screw holes
+    // instead of the plain board rectangle.
+    #[serde(default)]
+    template_outline: bool,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct GenerateDXFOutput(String);
 
 pub fn generate_dxf(input: GenerateDXFInput) -> GenerateDXFOutput {
+    let channels = input.connections.connections.iter().map(|(_, connection)| {
+        let mut outline = octilinear_outline(connection, input.channel_width, &input.channel_cap);
+        outline.invert_y().add_y(input.board_height);
+        // The STARTER port map shows the routing block from below; the DXF shows the
+        // channel side (as the STL does), so template designs are mirrored in X.
+        if input.is_template {
+            outline.mirror_x(input.board_width);
+        }
+        GeometricEntity::Polyline(outline)
+    });
+
+    // On request, STARTER designs get the same board outline (with mounting tabs) and screw holes
+    // as the STL; both are already in the Y-up board frame. Otherwise a plain rectangle is drawn.
+    let board: Vec<GeometricEntity> = if input.is_template && input.template_outline {
+        iter::once(GeometricEntity::Polyline(Polyline::Closed(template_board_outline())))
+            .chain(TEMPLATE_SCREW_HOLE_CENTERS.iter().map(|&center| {
+                GeometricEntity::Circle(Circle {
+                    center,
+                    radius: TEMPLATE_SCREW_HOLE_RADIUS,
+                })
+            }))
+            .collect()
+    } else {
+        vec![GeometricEntity::Polyline(
+            Polyline::Closed(Vec::from([
+                [0., 0.],
+                [input.board_width, 0.],
+                [input.board_width, input.board_height],
+                [0., input.board_height],
+            ]))
+            .invert_y()
+            .add_y(input.board_height)
+            .to_owned(),
+        )]
+    };
+
     let mut s = Vec::new();
     let mut buf = Cursor::new(&mut s);
-    let _ = write_dxf(
-        &mut buf,
-        &input
-            .connections
-            .connections
-            .iter()
-            .map(|(_, connection)| {
-                let mut outline = octilinear_outline(connection, input.channel_width, &input.channel_cap);
-                outline.invert_y().add_y(input.board_height);
-                // The STARTER port map shows the routing block from below; the DXF shows the
-                // channel side (as the STL does), so template designs are mirrored in X.
-                if input.is_template {
-                    outline.mirror_x(input.board_width);
-                }
-                GeometricEntity::Polyline(outline)
-            })
-            .chain(iter::once(GeometricEntity::Polyline(
-                Polyline::Closed(Vec::from([
-                    [0., 0.],
-                    [input.board_width, 0.],
-                    [input.board_width, input.board_height],
-                    [0., input.board_height],
-                ]))
-                .invert_y()
-                .add_y(input.board_height)
-                .to_owned(),
-            )))
-            .collect::<Vec<GeometricEntity>>(),
-    );
+    let _ = write_dxf(&mut buf, &channels.chain(board).collect::<Vec<GeometricEntity>>());
     GenerateDXFOutput(String::from_utf8(s).unwrap())
 }
 
@@ -1164,9 +1192,8 @@ mod tests {
     mod generate_dxf {
         use super::*;
 
-        // X range of all channel LINE entities (the 105 mm board rectangle is excluded).
-        fn channel_x_range(is_template: bool) -> (f64, f64) {
-            // STARTER board with A1 -> B3 in routed Y-down coordinates (pitch 1.5, offsets 6/3).
+        // STARTER board with A1 -> B3 in routed Y-down coordinates (pitch 1.5, offsets 6/3).
+        fn a1_b3_dxf(is_template: bool, template_outline: bool) -> String {
             let GenerateDXFOutput(dxf) = super::super::generate_dxf(GenerateDXFInput {
                 connections: BoardRouterOutputBoard {
                     connections: vec![(0, vec![vec![[6.0, 3.0], [7.5, 4.5], [9.0, 4.5]]])],
@@ -1176,31 +1203,89 @@ mod tests {
                 board_width: 105.0,
                 board_height: 15.0,
                 is_template,
+                template_outline,
             });
+            dxf
+        }
+
+        // Values of the given group codes for every entity of one type, in file order.
+        fn entities(dxf: &str, kind: &str, codes: &[&str]) -> Vec<Vec<f64>> {
             let tokens: Vec<&str> = dxf.lines().collect();
-            let mut xs = Vec::new();
+            let mut result = Vec::new();
             for (i, t) in tokens.iter().enumerate() {
-                if *t == "LINE" {
-                    let x1: f64 = tokens[i + 4].parse().unwrap();
-                    let x2: f64 = tokens[i + 8].parse().unwrap();
-                    if x1.min(x2) > 0.0 && x1.max(x2) < 105.0 {
-                        xs.extend([x1, x2]);
-                    }
+                if *t == kind {
+                    let fields: Vec<f64> = codes
+                        .iter()
+                        .map(|code| {
+                            let j = (i + 1..tokens.len()).step_by(2).find(|&j| tokens[j] == *code).unwrap();
+                            tokens[j + 1].parse().unwrap()
+                        })
+                        .collect();
+                    result.push(fields);
                 }
             }
+            result
+        }
+
+        // X range of the channel LINE entities: the only lines strictly inside the 105x15 body
+        // (board rectangle and template outline edges lie on or outside its border).
+        fn channel_x_range(is_template: bool, template_outline: bool) -> (f64, f64) {
+            let xs: Vec<f64> = entities(&a1_b3_dxf(is_template, template_outline), "LINE", &["10", "20", "11", "21"])
+                .into_iter()
+                .filter(|l| l[0].min(l[2]) > 0.0 && l[0].max(l[2]) < 105.0 && l[1].min(l[3]) > 0.0 && l[1].max(l[3]) < 15.0)
+                .flat_map(|l| [l[0], l[2]])
+                .collect();
             (xs.iter().cloned().fold(f64::INFINITY, f64::min), xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max))
         }
 
         #[test]
         fn template_channels_are_mirrored() {
-            let (min, max) = channel_x_range(true);
-            assert!((min - 95.8).abs() < 1e-9 && (max - 99.28284271247461).abs() < 1e-9, "got [{min}, {max}]");
+            // Both STARTER variants (plain rectangle and template outline) mirror the channels.
+            for template_outline in [false, true] {
+                let (min, max) = channel_x_range(true, template_outline);
+                assert!((min - 95.8).abs() < 1e-9 && (max - 99.28284271247461).abs() < 1e-9, "got [{min}, {max}]");
+            }
         }
 
         #[test]
         fn non_template_channels_are_not_mirrored() {
-            let (min, max) = channel_x_range(false);
+            let (min, max) = channel_x_range(false, false);
             assert!((min - 5.717157287525381).abs() < 1e-9 && (max - 9.2).abs() < 1e-9, "got [{min}, {max}]");
+        }
+
+        #[test]
+        fn template_dxf_contains_outline_and_screw_holes() {
+            let dxf = a1_b3_dxf(true, true);
+            let circles = entities(&dxf, "CIRCLE", &["10", "20", "40"]);
+            let expected: Vec<Vec<f64>> = TEMPLATE_SCREW_HOLE_CENTERS
+                .iter()
+                .map(|c| vec![c[0], c[1], TEMPLATE_SCREW_HOLE_RADIUS])
+                .collect();
+            assert_eq!(circles, expected);
+
+            // Every outline edge (including the closing one) is written as one LINE.
+            let outline = template_board_outline();
+            let lines = entities(&dxf, "LINE", &["10", "20", "11", "21"]);
+            for (i, a) in outline.iter().enumerate() {
+                let b = outline[(i + 1) % outline.len()];
+                assert!(
+                    lines.iter().any(|l| (l[..2] == a[..] && l[2..] == b[..]) || (l[..2] == b[..] && l[2..] == a[..])),
+                    "outline edge {a:?} -> {b:?} missing"
+                );
+            }
+        }
+
+        // Without the outline option (or without a template) the board is the plain rectangle.
+        #[test]
+        fn dxf_without_outline_keeps_plain_rectangle() {
+            for (is_template, template_outline) in [(false, false), (true, false), (false, true)] {
+                let dxf = a1_b3_dxf(is_template, template_outline);
+                assert!(entities(&dxf, "CIRCLE", &["10"]).is_empty());
+                let lines = entities(&dxf, "LINE", &["10", "20", "11", "21"]);
+                let outside: Vec<&Vec<f64>> = lines.iter().filter(|l| l.iter().any(|v| *v < 0.0 || *v > 105.0)).collect();
+                assert!(outside.is_empty(), "lines outside the board: {outside:?}");
+                assert_eq!(lines.iter().filter(|l| l[0].max(l[2]) - l[0].min(l[2]) == 105.0).count(), 2);
+            }
         }
     }
 }

@@ -20,10 +20,10 @@ const CIRCLE_SEGS: usize = 32;
 // Each tab has a rectangular section (TAB_RECT_H tall) topped by a semicircle (TAB_R radius).
 const TEMPLATE_TAB_RECT_H: f64 = 2.125;
 const TEMPLATE_TAB_R: f64 = 2.0;
-const TEMPLATE_SCREW_HOLE_RADIUS: f64 = 1.0;
+pub(crate) const TEMPLATE_SCREW_HOLE_RADIUS: f64 = 1.0;
 
 // Screw hole centers = arc centers of each tab, in Y-up board-relative mm.
-const TEMPLATE_SCREW_HOLE_CENTERS: [[f64; 2]; 10] = [
+pub(crate) const TEMPLATE_SCREW_HOLE_CENTERS: [[f64; 2]; 10] = [
     [-3.0,  2.0  ],  // left tab
     [ 6.0,  17.125],  // top tab
     [24.0,  17.125],
@@ -165,7 +165,7 @@ fn arc_pts(cx: f64, cy: f64, r: f64, start_deg: f64, end_deg: f64, n_total: usiz
 // Tracing order: start at top-left (0,15), then down the left edge + left tab,
 // right along the bottom + bottom tabs + corner tab, up the right edge,
 // left along the top + six top tabs. Earcutr closes the polygon implicitly.
-fn template_board_outline() -> Vec<[f64; 2]> {
+pub(crate) fn template_board_outline() -> Vec<[f64; 2]> {
     let rh = TEMPLATE_TAB_RECT_H; // 2.125 – rectangular section height
     let r  = TEMPLATE_TAB_R;      // 2.0   – semicircle radius
 
