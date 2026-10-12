@@ -533,6 +533,17 @@ impl Polyline {
 
         self
     }
+
+    // Mirrors across the vertical board centre line (x -> board_width - x).
+    fn mirror_x(&mut self, board_width: f64) -> &mut Self {
+        match self {
+            Polyline::Closed(vec) | Polyline::Open(vec) => {
+                vec.iter_mut().for_each(|p| p[0] = board_width - p[0]);
+            }
+        }
+
+        self
+    }
 }
 
 pub struct Line {
@@ -680,6 +691,8 @@ pub struct GenerateDXFInput {
     channel_cap: ChannelCap,
     board_width: f64,
     board_height: f64,
+    #[serde(default)]
+    is_template: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -695,12 +708,14 @@ pub fn generate_dxf(input: GenerateDXFInput) -> GenerateDXFOutput {
             .connections
             .iter()
             .map(|(_, connection)| {
-                GeometricEntity::Polyline(
-                    octilinear_outline(connection, input.channel_width, &input.channel_cap)
-                        .invert_y()
-                        .add_y(input.board_height)
-                        .to_owned(),
-                )
+                let mut outline = octilinear_outline(connection, input.channel_width, &input.channel_cap);
+                outline.invert_y().add_y(input.board_height);
+                // The STARTER port map shows the routing block from below; the DXF shows the
+                // channel side (as the STL does), so template designs are mirrored in X.
+                if input.is_template {
+                    outline.mirror_x(input.board_width);
+                }
+                GeometricEntity::Polyline(outline)
             })
             .chain(iter::once(GeometricEntity::Polyline(
                 Polyline::Closed(Vec::from([
@@ -1143,6 +1158,49 @@ mod tests {
                 next_cw_join_points(Orientation::N, Orientation::NW, W),
                 JoinPoints::One([WH, WH + WD])
             )
+        }
+    }
+
+    mod generate_dxf {
+        use super::*;
+
+        // X range of all channel LINE entities (the 105 mm board rectangle is excluded).
+        fn channel_x_range(is_template: bool) -> (f64, f64) {
+            // STARTER board with A1 -> B3 in routed Y-down coordinates (pitch 1.5, offsets 6/3).
+            let GenerateDXFOutput(dxf) = super::super::generate_dxf(GenerateDXFInput {
+                connections: BoardRouterOutputBoard {
+                    connections: vec![(0, vec![vec![[6.0, 3.0], [7.5, 4.5], [9.0, 4.5]]])],
+                },
+                channel_width: 0.4,
+                channel_cap: ChannelCap::Square,
+                board_width: 105.0,
+                board_height: 15.0,
+                is_template,
+            });
+            let tokens: Vec<&str> = dxf.lines().collect();
+            let mut xs = Vec::new();
+            for (i, t) in tokens.iter().enumerate() {
+                if *t == "LINE" {
+                    let x1: f64 = tokens[i + 4].parse().unwrap();
+                    let x2: f64 = tokens[i + 8].parse().unwrap();
+                    if x1.min(x2) > 0.0 && x1.max(x2) < 105.0 {
+                        xs.extend([x1, x2]);
+                    }
+                }
+            }
+            (xs.iter().cloned().fold(f64::INFINITY, f64::min), xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max))
+        }
+
+        #[test]
+        fn template_channels_are_mirrored() {
+            let (min, max) = channel_x_range(true);
+            assert!((min - 95.8).abs() < 1e-9 && (max - 99.28284271247461).abs() < 1e-9, "got [{min}, {max}]");
+        }
+
+        #[test]
+        fn non_template_channels_are_not_mirrored() {
+            let (min, max) = channel_x_range(false);
+            assert!((min - 5.717157287525381).abs() < 1e-9 && (max - 9.2).abs() < 1e-9, "got [{min}, {max}]");
         }
     }
 }

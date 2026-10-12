@@ -133,7 +133,7 @@ export function BoardUI() {
 
     useEffect(() => {
         if ((output.error === undefined || output.is_partial) && Object.keys(output.connectionsRaw).length > 0 && input.parameters.channelWidth.value !== undefined && input.parameters.channelHeight.value !== undefined && input.parameters.channelCap.value !== undefined && input.parameters.channelCapCustom.value !== undefined && input.parameters.boardWidth.value !== undefined && input.parameters.boardHeight.value !== undefined && input.parameters.boardThickness.value !== undefined && input.parameters.portDiameter.value !== undefined) {
-            const dxf = generateDXF(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.boardWidth.value, input.parameters.boardHeight.value)
+            const dxf = generateDXF(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.boardWidth.value, input.parameters.boardHeight.value, input.parameters.template.value === "STARTER")
             setDXFOutput(dxf)
             const stl = generateSTL(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelHeight.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.boardWidth.value, input.parameters.boardHeight.value, input.parameters.boardThickness.value, input.parameters.portDiameter.value, input.parameters.template.value === "STARTER")
             setSTLOutput(stl)
