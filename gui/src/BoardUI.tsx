@@ -20,7 +20,7 @@ import { ChannelWidthIcon } from "./icons/ChannelWidthIcon"
 import { ChannelSpacingIcon } from "./icons/ChannelSpacingIcon"
 import { ConnectionsState } from "./hooks/useConnectionState"
 import { OutputChannelCapChoice } from "./components/OutputChannelCapChoice"
-import { DownloadButton } from "./components/DownloadButton"
+import { DownloadButton, DownloadMenuButton } from "./components/DownloadButton"
 import { ContentBox } from "./components/ContentBox"
 import { UploadButton } from "./components/UploadButton"
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
@@ -98,6 +98,8 @@ export type STLState = undefined | number[]
 export function BoardUI() {
     const [initialInputConnections, setInitialInputConnections] = useState<ConnectionsState>({});
     const [dxfOutput, setDXFOutput] = useState<DXFState>(undefined)
+    // STARTER only: DXF variant with the template outline and screw holes instead of the rectangle
+    const [dxfOutlineOutput, setDXFOutlineOutput] = useState<DXFState>(undefined)
     const [stlOutput, setSTLOutput] = useState<STLState>(undefined)
     const [input, setInput] = useState<InputState>(defaultInputState)
     const [output, setOutput] = useState<OutputState>(defaultOutputState)
@@ -133,12 +135,15 @@ export function BoardUI() {
 
     useEffect(() => {
         if ((output.error === undefined || output.is_partial) && Object.keys(output.connectionsRaw).length > 0 && input.parameters.channelWidth.value !== undefined && input.parameters.channelHeight.value !== undefined && input.parameters.channelCap.value !== undefined && input.parameters.channelCapCustom.value !== undefined && input.parameters.boardWidth.value !== undefined && input.parameters.boardHeight.value !== undefined && input.parameters.boardThickness.value !== undefined && input.parameters.portDiameter.value !== undefined) {
-            const dxf = generateDXF(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.boardWidth.value, input.parameters.boardHeight.value)
+            const isStarter = input.parameters.template.value === "STARTER"
+            const dxf = generateDXF(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.boardWidth.value, input.parameters.boardHeight.value, isStarter)
             setDXFOutput(dxf)
+            setDXFOutlineOutput(isStarter ? generateDXF(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.boardWidth.value, input.parameters.boardHeight.value, true, true) : undefined)
             const stl = generateSTL(output.connectionsRaw, input.parameters.channelWidth.value, input.parameters.channelHeight.value, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.boardWidth.value, input.parameters.boardHeight.value, input.parameters.boardThickness.value, input.parameters.portDiameter.value, input.parameters.template.value === "STARTER")
             setSTLOutput(stl)
         } else {
             setDXFOutput(undefined)
+            setDXFOutlineOutput(undefined)
             setSTLOutput(undefined)
         }
     }, [output, input.parameters.channelCap.value, input.parameters.channelCapCustom.value, input.parameters.channelWidth, input.parameters.channelHeight, input.parameters.boardWidth, input.parameters.boardHeight, input.parameters.boardThickness, input.parameters.portDiameter.value, input.parameters.template.value])
@@ -643,16 +648,43 @@ export function BoardUI() {
                             }} /> Generate Design</Typography>
                     </Button>
 
-                    <DownloadButton
-                        label="Download DXF"
-                        fileName={`chip_${nonce2}.dxf`}
-                        mime={'image/x-dxf'}
-                        content={dxfOutput !== undefined ? () => {
-                            setNonce2(n => n + 1)
-                            return dxfOutput
-                        } : undefined}
-                        noContentMessage={"There is no valid routing. Click 'Generate Design' to generate a routing."}
-                    />
+                    {input.parameters.template.value === "STARTER" ?
+                        <DownloadMenuButton
+                            label="Download DXF"
+                            options={[
+                                {
+                                    label: "Chip rectangle",
+                                    fileName: `chip_${nonce2}.dxf`,
+                                    mime: 'image/x-dxf',
+                                    content: dxfOutput !== undefined ? () => {
+                                        setNonce2(n => n + 1)
+                                        return dxfOutput
+                                    } : undefined
+                                },
+                                {
+                                    label: "STARTER outline with screw holes",
+                                    fileName: `chip_${nonce2}_outline.dxf`,
+                                    mime: 'image/x-dxf',
+                                    content: dxfOutlineOutput !== undefined ? () => {
+                                        setNonce2(n => n + 1)
+                                        return dxfOutlineOutput
+                                    } : undefined
+                                },
+                            ]}
+                            noContentMessage={"There is no valid routing. Click 'Generate Design' to generate a routing."}
+                        />
+                        :
+                        <DownloadButton
+                            label="Download DXF"
+                            fileName={`chip_${nonce2}.dxf`}
+                            mime={'image/x-dxf'}
+                            content={dxfOutput !== undefined ? () => {
+                                setNonce2(n => n + 1)
+                                return dxfOutput
+                            } : undefined}
+                            noContentMessage={"There is no valid routing. Click 'Generate Design' to generate a routing."}
+                        />
+                    }
 
                     <DownloadButton
                         label="Download STL"

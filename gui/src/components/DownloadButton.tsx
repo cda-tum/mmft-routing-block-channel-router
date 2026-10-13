@@ -1,5 +1,7 @@
-import { Button, Tooltip, Typography, useTheme } from "@mui/joy"
+import { Button, Menu, MenuItem, Tooltip, Typography, useTheme } from "@mui/joy"
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import { ArrowDropDown } from "@mui/icons-material"
+import { useRef, useState } from "react"
 
 export function download(output: string | Uint8Array, fileName: string, mime: string) {
     const a = document.createElement('a')
@@ -63,4 +65,65 @@ export function DownloadButton(props: DownloadButtonProps) {
     const maybeWrapped = wrapWithTooltip ? <Tooltip title={props.noContentMessage} variant="solid">{button}</Tooltip> : button
 
     return maybeWrapped
+}
+
+export type DownloadOption = {
+    label: string
+    fileName: string
+    mime: string
+    content: string | Uint8Array | (() => string | Uint8Array) | undefined
+}
+
+// Download button that opens a menu to choose between several variants of the same output.
+export function DownloadMenuButton(props: { label: string, options: DownloadOption[], noContentMessage: string }) {
+    const theme = useTheme()
+    const [open, setOpen] = useState(false)
+    const anchorRef = useRef<HTMLButtonElement>(null)
+
+    const disabled = props.options.every(option => option.content === undefined)
+
+    const button = <span><Button
+        ref={anchorRef}
+        disabled={disabled}
+        sx={{
+            margin: 1,
+            marginX: 1,
+        }}
+        onClick={e => {
+            setOpen(o => !o)
+            e.stopPropagation()
+        }}
+    >
+        <Typography sx={{ color: theme.vars.palette.common.white }}>
+            <FileDownloadIcon sx={{
+                verticalAlign: 'bottom'
+            }} /> {props.label}
+            <ArrowDropDown sx={{ verticalAlign: 'bottom' }} />
+        </Typography>
+    </Button></span>
+
+    const menu = <Menu
+        open={open}
+        onClose={() => setOpen(false)}
+        anchorEl={anchorRef.current}
+    >
+        {props.options.map(option => <MenuItem
+            key={option.label}
+            disabled={option.content === undefined}
+            onClick={() => {
+                setOpen(false)
+                if (option.content !== undefined) {
+                    const content = typeof option.content === 'function' ? option.content() : option.content
+                    download(content, option.fileName, option.mime)
+                }
+            }}
+        >
+            <Typography sx={{ color: theme.vars.palette.text.primary }}>{option.label}</Typography>
+        </MenuItem>)}
+    </Menu>
+
+    return <>
+        {disabled ? <Tooltip title={props.noContentMessage} variant="solid">{button}</Tooltip> : button}
+        {menu}
+    </>
 }

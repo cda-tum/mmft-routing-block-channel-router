@@ -82,7 +82,7 @@ export function computePathResistance(points: Point[], channelWidth: number, cha
     return resistance;
 }
 
-export function generateDXF(output: OutputConnectionsRaw, channelWidth: number, channelCap: string, channelCustom: number, boardWidth: number, boardHeight: number) {
+export function generateDXF(output: OutputConnectionsRaw, channelWidth: number, channelCap: string, channelCustom: number, boardWidth: number, boardHeight: number, isTemplate: boolean = false, templateOutline: boolean = false) {
     try {
         let channelCapArg
         if (channelCap === "Butt" || channelCap === "Square") {
@@ -99,7 +99,9 @@ export function generateDXF(output: OutputConnectionsRaw, channelWidth: number, 
             channel_width: channelWidth,
             channel_cap: channelCapArg,
             board_width: boardWidth,
-            board_height: boardHeight
+            board_height: boardHeight,
+            is_template: isTemplate,
+            template_outline: templateOutline
         }
         const result = generate_dxf(args)
         return result
