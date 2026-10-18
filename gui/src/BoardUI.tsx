@@ -70,6 +70,19 @@ const defaultOutputState: OutputState = {
     connectionsRaw: defaultOutputConnectionsRaw
 }
 
+// Drop routed channels of connections that no longer exist, so a reused connection ID does not render a stale channel
+function pruneOutputConnections(output: OutputState, remainingIds: Set<ConnectionID>): OutputState {
+    const staleIds = Object.keys(output.connections).map(id => parseInt(id)).filter(id => !remainingIds.has(id))
+    if (staleIds.length === 0) {
+        return output
+    }
+    return {
+        ...output,
+        connections: Object.fromEntries(Object.entries(output.connections).filter(([id]) => remainingIds.has(parseInt(id)))),
+        connectionsRaw: output.connectionsRaw.filter(([id]) => remainingIds.has(id))
+    }
+}
+
 export type BoardEdit = {
     state: BoardEditState.Default
     nextConnection: ConnectionID
@@ -586,10 +599,14 @@ export function BoardUI() {
                             template={input.parameters.template.value!}
                             columns={input.portsX}
                             rows={input.portsY}
-                            onChange={c => setInput(s => ({
-                                ...s,
-                                connections: c
-                            }))}
+                            onChange={c => {
+                                setInput(s => ({
+                                    ...s,
+                                    connections: c
+                                }))
+                                const remainingIds = new Set(Object.keys(c).map(id => parseInt(id)))
+                                setOutput(o => pruneOutputConnections(o, remainingIds))
+                            }}
                             outputConnections={output.connections}
                             closeDropdown={closeDropdown}
                             clearOutputConnections={() => {
