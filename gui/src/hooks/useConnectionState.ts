@@ -49,12 +49,13 @@ export const connectionPreviewStateDefault = {
     }
 }
 
-export function portError(index: number, portKey: PortKey | undefined, boundaries: Boundaries, isUsedByOtherThan: (key: PortKey, connection: number) => boolean, ports: PortField[], branchPort: PortField, connection: ConnectionID) {
+export function portError(index: number, portKey: PortKey | undefined, boundaries: Boundaries, isUsedByOtherThan: (key: PortKey, connection: number) => boolean, ports: PortField[], branchPort: PortField, connection: ConnectionID, starterTemplate: boolean) {
     if (portKey == undefined) {
         return ERROR_MESSAGES.INVALID_PORT
     }
 
-    if (!isStarterPlatformPort(portKey[0], portKey[1])) {
+    // Only the STARTER platform has a sparse port layout; all grid ports are available otherwise
+    if (starterTemplate && !isStarterPlatformPort(portKey[0], portKey[1])) {
         return ERROR_MESSAGES.DISABLED_PORT
     }
 
@@ -112,6 +113,7 @@ export function useConnectionState(props: {
     portConnectionMap?: PortConnectionMap
     connections?: ConnectionsState
     boundaries: Boundaries
+    starterTemplate?: boolean
 }) {
     const [portConnectionMap, setPortConnectionMap] = useState<PortConnectionMap>(props?.portConnectionMap ?? {})
     const [connections, setConnections] = useState<ConnectionsState>(props?.connections ?? [])
@@ -119,7 +121,7 @@ export function useConnectionState(props: {
 
     useEffect(() => {
         updatePorts()
-    }, [props.boundaries.columns, props.boundaries.rows])
+    }, [props.boundaries.columns, props.boundaries.rows, props.starterTemplate])
 
     const updatePorts = () => {
         setConnectionPreviewState(s => {
@@ -145,11 +147,11 @@ export function useConnectionState(props: {
 
     const isValid = () => connectionPreviewState.ports.every(p => p.error === undefined) && connectionPreviewState.branchPort.error === undefined
 
-    const isUsedByOtherThan = (port: PortKey, connection: ConnectionID) => (portConnectionMap[port[0]]?.[port[1]] !== undefined && portConnectionMap[port[0]]?.[port[1]] !== connection) || Object.entries(connections).some(([connectionId, c]) => parseInt(connectionId) !== connection && c.branchPort !== undefined && c.branchPort[0] === port[0] && c.branchPort[0] === port[1])
+    const isUsedByOtherThan = (port: PortKey, connection: ConnectionID) => (portConnectionMap[port[0]]?.[port[1]] !== undefined && portConnectionMap[port[0]]?.[port[1]] !== connection) || Object.entries(connections).some(([connectionId, c]) => parseInt(connectionId) !== connection && c.branchPort !== undefined && c.branchPort[0] === port[0] && c.branchPort[1] === port[1])
 
     const updatePortErrors = (ports: PortField[], branchPort: PortField) => {
         return ports.map((port, j) => {
-            const error = portError(j, port.index, props.boundaries, isUsedByOtherThan, ports, branchPort, connectionPreviewState.connection)
+            const error = portError(j, port.index, props.boundaries, isUsedByOtherThan, ports, branchPort, connectionPreviewState.connection, props.starterTemplate ?? false)
             return {
                 ...port,
                 error
