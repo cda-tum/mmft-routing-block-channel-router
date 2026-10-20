@@ -45,7 +45,8 @@ export function BoardDisplay(props: {
         boundaries: {
             columns: props.columns ?? 0,
             rows: props.rows ?? 0
-        }
+        },
+        starterTemplate: props.template === "STARTER"
     })
 
     const exclusionState = props.exclusionState
